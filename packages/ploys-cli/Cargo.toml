@@ -11,6 +11,12 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.72"
 clap = { version = "4.3.21", features = ["derive"] }
+console = "0.15.7"
+gix = "0.51.0"
+
+[dev-dependencies]
+assert_cmd = "2.0.12"
+predicates = { version = "3.0.3", features = ["regex"] }
 
 [[bin]]
 name = "ploys"
