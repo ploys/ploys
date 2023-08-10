@@ -10,6 +10,8 @@ jobs:
   test:
     name: Test (${{ matrix.label }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
 
     strategy:
       matrix:
@@ -43,7 +45,9 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     - name: Test
-      run: cargo test --target ${{ matrix.target }}
+      run: cargo test --target ${{ matrix.target }} -- --include-ignored
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   lint:
     name: Lint

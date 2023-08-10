@@ -16,13 +16,17 @@ pub struct Inspect {
     /// The remote GitHub repository owner/repo or URL.
     #[clap(long)]
     remote: Option<RepoOrUrl>,
+
+    /// The authentication token for GitHub API access.
+    #[clap(long, env = "GITHUB_TOKEN")]
+    token: Option<String>,
 }
 
 impl Inspect {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
         let project = match self.remote {
-            Some(remote) => Project::remote(remote)?,
+            Some(remote) => Project::remote(remote, self.token.as_deref())?,
             None => Project::local(gix::open(".")?)?,
         };
 
@@ -48,7 +52,7 @@ impl Project {
     }
 
     /// Loads the project information from the remote repository.
-    fn remote(remote: RepoOrUrl) -> Result<Self, Error> {
+    fn remote(remote: RepoOrUrl, token: Option<&str>) -> Result<Self, Error> {
         let repo = match remote {
             RepoOrUrl::Repo(repo) => repo,
             RepoOrUrl::Url(url) => {
@@ -65,10 +69,10 @@ impl Project {
             }
         };
 
-        Self::query_remote_repository(&repo)?;
+        Self::query_remote_repository(&repo, token)?;
 
         Ok(Self {
-            name: Self::query_remote_project_name(&repo),
+            name: Self::query_remote_project_name(&repo, token),
             repo: Some(format!("https://github.com/{}", repo)),
         })
     }
@@ -89,9 +93,13 @@ impl Project {
     }
 
     /// Queries the remote repository to check that it exists.
-    fn query_remote_repository(repo: &Repo) -> Result<(), Error> {
+    fn query_remote_repository(repo: &Repo, token: Option<&str>) -> Result<(), Error> {
         let url = format!("https://api.github.com/repos/{}", repo);
-        let request = ureq::head(&url).set("User-Agent", "ploys/ploys");
+        let mut request = ureq::head(&url).set("User-Agent", "ploys/ploys");
+
+        if let Some(token) = token {
+            request = request.set("Authorization", &format!("Bearer {token}"));
+        }
 
         match request.call() {
             Ok(_) => Ok(()),
@@ -101,11 +109,15 @@ impl Project {
     }
 
     /// Queries the remote repository name.
-    fn query_remote_project_name(repo: &Repo) -> String {
+    fn query_remote_project_name(repo: &Repo, token: Option<&str>) -> String {
         let url = format!("https://api.github.com/repos/{}/readme", repo);
-        let request = ureq::get(&url)
+        let mut request = ureq::get(&url)
             .set("User-Agent", "ploys/ploys")
             .set("Accept", "application/vnd.github.raw");
+
+        if let Some(token) = token {
+            request = request.set("Authorization", &format!("Bearer {token}"));
+        }
 
         if let Ok(response) = request.call() {
             if let Ok(readme) = response.into_string() {
