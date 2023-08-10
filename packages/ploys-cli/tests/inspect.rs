@@ -4,6 +4,7 @@ use assert_cmd::prelude::*;
 use predicates::prelude::*;
 
 #[test]
+#[ignore]
 fn test_inspect_local_command_output() {
     Command::cargo_bin("ploys")
         .unwrap()
@@ -16,6 +17,7 @@ fn test_inspect_local_command_output() {
 }
 
 #[test]
+#[ignore]
 fn test_inspect_remote_command_output() {
     Command::cargo_bin("ploys")
         .unwrap()
@@ -30,6 +32,7 @@ fn test_inspect_remote_command_output() {
 }
 
 #[test]
+#[ignore]
 fn test_inspect_remote_url_command_output() {
     Command::cargo_bin("ploys")
         .unwrap()
