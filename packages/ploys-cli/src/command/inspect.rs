@@ -59,7 +59,7 @@ impl Project {
                 }
 
                 url.path()
-                    .trim_start_matches("/")
+                    .trim_start_matches('/')
                     .trim_end_matches(".git")
                     .parse::<Repo>()?
             }
@@ -165,8 +165,8 @@ impl FromStr for Repo {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.split_once("/") {
-            Some((owner, repo)) => match repo.contains("/") {
+        match s.split_once('/') {
+            Some((owner, repo)) => match repo.contains('/') {
                 true => Err(anyhow!("Expected owner/repo, found: {}", s)),
                 false => Ok(Self {
                     owner: owner.to_string(),
