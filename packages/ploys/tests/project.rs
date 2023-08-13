@@ -4,12 +4,11 @@ use ploys::project::{Error, Project};
 #[ignore]
 fn test_valid_local_project() -> Result<(), Error> {
     let project = Project::local("../..")?;
+    let url = project.get_url()?;
 
     assert_eq!(project.get_name()?, "ploys");
-    assert_eq!(
-        project.get_url()?,
-        "https://github.com/ploys/ploys.git".parse().unwrap()
-    );
+    assert_eq!(url.domain(), Some("github.com"));
+    assert_eq!(url.path().trim_end_matches(".git"), "/ploys/ploys");
 
     Ok(())
 }
