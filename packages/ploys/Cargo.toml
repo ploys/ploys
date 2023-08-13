@@ -7,3 +7,8 @@ homepage = "https://ploys.dev"
 repository = "https://github.com/ploys/ploys"
 license = "MIT OR Apache-2.0"
 edition = "2021"
+
+[dependencies]
+gix = "0.51.0"
+ureq = "2.7.1"
+url = "2.4.0"
