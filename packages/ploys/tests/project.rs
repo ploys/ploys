@@ -18,7 +18,7 @@ fn test_valid_local_project() -> Result<(), Error> {
 fn test_valid_remote_project() -> Result<(), Error> {
     let project = match std::env::var("GITHUB_TOKEN").ok() {
         Some(token) => Project::remote_with_authentication_token("ploys/ploys", token)?,
-        None => Project::remote("ploys/ploys")?
+        None => Project::remote("ploys/ploys")?,
     };
 
     assert_eq!(project.get_name()?, "ploys");
