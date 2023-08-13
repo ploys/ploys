@@ -64,5 +64,5 @@ fn test_inspect_remote_url_command_output() {
         .arg("https://github.com/ploys/repo-not-found")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Repository not found"));
+        .stderr(predicate::str::contains("Not Found"));
 }
