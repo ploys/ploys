@@ -1433,9 +1433,8 @@ dependencies = [
  "assert_cmd",
  "clap",
  "console",
- "gix",
+ "ploys",
  "predicates",
- "ureq",
  "url",
 ]
 
