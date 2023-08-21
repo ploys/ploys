@@ -13,7 +13,7 @@ use gix::remote::Direction;
 use gix::Repository;
 use url::Url;
 
-pub use self::error::Error;
+pub use self::error::{Error, GitError};
 
 /// A project on the local file system.
 #[derive(Clone, Debug)]
