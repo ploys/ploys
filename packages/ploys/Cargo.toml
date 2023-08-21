@@ -10,5 +10,6 @@ edition = "2021"
 
 [dependencies]
 gix = "0.51.0"
-ureq = "2.7.1"
+serde = { version = "1.0.185", features = ["derive"] }
+ureq = { version = "2.7.1", features = ["json"] }
 url = "2.4.0"
