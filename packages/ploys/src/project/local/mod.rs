@@ -7,9 +7,10 @@ mod error;
 
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use gix::remote::Direction;
+use gix::traverse::tree::Recorder;
 use gix::Repository;
 use url::Url;
 
@@ -71,5 +72,29 @@ impl Local {
             },
             None => Err(Error::remote_not_found()),
         }
+    }
+
+    /// Queries the project files.
+    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
+        let tree = self
+            .repository
+            .rev_parse_single("HEAD")?
+            .object()?
+            .peel_to_tree()?;
+
+        let mut recorder = Recorder::default();
+
+        tree.traverse().breadthfirst(&mut recorder)?;
+
+        let mut entries = recorder
+            .records
+            .into_iter()
+            .filter(|entry| entry.mode.is_blob())
+            .map(|entry| PathBuf::from(entry.filepath.to_string()))
+            .collect::<Vec<_>>();
+
+        entries.sort();
+
+        Ok(entries)
     }
 }

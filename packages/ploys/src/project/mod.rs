@@ -37,7 +37,7 @@ mod error;
 pub mod local;
 pub mod remote;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use url::Url;
 
@@ -147,6 +147,17 @@ impl Project {
         match self {
             Self::Local(local) => Ok(local.get_url()?),
             Self::Remote(remote) => Ok(remote.get_url()?),
+        }
+    }
+
+    /// Queries the project files.
+    ///
+    /// This method may perform file system operations or network requests to
+    /// query the latest project information.
+    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
+        match self {
+            Self::Local(local) => Ok(local.get_files()?),
+            Self::Remote(remote) => Ok(remote.get_files()?),
         }
     }
 }

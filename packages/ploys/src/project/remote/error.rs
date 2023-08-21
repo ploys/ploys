@@ -1,4 +1,5 @@
 use std::fmt::{self, Display};
+use std::io;
 
 /// The remote project error.
 #[derive(Debug)]
@@ -9,6 +10,8 @@ pub enum Error {
     Transport(Box<ureq::Transport>),
     /// A parse error.
     Parse(String),
+    /// An I/O error.
+    Io(io::Error),
 }
 
 impl Display for Error {
@@ -23,11 +26,18 @@ impl Display for Error {
             },
             Error::Transport(transport) => Display::fmt(transport, f),
             Error::Parse(message) => write!(f, "Parse error: {message}"),
+            Error::Io(err) => Display::fmt(err, f),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
 
 impl From<ureq::Error> for Error {
     fn from(error: ureq::Error) -> Self {

@@ -6,6 +6,9 @@
 mod error;
 mod repo;
 
+use std::path::PathBuf;
+
+use serde::Deserialize;
 use url::Url;
 
 pub use self::error::Error;
@@ -71,6 +74,29 @@ impl Remote {
             .parse()
             .unwrap())
     }
+
+    /// Queries the project files.
+    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
+        let request = self
+            .repository
+            .get("git/trees/HEAD", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .query("recursive", "true");
+
+        let mut entries = request
+            .call()?
+            .into_json::<TreeResponse>()?
+            .tree
+            .into_iter()
+            .filter(|entry| entry.r#type == "blob")
+            .map(|entry| PathBuf::from(entry.path))
+            .collect::<Vec<_>>();
+
+        entries.sort();
+
+        Ok(entries)
+    }
 }
 
 impl TryFrom<Local> for Remote {
@@ -79,6 +105,17 @@ impl TryFrom<Local> for Remote {
     fn try_from(local: Local) -> Result<Self, Self::Error> {
         Ok(Self::new(local.get_url()?)?)
     }
+}
+
+#[derive(Deserialize)]
+struct TreeResponse {
+    tree: Vec<TreeResponseEntry>,
+}
+
+#[derive(Deserialize)]
+struct TreeResponseEntry {
+    path: String,
+    r#type: String,
 }
 
 #[cfg(test)]
