@@ -18,6 +18,13 @@ fn test_valid_local_project() -> Result<(), Error> {
     assert!(files.contains(&PathBuf::from("packages/ploys/Cargo.toml")));
     assert!(files.contains(&PathBuf::from("packages/ploys-cli/Cargo.toml")));
 
+    let a = String::from_utf8(project.get_file_contents("Cargo.toml")?).unwrap();
+    let b = String::from_utf8(project.get_file_contents("packages/ploys/Cargo.toml")?).unwrap();
+
+    assert!(a.contains("[workspace]"));
+    assert!(b.contains("[package]"));
+    assert!(project.get_file_contents("packages/ploys").is_err());
+
     Ok(())
 }
 
@@ -40,6 +47,13 @@ fn test_valid_remote_project() -> Result<(), Error> {
     assert!(files.contains(&PathBuf::from("Cargo.toml")));
     assert!(files.contains(&PathBuf::from("packages/ploys/Cargo.toml")));
     assert!(files.contains(&PathBuf::from("packages/ploys-cli/Cargo.toml")));
+
+    let a = String::from_utf8(project.get_file_contents("Cargo.toml")?).unwrap();
+    let b = String::from_utf8(project.get_file_contents("packages/ploys/Cargo.toml")?).unwrap();
+
+    assert!(a.contains("[workspace]"));
+    assert!(b.contains("[package]"));
+    assert!(project.get_file_contents("packages/ploys").is_err());
 
     Ok(())
 }
