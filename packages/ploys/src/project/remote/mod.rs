@@ -6,7 +6,8 @@
 mod error;
 mod repo;
 
-use std::path::PathBuf;
+use std::io;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use url::Url;
@@ -96,6 +97,37 @@ impl Remote {
         entries.sort();
 
         Ok(entries)
+    }
+
+    /// Queries the contents of a project file.
+    ///
+    /// This method makes a network request to query the file contents from the
+    /// API.
+    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let request = self
+            .repository
+            .get(
+                format!("contents/{}", path.as_ref().display()),
+                self.token.as_deref(),
+            )
+            .set("Accept", "application/vnd.github.raw")
+            .set("X-GitHub-Api-Version", "2022-11-28");
+
+        let response = request.call()?;
+
+        match response.header("content-type") {
+            Some(content_type) if content_type.contains("application/vnd.github.raw") => {
+                let mut contents = Vec::new();
+
+                response.into_reader().read_to_end(&mut contents)?;
+
+                Ok(contents)
+            }
+            _ => Err(io::Error::from(io::ErrorKind::NotFound))?,
+        }
     }
 }
 

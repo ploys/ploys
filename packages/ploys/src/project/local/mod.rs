@@ -97,4 +97,29 @@ impl Local {
 
         Ok(entries)
     }
+
+    /// Queries the contents of a project file.
+    ///
+    /// This method obtains the file contents from the local repository instead
+    /// of the local file system.
+    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let mut tree = self
+            .repository
+            .rev_parse_single("HEAD")?
+            .object()?
+            .peel_to_tree()?;
+
+        let entry = tree
+            .peel_to_entry_by_path(path)?
+            .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
+
+        if entry.mode().is_blob() {
+            Ok(entry.object()?.detached().data)
+        } else {
+            Err(io::Error::from(io::ErrorKind::NotFound))?
+        }
+    }
 }
