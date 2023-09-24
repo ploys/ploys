@@ -8,6 +8,8 @@ pub enum Error {
     Git(GitError),
     /// An I/O error.
     Io(io::Error),
+    /// A package error.
+    Package(crate::package::Error),
 }
 
 impl Error {
@@ -26,11 +28,18 @@ impl Display for Error {
         match self {
             Self::Git(error) => Display::fmt(error, f),
             Self::Io(error) => Display::fmt(error, f),
+            Self::Package(error) => Display::fmt(error, f),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<crate::package::Error> for Error {
+    fn from(error: crate::package::Error) -> Self {
+        Self::Package(error)
+    }
+}
 
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {

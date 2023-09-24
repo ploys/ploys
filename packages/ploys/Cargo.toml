@@ -9,7 +9,9 @@ license = "MIT OR Apache-2.0"
 edition = "2021"
 
 [dependencies]
+cargo_toml = "0.16.2"
 gix = "0.51.0"
+globset = "0.4.13"
 serde = { version = "1.0.185", features = ["derive"] }
 ureq = { version = "2.7.1", features = ["json"] }
 url = "2.4.0"

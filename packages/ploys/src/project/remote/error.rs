@@ -12,6 +12,8 @@ pub enum Error {
     Parse(String),
     /// An I/O error.
     Io(io::Error),
+    /// A package error.
+    Package(crate::package::Error),
 }
 
 impl Display for Error {
@@ -27,11 +29,18 @@ impl Display for Error {
             Error::Transport(transport) => Display::fmt(transport, f),
             Error::Parse(message) => write!(f, "Parse error: {message}"),
             Error::Io(err) => Display::fmt(err, f),
+            Error::Package(err) => Display::fmt(err, f),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<crate::package::Error> for Error {
+    fn from(error: crate::package::Error) -> Self {
+        Self::Package(error)
+    }
+}
 
 impl From<io::Error> for Error {
     fn from(error: io::Error) -> Self {

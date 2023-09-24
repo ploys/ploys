@@ -12,6 +12,8 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use url::Url;
 
+use crate::package::Package;
+
 pub use self::error::Error;
 pub use self::repo::Repository;
 
@@ -74,6 +76,13 @@ impl Remote {
         Ok(format!("https://github.com/{}", self.repository)
             .parse()
             .unwrap())
+    }
+
+    /// Queries the project packages.
+    pub fn get_packages(&self) -> Result<Vec<Package>, Error> {
+        let files = self.get_files()?;
+
+        Package::discover(&files, |path| self.get_file_contents(path))
     }
 
     /// Queries the project files.

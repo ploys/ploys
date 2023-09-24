@@ -41,6 +41,8 @@ use std::path::{Path, PathBuf};
 
 use url::Url;
 
+use crate::package::Package;
+
 pub use self::error::Error;
 use self::local::Local;
 use self::remote::Remote;
@@ -147,6 +149,17 @@ impl Project {
         match self {
             Self::Local(local) => Ok(local.get_url()?),
             Self::Remote(remote) => Ok(remote.get_url()?),
+        }
+    }
+
+    /// Queries the project packages.
+    ///
+    /// This method may perform file system operations or network requests to
+    /// query the latest project information.
+    pub fn get_packages(&self) -> Result<Vec<Package>, Error> {
+        match self {
+            Self::Local(local) => Ok(local.get_packages()?),
+            Self::Remote(remote) => Ok(remote.get_packages()?),
         }
     }
 
