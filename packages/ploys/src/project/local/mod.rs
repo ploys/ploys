@@ -14,6 +14,8 @@ use gix::traverse::tree::Recorder;
 use gix::Repository;
 use url::Url;
 
+use crate::package::Package;
+
 pub use self::error::{Error, GitError};
 
 /// A project on the local file system.
@@ -72,6 +74,13 @@ impl Local {
             },
             None => Err(Error::remote_not_found()),
         }
+    }
+
+    /// Queries the project packages.
+    pub fn get_packages(&self) -> Result<Vec<Package>, Error> {
+        let files = self.get_files()?;
+
+        Package::discover(&files, |path| self.get_file_contents(path))
     }
 
     /// Queries the project files.
