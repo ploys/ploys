@@ -37,6 +37,29 @@ impl Inspect {
         println!("Name:       {}", project.get_name()?);
         println!("Repository: {}", project.get_url()?);
 
+        println!("\n{}:\n", style("Packages").underlined().bold());
+
+        let packages = project.get_packages()?;
+        let max_name_len = packages
+            .iter()
+            .map(|pkg| pkg.name().len())
+            .max()
+            .unwrap_or_default();
+        let max_version_len = packages
+            .iter()
+            .map(|pkg| pkg.version().len())
+            .max()
+            .unwrap_or_default();
+
+        for package in packages {
+            println!(
+                "{:<max_name_len$}  {:>max_version_len$}  {}",
+                package.name(),
+                package.version(),
+                package.description().unwrap_or_default()
+            );
+        }
+
         Ok(())
     }
 }
