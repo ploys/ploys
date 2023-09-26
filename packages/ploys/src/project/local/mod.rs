@@ -5,7 +5,6 @@
 
 mod error;
 
-use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -40,12 +39,6 @@ impl Local {
     /// Queries the project name.
     pub fn get_name(&self) -> Result<String, Error> {
         let path = self.repository.path().join("..").canonicalize()?;
-
-        if let Ok(readme) = fs::read_to_string(path.join("README.md")) {
-            if let Some(title) = readme.lines().find(|line| line.starts_with("# ")) {
-                return Ok(title[2..].to_string());
-            }
-        }
 
         if let Some(file_stem) = path.file_stem() {
             return Ok(file_stem.to_string_lossy().to_string());
