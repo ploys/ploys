@@ -13,6 +13,11 @@ pub struct Repository {
 }
 
 impl Repository {
+    /// Gets the repository name.
+    pub fn name(&self) -> &str {
+        &self.repo
+    }
+
     /// Validates whether the remote repository exists.
     pub(super) fn validate(&self, token: Option<&str>) -> Result<(), Error> {
         self.head("", token).call()?;

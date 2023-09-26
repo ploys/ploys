@@ -55,20 +55,7 @@ impl Remote {
 impl Remote {
     /// Queries the project name.
     pub fn get_name(&self) -> Result<String, Error> {
-        let request = self
-            .repository
-            .get("/readme", self.token.as_deref())
-            .set("Accept", "application/vnd.github.raw");
-
-        if let Ok(response) = request.call() {
-            if let Ok(readme) = response.into_string() {
-                if let Some(title) = readme.lines().find(|line| line.starts_with("# ")) {
-                    return Ok(title[2..].to_string());
-                }
-            }
-        }
-
-        Ok(self.repository.to_string())
+        Ok(self.repository.name().to_owned())
     }
 
     /// Queries the project URL.
