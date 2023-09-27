@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::io;
 
-/// The local project error.
+/// The Git project error.
 #[derive(Debug)]
 pub enum Error {
     /// A Git error.

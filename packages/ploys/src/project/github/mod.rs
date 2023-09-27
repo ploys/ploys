@@ -1,7 +1,7 @@
-//! Remote project inspection and management
+//! GitHub project inspection and management
 //!
-//! This module contains the utilities related to remote project management. The
-//! [`Remote`] type must be constructed via [`super::Project`].
+//! This module contains the utilities related to remote GitHub project
+//! management. The [`GitHub`] type must be constructed via [`super::Project`].
 
 mod error;
 mod repo;
@@ -17,17 +17,17 @@ use crate::package::Package;
 pub use self::error::Error;
 pub use self::repo::Repository;
 
-use super::local::Local;
+use super::git::Git;
 
-/// A project in a remote version control system.
+/// A project in a remote GitHub repository.
 #[derive(Clone, Debug)]
-pub struct Remote {
+pub struct GitHub {
     repository: Repository,
     token: Option<String>,
 }
 
-impl Remote {
-    /// Creates a remote project.
+impl GitHub {
+    /// Creates a GitHub project.
     pub(super) fn new<R>(repository: R) -> Result<Self, Error>
     where
         R: AsRef<str>,
@@ -52,7 +52,7 @@ impl Remote {
     }
 }
 
-impl Remote {
+impl GitHub {
     /// Queries the project name.
     pub fn get_name(&self) -> Result<String, Error> {
         Ok(self.repository.name().to_owned())
@@ -127,11 +127,11 @@ impl Remote {
     }
 }
 
-impl TryFrom<Local> for Remote {
+impl TryFrom<Git> for GitHub {
     type Error = super::Error;
 
-    fn try_from(local: Local) -> Result<Self, Self::Error> {
-        Ok(Self::new(local.get_url()?)?)
+    fn try_from(git: Git) -> Result<Self, Self::Error> {
+        Ok(Self::new(git.get_url()?)?)
     }
 }
 
@@ -148,19 +148,19 @@ struct TreeResponseEntry {
 
 #[cfg(test)]
 mod tests {
-    use super::{Error, Remote};
+    use super::{Error, GitHub};
 
     #[test]
-    fn test_remote_constructor() {
-        assert!(Remote::new("ploys/ploys").is_ok());
-        assert!(Remote::new("rust-lang/rust").is_ok());
-        assert!(Remote::new("one/two/three").is_err());
+    fn test_github_constructor() {
+        assert!(GitHub::new("ploys/ploys").is_ok());
+        assert!(GitHub::new("rust-lang/rust").is_ok());
+        assert!(GitHub::new("one/two/three").is_err());
     }
 
     #[test]
-    fn test_remote_url() -> Result<(), Error> {
+    fn test_github_url() -> Result<(), Error> {
         assert_eq!(
-            Remote::new("ploys/ploys")?.get_url()?,
+            GitHub::new("ploys/ploys")?.get_url()?,
             "https://github.com/ploys/ploys".parse().unwrap()
         );
 

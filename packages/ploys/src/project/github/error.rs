@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::io;
 
-/// The remote project error.
+/// The GitHub project error.
 #[derive(Debug)]
 pub enum Error {
     /// An HTTP status response.

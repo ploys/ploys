@@ -5,7 +5,7 @@ use ploys::project::{Error, Project};
 #[test]
 #[ignore]
 fn test_valid_local_project() -> Result<(), Error> {
-    let project = Project::local("../..")?;
+    let project = Project::git("../..")?;
     let url = project.get_url()?;
 
     assert_eq!(project.get_name()?, "ploys");
@@ -37,8 +37,8 @@ fn test_valid_local_project() -> Result<(), Error> {
 #[ignore]
 fn test_valid_remote_project() -> Result<(), Error> {
     let project = match std::env::var("GITHUB_TOKEN").ok() {
-        Some(token) => Project::remote_with_authentication_token("ploys/ploys", token)?,
-        None => Project::remote("ploys/ploys")?,
+        Some(token) => Project::github_with_authentication_token("ploys/ploys", token)?,
+        None => Project::github("ploys/ploys")?,
     };
 
     assert_eq!(project.get_name()?, "ploys");

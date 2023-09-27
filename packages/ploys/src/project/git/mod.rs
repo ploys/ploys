@@ -1,7 +1,7 @@
-//! Local project inspection and management
+//! Git project inspection and management
 //!
-//! This module contains the utilities related to local project management. The
-//! [`Local`] type must be constructed via [`super::Project`].
+//! This module contains the utilities related to local Git project management.
+//! The [`Git`] type must be constructed via [`super::Project`].
 
 mod error;
 
@@ -17,14 +17,14 @@ use crate::package::Package;
 
 pub use self::error::{Error, GitError};
 
-/// A project on the local file system.
+/// A project in a local Git repository.
 #[derive(Clone, Debug)]
-pub struct Local {
+pub struct Git {
     repository: Repository,
 }
 
-impl Local {
-    /// Creates a local project.
+impl Git {
+    /// Creates a Git project.
     pub(super) fn new<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
@@ -35,7 +35,7 @@ impl Local {
     }
 }
 
-impl Local {
+impl Git {
     /// Queries the project name.
     pub fn get_name(&self) -> Result<String, Error> {
         let path = self.repository.path().join("..").canonicalize()?;

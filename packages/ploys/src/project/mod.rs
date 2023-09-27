@@ -1,41 +1,42 @@
 //! Project inspection and management utilities
 //!
 //! This module includes utilities for inspecting and managing projects located
-//! on the local file system or in a remote version control system.
+//! in one of several supported formats including a local Git repository and a
+//! remote GitHub repository.
 //!
-//! ## Local
+//! ## Git
 //!
-//! To open a local project use the [`Project::local`] constructor and pass in
+//! To open a local Git project use the [`Project::git`] constructor and pass in
 //! a path to the project on the local file system. The target directory must be
 //! initialized as a Git repository.
 //!
 //! ```no_run
 //! use ploys::project::Project;
 //!
-//! let project = Project::local(".").unwrap();
+//! let project = Project::git(".").unwrap();
 //!
 //! println!("Name:       {}", project.get_name().unwrap());
 //! println!("Repository: {}", project.get_url().unwrap());
 //! ```
 //!
-//! ## Remote
+//! ## GitHub
 //!
-//! To open a remote project use the [`Project::remote`] constructor and pass in
-//! a string in the `owner/repo` format. The target identifier must match an
-//! existing GitHub repository.
+//! To open a remote GitHub project use the [`Project::github`] constructor and
+//! pass in a string in the `owner/repo` format. The target identifier must
+//! match an existing GitHub repository.
 //!
 //! ```no_run
 //! use ploys::project::Project;
 //!
-//! let project = Project::remote("ploys/ploys").unwrap();
+//! let project = Project::github("ploys/ploys").unwrap();
 //!
 //! println!("Name:       {}", project.get_name().unwrap());
 //! println!("Repository: {}", project.get_url().unwrap());
 //! ```
 
 mod error;
-pub mod local;
-pub mod remote;
+pub mod git;
+pub mod github;
 
 use std::path::{Path, PathBuf};
 
@@ -44,87 +45,87 @@ use url::Url;
 use crate::package::Package;
 
 pub use self::error::Error;
-use self::local::Local;
-use self::remote::Remote;
+use self::git::Git;
+use self::github::GitHub;
 
-/// A project that is either local or remote.
+/// A project from one of several supported sources.
 #[derive(Clone, Debug)]
 pub enum Project {
-    /// A project on the local file system.
-    Local(Local),
-    /// A project in a remote version control system.
-    Remote(Remote),
+    /// A project in a local Git repository.
+    Git(Git),
+    /// A project in a remote GitHub repository.
+    GitHub(GitHub),
 }
 
 impl Project {
-    /// Creates a local project.
-    pub fn local<P>(path: P) -> Result<Self, Error>
+    /// Creates a Git project.
+    pub fn git<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
-        Ok(Self::Local(Local::new(path)?))
+        Ok(Self::Git(Git::new(path)?))
     }
 
-    /// Checks if the project is local.
-    pub fn is_local(&self) -> bool {
+    /// Checks if the project is Git.
+    pub fn is_git(&self) -> bool {
         match self {
-            Self::Local(_) => true,
-            Self::Remote(_) => false,
+            Self::Git(_) => true,
+            Self::GitHub(_) => false,
         }
     }
 
-    /// Gets the project as a local project.
-    pub fn as_local(&self) -> Option<&Local> {
+    /// Gets the project as Git.
+    pub fn as_git(&self) -> Option<&Git> {
         match self {
-            Self::Local(local) => Some(local),
-            Self::Remote(_) => None,
+            Self::Git(git) => Some(git),
+            Self::GitHub(_) => None,
         }
     }
 }
 
 impl Project {
-    /// Creates a remote project.
-    pub fn remote<R>(repository: R) -> Result<Self, Error>
+    /// Creates a GitHub project.
+    pub fn github<R>(repository: R) -> Result<Self, Error>
     where
         R: AsRef<str>,
     {
-        Ok(Self::Remote(Remote::new(repository)?.validated()?))
+        Ok(Self::GitHub(GitHub::new(repository)?.validated()?))
     }
 
-    /// Creates a remote project with the given authentication token.
-    pub fn remote_with_authentication_token<R, T>(repository: R, token: T) -> Result<Self, Error>
+    /// Creates a GitHub project with the given authentication token.
+    pub fn github_with_authentication_token<R, T>(repository: R, token: T) -> Result<Self, Error>
     where
         R: AsRef<str>,
         T: Into<String>,
     {
-        Ok(Self::Remote(
-            Remote::new(repository)?
+        Ok(Self::GitHub(
+            GitHub::new(repository)?
                 .with_authentication_token(token)
                 .validated()?,
         ))
     }
 
-    /// Checks if the project is remote.
-    pub fn is_remote(&self) -> bool {
+    /// Checks if the project is GitHub.
+    pub fn is_github(&self) -> bool {
         match self {
-            Self::Local(_) => false,
-            Self::Remote(_) => true,
+            Self::Git(_) => false,
+            Self::GitHub(_) => true,
         }
     }
 
-    /// Gets the project as a remote project.
-    pub fn as_remote(&self) -> Option<&Remote> {
+    /// Gets the project as GitHub.
+    pub fn as_github(&self) -> Option<&GitHub> {
         match self {
-            Self::Local(_) => None,
-            Self::Remote(remote) => Some(remote),
+            Self::Git(_) => None,
+            Self::GitHub(github) => Some(github),
         }
     }
 
-    /// Converts the project into a remote.
-    pub fn try_into_remote(self) -> Result<Self, Error> {
+    /// Converts the project into GitHub.
+    pub fn try_into_github(self) -> Result<Self, Error> {
         match self {
-            Self::Local(local) => Ok(Self::Remote(local.try_into()?)),
-            Self::Remote(remote) => Ok(Self::Remote(remote)),
+            Self::Git(git) => Ok(Self::GitHub(git.try_into()?)),
+            Self::GitHub(github) => Ok(Self::GitHub(github)),
         }
     }
 }
@@ -136,8 +137,8 @@ impl Project {
     /// query the latest project information.
     pub fn get_name(&self) -> Result<String, Error> {
         match self {
-            Self::Local(local) => Ok(local.get_name()?),
-            Self::Remote(remote) => Ok(remote.get_name()?),
+            Self::Git(git) => Ok(git.get_name()?),
+            Self::GitHub(github) => Ok(github.get_name()?),
         }
     }
 
@@ -147,8 +148,8 @@ impl Project {
     /// query the latest project information.
     pub fn get_url(&self) -> Result<Url, Error> {
         match self {
-            Self::Local(local) => Ok(local.get_url()?),
-            Self::Remote(remote) => Ok(remote.get_url()?),
+            Self::Git(git) => Ok(git.get_url()?),
+            Self::GitHub(github) => Ok(github.get_url()?),
         }
     }
 
@@ -158,8 +159,8 @@ impl Project {
     /// query the latest project information.
     pub fn get_packages(&self) -> Result<Vec<Package>, Error> {
         match self {
-            Self::Local(local) => Ok(local.get_packages()?),
-            Self::Remote(remote) => Ok(remote.get_packages()?),
+            Self::Git(git) => Ok(git.get_packages()?),
+            Self::GitHub(github) => Ok(github.get_packages()?),
         }
     }
 
@@ -169,8 +170,8 @@ impl Project {
     /// query the latest project information.
     pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
         match self {
-            Self::Local(local) => Ok(local.get_files()?),
-            Self::Remote(remote) => Ok(remote.get_files()?),
+            Self::Git(git) => Ok(git.get_files()?),
+            Self::GitHub(github) => Ok(github.get_files()?),
         }
     }
 
@@ -183,8 +184,8 @@ impl Project {
         P: AsRef<Path>,
     {
         match self {
-            Self::Local(local) => Ok(local.get_file_contents(path)?),
-            Self::Remote(remote) => Ok(remote.get_file_contents(path)?),
+            Self::Git(git) => Ok(git.get_file_contents(path)?),
+            Self::GitHub(github) => Ok(github.get_file_contents(path)?),
         }
     }
 }
