@@ -3,7 +3,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, Error};
 use clap::Args;
 use console::style;
-use ploys::project::remote::Repository;
+use ploys::project::github::Repository;
 use ploys::project::Project;
 use url::Url;
 
@@ -24,13 +24,13 @@ impl Inspect {
     pub fn exec(self) -> Result<(), Error> {
         let project = match self.remote {
             Some(remote) => match self.token {
-                Some(token) => Project::remote_with_authentication_token(
+                Some(token) => Project::github_with_authentication_token(
                     remote.try_into_repo()?.to_string(),
                     token,
                 )?,
-                None => Project::remote(remote.try_into_repo()?.to_string())?,
+                None => Project::github(remote.try_into_repo()?.to_string())?,
             },
-            None => Project::local(".")?,
+            None => Project::git(".")?,
         };
 
         println!("{}:\n", style("Project").underlined().bold());

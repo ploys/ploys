@@ -5,7 +5,7 @@ use ureq::Request;
 
 use super::Error;
 
-/// The remote repository information.
+/// The GitHub repository information.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Repository {
     owner: String,
