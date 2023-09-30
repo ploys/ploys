@@ -5,11 +5,12 @@ use predicates::prelude::*;
 
 #[test]
 #[ignore]
-fn test_inspect_command_git_output() {
+fn test_project_info_command_git_output() {
     Command::cargo_bin("ploys")
         .unwrap()
         .current_dir("../..")
-        .arg("inspect")
+        .arg("project")
+        .arg("info")
         .assert()
         .success()
         .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())
@@ -18,11 +19,12 @@ fn test_inspect_command_git_output() {
 
 #[test]
 #[ignore]
-fn test_inspect_command_github_output() {
+fn test_project_info_command_github_output() {
     Command::cargo_bin("ploys")
         .unwrap()
         .current_dir("../..")
-        .arg("inspect")
+        .arg("project")
+        .arg("info")
         .arg("--remote")
         .arg("ploys/ploys")
         .assert()
@@ -33,11 +35,12 @@ fn test_inspect_command_github_output() {
 
 #[test]
 #[ignore]
-fn test_inspect_command_github_url_output() {
+fn test_project_info_command_github_url_output() {
     Command::cargo_bin("ploys")
         .unwrap()
         .current_dir("../..")
-        .arg("inspect")
+        .arg("project")
+        .arg("info")
         .arg("--remote")
         .arg("https://github.com/ploys/ploys")
         .assert()
@@ -48,7 +51,8 @@ fn test_inspect_command_github_url_output() {
     Command::cargo_bin("ploys")
         .unwrap()
         .current_dir("../..")
-        .arg("inspect")
+        .arg("project")
+        .arg("info")
         .arg("--remote")
         .arg("https://github.com/ploys/ploys.git")
         .assert()
@@ -59,7 +63,8 @@ fn test_inspect_command_github_url_output() {
     Command::cargo_bin("ploys")
         .unwrap()
         .current_dir("../..")
-        .arg("inspect")
+        .arg("project")
+        .arg("info")
         .arg("--remote")
         .arg("https://github.com/ploys/repo-not-found")
         .assert()
