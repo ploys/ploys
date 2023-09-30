@@ -7,9 +7,9 @@ use ploys::project::github::Repository;
 use ploys::project::Project;
 use url::Url;
 
-/// Inspects the project.
+/// Gets the project information.
 #[derive(Args)]
-pub struct Inspect {
+pub struct Info {
     /// The remote GitHub repository owner/repo or URL.
     #[clap(long)]
     remote: Option<RepoOrUrl>,
@@ -19,7 +19,7 @@ pub struct Inspect {
     token: Option<String>,
 }
 
-impl Inspect {
+impl Info {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
         let project = match self.remote {

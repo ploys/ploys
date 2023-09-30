@@ -1,9 +1,9 @@
-mod command;
+mod project;
 
 use anyhow::Error;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
-use self::command::Command;
+use self::project::Project;
 
 /// Manage projects, packages, releases and deployments.
 #[derive(Parser)]
@@ -16,8 +16,17 @@ struct Args {
 impl Args {
     /// Executes the program.
     fn exec(self) -> Result<(), Error> {
-        self.command.exec()
+        match self.command {
+            Command::Project(project) => project.exec(),
+        }
     }
+}
+
+/// The base command.
+#[derive(Subcommand)]
+enum Command {
+    /// Manages the project.
+    Project(Project),
 }
 
 fn main() -> Result<(), Error> {
