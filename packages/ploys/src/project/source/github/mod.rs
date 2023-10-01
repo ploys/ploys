@@ -1,7 +1,7 @@
 //! GitHub project inspection and management
 //!
 //! This module contains the utilities related to remote GitHub project
-//! management. The [`GitHub`] type must be constructed via [`super::Project`].
+//! management.
 
 mod error;
 mod repo;
@@ -17,9 +17,9 @@ use crate::package::Package;
 pub use self::error::Error;
 pub use self::repo::Repository;
 
-use super::git::Git;
+use super::Source;
 
-/// A project in a remote GitHub repository.
+/// The remote GitHub repository source.
 #[derive(Clone, Debug)]
 pub struct GitHub {
     repository: Repository,
@@ -27,8 +27,8 @@ pub struct GitHub {
 }
 
 impl GitHub {
-    /// Creates a GitHub project.
-    pub(super) fn new<R>(repository: R) -> Result<Self, Error>
+    /// Creates a GitHub source.
+    pub(crate) fn new<R>(repository: R) -> Result<Self, Error>
     where
         R: AsRef<str>,
     {
@@ -38,42 +38,53 @@ impl GitHub {
         })
     }
 
-    /// Builds the project with the given authentication token.
-    pub(super) fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
+    /// Builds the source with the given authentication token.
+    pub(crate) fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
         self.token = Some(token.into());
         self
     }
 
-    /// Builds the project with validation to ensure it exists.
-    pub(super) fn validated(self) -> Result<Self, Error> {
+    /// Builds the source with validation to ensure it exists.
+    pub(crate) fn validated(self) -> Result<Self, Error> {
         self.repository.validate(self.token.as_deref())?;
 
         Ok(self)
     }
 }
 
-impl GitHub {
-    /// Queries the project name.
-    pub fn get_name(&self) -> Result<String, Error> {
+impl Source for GitHub {
+    type Config = GitHubConfig;
+    type Error = Error;
+
+    fn open_with(config: Self::Config) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        match config.token {
+            Some(token) => Ok(Self::new(config.repo)?
+                .with_authentication_token(token)
+                .validated()?),
+            None => Self::new(config.repo),
+        }
+    }
+
+    fn get_name(&self) -> Result<String, Self::Error> {
         Ok(self.repository.name().to_owned())
     }
 
-    /// Queries the project URL.
-    pub fn get_url(&self) -> Result<Url, Error> {
+    fn get_url(&self) -> Result<Url, Self::Error> {
         Ok(format!("https://github.com/{}", self.repository)
             .parse()
             .unwrap())
     }
 
-    /// Queries the project packages.
-    pub fn get_packages(&self) -> Result<Vec<Package>, Error> {
+    fn get_packages(&self) -> Result<Vec<Package>, Self::Error> {
         let files = self.get_files()?;
 
         Package::discover(&files, |path| self.get_file_contents(path))
     }
 
-    /// Queries the project files.
-    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
+    fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {
         let request = self
             .repository
             .get("git/trees/HEAD", self.token.as_deref())
@@ -95,11 +106,7 @@ impl GitHub {
         Ok(entries)
     }
 
-    /// Queries the contents of a project file.
-    ///
-    /// This method makes a network request to query the file contents from the
-    /// API.
-    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
+    fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Self::Error>
     where
         P: AsRef<Path>,
     {
@@ -127,11 +134,28 @@ impl GitHub {
     }
 }
 
-impl TryFrom<Git> for GitHub {
-    type Error = super::Error;
+/// The GitHub source configuration.
+pub struct GitHubConfig {
+    repo: String,
+    token: Option<String>,
+}
 
-    fn try_from(git: Git) -> Result<Self, Self::Error> {
-        Ok(Self::new(git.get_url()?)?)
+impl GitHubConfig {
+    /// Creates a new GitHub source configuration.
+    pub fn new<T>(repo: T) -> Self
+    where
+        T: Into<String>,
+    {
+        Self {
+            repo: repo.into(),
+            token: None,
+        }
+    }
+
+    /// Builds the configuration with the given authentication token.
+    pub fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
+        self.token = Some(token.into());
+        self
     }
 }
 
@@ -148,6 +172,8 @@ struct TreeResponseEntry {
 
 #[cfg(test)]
 mod tests {
+    use crate::project::source::Source;
+
     use super::{Error, GitHub};
 
     #[test]

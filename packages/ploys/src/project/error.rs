@@ -3,10 +3,10 @@ use std::fmt::{self, Display};
 /// The project error.
 #[derive(Debug)]
 pub enum Error {
-    /// The Git project error.
-    Git(super::git::Error),
-    /// The GitHub project error.
-    GitHub(super::github::Error),
+    /// The Git source error.
+    Git(crate::project::source::git::Error),
+    /// The GitHub source error.
+    GitHub(crate::project::source::github::Error),
 }
 
 impl Display for Error {
@@ -20,14 +20,14 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<super::git::Error> for Error {
-    fn from(error: super::git::Error) -> Self {
+impl From<crate::project::source::git::Error> for Error {
+    fn from(error: crate::project::source::git::Error) -> Self {
         Self::Git(error)
     }
 }
 
-impl From<super::github::Error> for Error {
-    fn from(error: super::github::Error) -> Self {
+impl From<crate::project::source::github::Error> for Error {
+    fn from(error: crate::project::source::github::Error) -> Self {
         Self::GitHub(error)
     }
 }
