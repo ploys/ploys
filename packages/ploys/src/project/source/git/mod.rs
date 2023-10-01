@@ -1,7 +1,6 @@
 //! Git project inspection and management
 //!
 //! This module contains the utilities related to local Git project management.
-//! The [`Git`] type must be constructed via [`super::Project`].
 
 mod error;
 
@@ -17,15 +16,17 @@ use crate::package::Package;
 
 pub use self::error::{Error, GitError};
 
-/// A project in a local Git repository.
+use super::Source;
+
+/// The local Git repository source.
 #[derive(Clone, Debug)]
 pub struct Git {
     repository: Repository,
 }
 
 impl Git {
-    /// Creates a Git project.
-    pub(super) fn new<P>(path: P) -> Result<Self, Error>
+    /// Creates a Git source.
+    pub(crate) fn new<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
@@ -35,9 +36,18 @@ impl Git {
     }
 }
 
-impl Git {
-    /// Queries the project name.
-    pub fn get_name(&self) -> Result<String, Error> {
+impl Source for Git {
+    type Config = GitConfig;
+    type Error = Error;
+
+    fn open_with(config: Self::Config) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        Self::new(config.path)
+    }
+
+    fn get_name(&self) -> Result<String, Self::Error> {
         let path = self.repository.path().join("..").canonicalize()?;
 
         if let Some(file_stem) = path.file_stem() {
@@ -50,8 +60,7 @@ impl Git {
         )))
     }
 
-    /// Queries the project URL.
-    pub fn get_url(&self) -> Result<Url, Error> {
+    fn get_url(&self) -> Result<Url, Self::Error> {
         match self
             .repository
             .find_default_remote(Direction::Push)
@@ -69,15 +78,13 @@ impl Git {
         }
     }
 
-    /// Queries the project packages.
-    pub fn get_packages(&self) -> Result<Vec<Package>, Error> {
+    fn get_packages(&self) -> Result<Vec<Package>, Self::Error> {
         let files = self.get_files()?;
 
         Package::discover(&files, |path| self.get_file_contents(path))
     }
 
-    /// Queries the project files.
-    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
+    fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {
         let tree = self
             .repository
             .rev_parse_single("HEAD")?
@@ -100,11 +107,7 @@ impl Git {
         Ok(entries)
     }
 
-    /// Queries the contents of a project file.
-    ///
-    /// This method obtains the file contents from the local repository instead
-    /// of the local file system.
-    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
+    fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Self::Error>
     where
         P: AsRef<Path>,
     {
@@ -123,5 +126,20 @@ impl Git {
         } else {
             Err(io::Error::from(io::ErrorKind::NotFound))?
         }
+    }
+}
+
+/// The Git source configuration.
+pub struct GitConfig {
+    path: PathBuf,
+}
+
+impl GitConfig {
+    /// Creates a new Git source configuration.
+    pub fn new<P>(path: P) -> Self
+    where
+        P: Into<PathBuf>,
+    {
+        Self { path: path.into() }
     }
 }

@@ -3,7 +3,8 @@ use std::str::FromStr;
 use anyhow::{anyhow, Error};
 use clap::Args;
 use console::style;
-use ploys::project::github::Repository;
+use ploys::project::source::github::{GitHub, Repository};
+use ploys::project::source::Source;
 use ploys::project::Project;
 use url::Url;
 
@@ -22,17 +23,25 @@ pub struct Info {
 impl Info {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
-        let project = match self.remote {
-            Some(remote) => match self.token {
-                Some(token) => Project::github_with_authentication_token(
-                    remote.try_into_repo()?.to_string(),
+        match &self.remote {
+            Some(remote) => match &self.token {
+                Some(token) => self.print(Project::<GitHub>::github_with_authentication_token(
+                    remote.clone().try_into_repo()?.to_string(),
                     token,
-                )?,
-                None => Project::github(remote.try_into_repo()?.to_string())?,
+                )?),
+                None => self.print(Project::github(
+                    remote.clone().try_into_repo()?.to_string(),
+                )?),
             },
-            None => Project::git(".")?,
-        };
+            None => self.print(Project::git(".")?),
+        }
+    }
 
+    pub fn print<T>(&self, project: Project<T>) -> Result<(), Error>
+    where
+        T: Source,
+        ploys::project::Error: From<T::Error>,
+    {
         println!("{}:\n", style("Project").underlined().bold());
         println!("Name:       {}", project.get_name()?);
         println!("Repository: {}", project.get_url()?);

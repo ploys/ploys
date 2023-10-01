@@ -35,8 +35,7 @@
 //! ```
 
 mod error;
-pub mod git;
-pub mod github;
+pub mod source;
 
 use std::path::{Path, PathBuf};
 
@@ -45,101 +44,87 @@ use url::Url;
 use crate::package::Package;
 
 pub use self::error::Error;
-use self::git::Git;
-use self::github::GitHub;
+use self::source::git::Git;
+use self::source::github::GitHub;
+use self::source::Source;
 
 /// A project from one of several supported sources.
 #[derive(Clone, Debug)]
-pub enum Project {
-    /// A project in a local Git repository.
-    Git(Git),
-    /// A project in a remote GitHub repository.
-    GitHub(GitHub),
+pub struct Project<T = Git> {
+    source: T,
 }
 
-impl Project {
-    /// Creates a Git project.
+impl<T> Project<T>
+where
+    T: Source,
+    Error: From<T::Error>,
+{
+    /// Opens the project.
+    pub fn open() -> Result<Self, Error>
+    where
+        T::Config: Default,
+    {
+        Ok(Self {
+            source: Source::open()?,
+        })
+    }
+
+    /// Opens the project with the given source configuration.
+    pub fn open_with(config: T::Config) -> Result<Self, Error> {
+        Ok(Self {
+            source: Source::open_with(config)?,
+        })
+    }
+}
+
+impl Project<Git> {
+    /// Opens a project with the Git source.
     pub fn git<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
-        Ok(Self::Git(Git::new(path)?))
-    }
-
-    /// Checks if the project is Git.
-    pub fn is_git(&self) -> bool {
-        match self {
-            Self::Git(_) => true,
-            Self::GitHub(_) => false,
-        }
-    }
-
-    /// Gets the project as Git.
-    pub fn as_git(&self) -> Option<&Git> {
-        match self {
-            Self::Git(git) => Some(git),
-            Self::GitHub(_) => None,
-        }
+        Ok(Self {
+            source: Git::new(path)?,
+        })
     }
 }
 
-impl Project {
-    /// Creates a GitHub project.
+impl Project<GitHub> {
+    /// Opens a project with the GitHub source.
     pub fn github<R>(repository: R) -> Result<Self, Error>
     where
         R: AsRef<str>,
     {
-        Ok(Self::GitHub(GitHub::new(repository)?.validated()?))
+        Ok(Self {
+            source: GitHub::new(repository)?.validated()?,
+        })
     }
 
-    /// Creates a GitHub project with the given authentication token.
+    /// Opens a project with the GitHub source and authentication token.
     pub fn github_with_authentication_token<R, T>(repository: R, token: T) -> Result<Self, Error>
     where
         R: AsRef<str>,
         T: Into<String>,
     {
-        Ok(Self::GitHub(
-            GitHub::new(repository)?
+        Ok(Self {
+            source: GitHub::new(repository)?
                 .with_authentication_token(token)
                 .validated()?,
-        ))
-    }
-
-    /// Checks if the project is GitHub.
-    pub fn is_github(&self) -> bool {
-        match self {
-            Self::Git(_) => false,
-            Self::GitHub(_) => true,
-        }
-    }
-
-    /// Gets the project as GitHub.
-    pub fn as_github(&self) -> Option<&GitHub> {
-        match self {
-            Self::Git(_) => None,
-            Self::GitHub(github) => Some(github),
-        }
-    }
-
-    /// Converts the project into GitHub.
-    pub fn try_into_github(self) -> Result<Self, Error> {
-        match self {
-            Self::Git(git) => Ok(Self::GitHub(git.try_into()?)),
-            Self::GitHub(github) => Ok(Self::GitHub(github)),
-        }
+        })
     }
 }
 
-impl Project {
+impl<T> Project<T>
+where
+    T: Source,
+    Error: From<T::Error>,
+{
     /// Queries the project name.
     ///
     /// This method may perform file system operations or network requests to
     /// query the latest project information.
     pub fn get_name(&self) -> Result<String, Error> {
-        match self {
-            Self::Git(git) => Ok(git.get_name()?),
-            Self::GitHub(github) => Ok(github.get_name()?),
-        }
+        Ok(self.source.get_name()?)
     }
 
     /// Queries the project URL.
@@ -147,10 +132,7 @@ impl Project {
     /// This method may perform file system operations or network requests to
     /// query the latest project information.
     pub fn get_url(&self) -> Result<Url, Error> {
-        match self {
-            Self::Git(git) => Ok(git.get_url()?),
-            Self::GitHub(github) => Ok(github.get_url()?),
-        }
+        Ok(self.source.get_url()?)
     }
 
     /// Queries the project packages.
@@ -158,10 +140,7 @@ impl Project {
     /// This method may perform file system operations or network requests to
     /// query the latest project information.
     pub fn get_packages(&self) -> Result<Vec<Package>, Error> {
-        match self {
-            Self::Git(git) => Ok(git.get_packages()?),
-            Self::GitHub(github) => Ok(github.get_packages()?),
-        }
+        Ok(self.source.get_packages()?)
     }
 
     /// Queries the project files.
@@ -169,10 +148,7 @@ impl Project {
     /// This method may perform file system operations or network requests to
     /// query the latest project information.
     pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
-        match self {
-            Self::Git(git) => Ok(git.get_files()?),
-            Self::GitHub(github) => Ok(github.get_files()?),
-        }
+        Ok(self.source.get_files()?)
     }
 
     /// Queries the contents of a project file.
@@ -183,9 +159,6 @@ impl Project {
     where
         P: AsRef<Path>,
     {
-        match self {
-            Self::Git(git) => Ok(git.get_file_contents(path)?),
-            Self::GitHub(github) => Ok(github.get_file_contents(path)?),
-        }
+        Ok(self.source.get_file_contents(path)?)
     }
 }
