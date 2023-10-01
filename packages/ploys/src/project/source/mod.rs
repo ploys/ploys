@@ -1,3 +1,8 @@
+//! Project source configuration
+//!
+//! This module contains the common functionality that is shared by different
+//! project sources.
+
 pub mod git;
 pub mod github;
 
