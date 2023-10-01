@@ -140,8 +140,6 @@ impl GitConfig {
     where
         P: Into<PathBuf>,
     {
-        Self {
-            path: path.into(),
-        }
+        Self { path: path.into() }
     }
 }
