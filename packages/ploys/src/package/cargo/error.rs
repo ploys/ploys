@@ -6,7 +6,9 @@ pub enum Error {
     /// A glob error.
     Glob(globset::Error),
     /// A manifest error.
-    Manifest(cargo_toml::Error),
+    Manifest(toml_edit::TomlError),
+    /// A UTF-8 error.
+    Utf8(std::str::Utf8Error),
 }
 
 impl Display for Error {
@@ -14,6 +16,7 @@ impl Display for Error {
         match self {
             Self::Glob(err) => Display::fmt(err, f),
             Self::Manifest(err) => Display::fmt(err, f),
+            Self::Utf8(err) => Display::fmt(err, f),
         }
     }
 }
@@ -26,8 +29,14 @@ impl From<globset::Error> for Error {
     }
 }
 
-impl From<cargo_toml::Error> for Error {
-    fn from(err: cargo_toml::Error) -> Self {
+impl From<toml_edit::TomlError> for Error {
+    fn from(err: toml_edit::TomlError) -> Self {
         Self::Manifest(err)
+    }
+}
+
+impl From<std::str::Utf8Error> for Error {
+    fn from(err: std::str::Utf8Error) -> Self {
+        Self::Utf8(err)
     }
 }
