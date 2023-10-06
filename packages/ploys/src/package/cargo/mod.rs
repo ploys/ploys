@@ -22,17 +22,17 @@ impl Cargo {
 
     /// Gets the package name.
     pub fn name(&self) -> &str {
-        self.manifest.inner().package().name()
+        self.manifest.package().expect("package").name()
     }
 
     /// Gets the package description.
     pub fn description(&self) -> Option<&str> {
-        self.manifest.inner().package().description()
+        self.manifest.package().expect("package").description()
     }
 
     /// Gets the package version.
     pub fn version(&self) -> &str {
-        self.manifest.inner().package().version()
+        self.manifest.package().expect("package").version()
     }
 
     /// Gets the package path.
