@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use globset::{Glob, GlobSetBuilder};
-use toml_edit::{Array, Document, TableLike, Value};
+use toml_edit::{Array, Document, Item, TableLike, Value};
 
 use crate::package::members::Members;
 
@@ -25,6 +25,14 @@ impl Manifest {
     pub fn package(&self) -> Option<Package<'_>> {
         match self.0.get("package") {
             Some(item) => item.as_table_like().map(Package),
+            None => None,
+        }
+    }
+
+    /// Gets the mutable package table.
+    pub fn package_mut(&mut self) -> Option<PackageMut<'_>> {
+        match self.0.get_mut("package") {
+            Some(item) => item.as_table_like_mut().map(PackageMut),
             None => None,
         }
     }
@@ -175,6 +183,20 @@ impl<'a> Package<'a> {
             .expect("version")
             .as_str()
             .expect("version")
+    }
+}
+
+/// The mutable package table.
+pub struct PackageMut<'a>(&'a mut dyn TableLike);
+
+impl<'a> PackageMut<'a> {
+    /// Sets the package version.
+    pub fn set_version<V>(&mut self, version: V) -> &mut Self
+    where
+        V: Into<String>,
+    {
+        *self.0.get_mut("version").expect("version") = Item::Value(Value::from(version.into()));
+        self
     }
 }
 

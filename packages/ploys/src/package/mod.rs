@@ -3,6 +3,7 @@
 //! This module includes utilities for inspecting and managing packages located
 //! on the local file system or in a remote version control system.
 
+mod bump;
 pub mod cargo;
 mod error;
 mod manifest;
@@ -10,6 +11,7 @@ mod members;
 
 use std::path::{Path, PathBuf};
 
+pub use self::bump::{Bump, Error as BumpError};
 use self::cargo::Cargo;
 pub use self::error::Error;
 use self::manifest::Manifest;
@@ -53,6 +55,13 @@ impl Package {
     pub fn kind(&self) -> PackageKind {
         match self {
             Self::Cargo(_) => PackageKind::Cargo,
+        }
+    }
+
+    /// Bumps the package version.
+    pub fn bump(&mut self, bump: Bump) -> Result<(), BumpError> {
+        match self {
+            Self::Cargo(cargo) => Ok(cargo.bump(bump)?),
         }
     }
 }
