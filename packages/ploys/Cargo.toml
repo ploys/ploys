@@ -11,6 +11,7 @@ edition = "2021"
 [dependencies]
 gix = "0.51.0"
 globset = "0.4.13"
+semver = "1.0.19"
 serde = { version = "1.0.185", features = ["derive"] }
 toml_edit = { version = "0.20.2", features = ["serde"] }
 ureq = { version = "2.7.1", features = ["json"] }
