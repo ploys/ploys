@@ -9,7 +9,7 @@ use super::error::Error;
 use super::Cargo;
 
 /// The cargo package manifest.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Manifest(Document);
 
 impl Manifest {

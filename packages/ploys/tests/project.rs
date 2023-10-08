@@ -25,7 +25,7 @@ fn test_valid_local_project() -> Result<(), Error> {
     assert!(b.contains("[package]"));
     assert!(project.get_file_contents("packages/ploys").is_err());
 
-    let packages = project.get_packages()?;
+    let packages = project.packages();
 
     assert!(packages.iter().any(|pkg| pkg.name() == "ploys"));
     assert!(packages.iter().any(|pkg| pkg.name() == "ploys-cli"));
@@ -60,7 +60,7 @@ fn test_valid_remote_project() -> Result<(), Error> {
     assert!(b.contains("[package]"));
     assert!(project.get_file_contents("packages/ploys").is_err());
 
-    let packages = project.get_packages()?;
+    let packages = project.packages();
 
     assert!(packages.iter().any(|pkg| pkg.name() == "ploys"));
     assert!(packages.iter().any(|pkg| pkg.name() == "ploys-cli"));

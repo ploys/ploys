@@ -48,7 +48,7 @@ impl Info {
 
         println!("\n{}:\n", style("Packages").underlined().bold());
 
-        let packages = project.get_packages()?;
+        let packages = project.packages();
         let max_name_len = packages
             .iter()
             .map(|pkg| pkg.name().len())

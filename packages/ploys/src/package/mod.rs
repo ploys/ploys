@@ -17,6 +17,7 @@ pub use self::error::Error;
 use self::manifest::Manifest;
 
 /// A package in one of several supported formats.
+#[derive(Clone, Debug)]
 pub enum Package {
     /// A `Cargo.toml` package for Rust.
     Cargo(Cargo),
