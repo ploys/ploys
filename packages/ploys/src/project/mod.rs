@@ -52,6 +52,7 @@ use self::source::Source;
 #[derive(Clone, Debug)]
 pub struct Project<T = Git> {
     source: T,
+    packages: Vec<Package>,
 }
 
 impl<T> Project<T>
@@ -64,16 +65,18 @@ where
     where
         T::Config: Default,
     {
-        Ok(Self {
-            source: Source::open()?,
-        })
+        let source = T::open()?;
+        let packages = source.get_packages()?;
+
+        Ok(Self { source, packages })
     }
 
     /// Opens the project with the given source configuration.
     pub fn open_with(config: T::Config) -> Result<Self, Error> {
-        Ok(Self {
-            source: Source::open_with(config)?,
-        })
+        let source = T::open_with(config)?;
+        let packages = source.get_packages()?;
+
+        Ok(Self { source, packages })
     }
 }
 
@@ -83,9 +86,10 @@ impl Project<Git> {
     where
         P: AsRef<Path>,
     {
-        Ok(Self {
-            source: Git::new(path)?,
-        })
+        let source = Git::new(path)?;
+        let packages = source.get_packages()?;
+
+        Ok(Self { source, packages })
     }
 }
 
@@ -95,9 +99,10 @@ impl Project<GitHub> {
     where
         R: AsRef<str>,
     {
-        Ok(Self {
-            source: GitHub::new(repository)?.validated()?,
-        })
+        let source = GitHub::new(repository)?.validated()?;
+        let packages = source.get_packages()?;
+
+        Ok(Self { source, packages })
     }
 
     /// Opens a project with the GitHub source and authentication token.
@@ -106,11 +111,12 @@ impl Project<GitHub> {
         R: AsRef<str>,
         T: Into<String>,
     {
-        Ok(Self {
-            source: GitHub::new(repository)?
-                .with_authentication_token(token)
-                .validated()?,
-        })
+        let source = GitHub::new(repository)?
+            .with_authentication_token(token)
+            .validated()?;
+        let packages = source.get_packages()?;
+
+        Ok(Self { source, packages })
     }
 }
 
@@ -135,12 +141,9 @@ where
         Ok(self.source.get_url()?)
     }
 
-    /// Queries the project packages.
-    ///
-    /// This method may perform file system operations or network requests to
-    /// query the latest project information.
-    pub fn get_packages(&self) -> Result<Vec<Package>, Error> {
-        Ok(self.source.get_packages()?)
+    /// Gets the project packages.
+    pub fn packages(&self) -> &[Package] {
+        &self.packages
     }
 
     /// Queries the project files.
