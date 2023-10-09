@@ -43,7 +43,7 @@ impl Info {
         ploys::project::Error: From<T::Error>,
     {
         println!("{}:\n", style("Project").underlined().bold());
-        println!("Name:       {}", project.get_name()?);
+        println!("Name:       {}", project.name());
         println!("Repository: {}", project.get_url()?);
 
         println!("\n{}:\n", style("Packages").underlined().bold());

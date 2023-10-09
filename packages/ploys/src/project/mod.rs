@@ -15,7 +15,7 @@
 //!
 //! let project = Project::git(".").unwrap();
 //!
-//! println!("Name:       {}", project.get_name().unwrap());
+//! println!("Name:       {}", project.name());
 //! println!("Repository: {}", project.get_url().unwrap());
 //! ```
 //!
@@ -30,7 +30,7 @@
 //!
 //! let project = Project::github("ploys/ploys").unwrap();
 //!
-//! println!("Name:       {}", project.get_name().unwrap());
+//! println!("Name:       {}", project.name());
 //! println!("Repository: {}", project.get_url().unwrap());
 //! ```
 
@@ -52,6 +52,7 @@ use self::source::Source;
 #[derive(Clone, Debug)]
 pub struct Project<T = Git> {
     source: T,
+    name: String,
     packages: Vec<Package>,
 }
 
@@ -66,17 +67,27 @@ where
         T::Config: Default,
     {
         let source = T::open()?;
+        let name = source.get_name()?;
         let packages = source.get_packages()?;
 
-        Ok(Self { source, packages })
+        Ok(Self {
+            source,
+            name,
+            packages,
+        })
     }
 
     /// Opens the project with the given source configuration.
     pub fn open_with(config: T::Config) -> Result<Self, Error> {
         let source = T::open_with(config)?;
+        let name = source.get_name()?;
         let packages = source.get_packages()?;
 
-        Ok(Self { source, packages })
+        Ok(Self {
+            source,
+            name,
+            packages,
+        })
     }
 }
 
@@ -87,9 +98,14 @@ impl Project<Git> {
         P: AsRef<Path>,
     {
         let source = Git::new(path)?;
+        let name = source.get_name()?;
         let packages = source.get_packages()?;
 
-        Ok(Self { source, packages })
+        Ok(Self {
+            source,
+            name,
+            packages,
+        })
     }
 }
 
@@ -100,9 +116,14 @@ impl Project<GitHub> {
         R: AsRef<str>,
     {
         let source = GitHub::new(repository)?.validated()?;
+        let name = source.get_name()?;
         let packages = source.get_packages()?;
 
-        Ok(Self { source, packages })
+        Ok(Self {
+            source,
+            name,
+            packages,
+        })
     }
 
     /// Opens a project with the GitHub source and authentication token.
@@ -114,9 +135,14 @@ impl Project<GitHub> {
         let source = GitHub::new(repository)?
             .with_authentication_token(token)
             .validated()?;
+        let name = source.get_name()?;
         let packages = source.get_packages()?;
 
-        Ok(Self { source, packages })
+        Ok(Self {
+            source,
+            name,
+            packages,
+        })
     }
 }
 
@@ -125,12 +151,9 @@ where
     T: Source,
     Error: From<T::Error>,
 {
-    /// Queries the project name.
-    ///
-    /// This method may perform file system operations or network requests to
-    /// query the latest project information.
-    pub fn get_name(&self) -> Result<String, Error> {
-        Ok(self.source.get_name()?)
+    /// Gets the project name.
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Queries the project URL.

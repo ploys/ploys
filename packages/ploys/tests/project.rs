@@ -8,7 +8,7 @@ fn test_valid_local_project() -> Result<(), Error> {
     let project = Project::git("../..")?;
     let url = project.get_url()?;
 
-    assert_eq!(project.get_name()?, "ploys");
+    assert_eq!(project.name(), "ploys");
     assert_eq!(url.domain(), Some("github.com"));
     assert_eq!(url.path().trim_end_matches(".git"), "/ploys/ploys");
 
@@ -41,7 +41,7 @@ fn test_valid_remote_project() -> Result<(), Error> {
         None => Project::github("ploys/ploys")?,
     };
 
-    assert_eq!(project.get_name()?, "ploys");
+    assert_eq!(project.name(), "ploys");
     assert_eq!(
         project.get_url()?,
         "https://github.com/ploys/ploys".parse().unwrap()
