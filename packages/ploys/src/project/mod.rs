@@ -41,7 +41,7 @@ use std::path::{Path, PathBuf};
 
 use url::Url;
 
-use crate::package::Package;
+use crate::package::{Bump, Package};
 
 pub use self::error::Error;
 use self::source::git::Git;
@@ -186,5 +186,20 @@ where
         P: AsRef<Path>,
     {
         Ok(self.source.get_file_contents(path)?)
+    }
+
+    /// Bumps the version of the target package.
+    pub fn bump_package_version<S>(&mut self, package: S, bump: Bump) -> Result<(), Error>
+    where
+        S: AsRef<str>,
+    {
+        match self
+            .packages
+            .iter_mut()
+            .find(|pkg| pkg.name() == package.as_ref())
+        {
+            Some(package) => Ok(package.bump(bump)?),
+            None => Err(Error::PackageNotFound(package.as_ref().to_owned())),
+        }
     }
 }
