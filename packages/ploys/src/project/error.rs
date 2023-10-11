@@ -7,6 +7,8 @@ pub enum Error {
     Git(crate::project::source::git::Error),
     /// The GitHub source error.
     GitHub(crate::project::source::github::Error),
+    /// The package error.
+    Package(crate::package::Error),
     /// The package bump error.
     Bump(crate::package::BumpError),
     /// The package not found error.
@@ -18,6 +20,7 @@ impl Display for Error {
         match self {
             Error::Git(git) => Display::fmt(git, f),
             Error::GitHub(github) => Display::fmt(github, f),
+            Error::Package(err) => Display::fmt(err, f),
             Error::Bump(err) => Display::fmt(err, f),
             Error::PackageNotFound(name) => write!(f, "Package not found: `{name}`."),
         }
@@ -35,6 +38,12 @@ impl From<crate::project::source::git::Error> for Error {
 impl From<crate::project::source::github::Error> for Error {
     fn from(error: crate::project::source::github::Error) -> Self {
         Self::GitHub(error)
+    }
+}
+
+impl From<crate::package::Error> for Error {
+    fn from(error: crate::package::Error) -> Self {
+        Self::Package(error)
     }
 }
 

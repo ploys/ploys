@@ -10,8 +10,6 @@ use std::path::{Path, PathBuf};
 
 use url::Url;
 
-use crate::package::Package;
-
 /// A project source.
 pub trait Source {
     /// The source configuration.
@@ -39,9 +37,6 @@ pub trait Source {
 
     /// Queries the source URL.
     fn get_url(&self) -> Result<Url, Self::Error>;
-
-    /// Queries the project packages.
-    fn get_packages(&self) -> Result<Vec<Package>, Self::Error>;
 
     /// Queries the project files.
     fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error>;

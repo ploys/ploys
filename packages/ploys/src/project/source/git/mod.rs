@@ -12,8 +12,6 @@ use gix::traverse::tree::Recorder;
 use gix::Repository;
 use url::Url;
 
-use crate::package::Package;
-
 pub use self::error::{Error, GitError};
 
 use super::Source;
@@ -76,12 +74,6 @@ impl Source for Git {
             },
             None => Err(Error::remote_not_found()),
         }
-    }
-
-    fn get_packages(&self) -> Result<Vec<Package>, Self::Error> {
-        let files = self.get_files()?;
-
-        Package::discover(&files, |path| self.get_file_contents(path))
     }
 
     fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {

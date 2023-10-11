@@ -9,7 +9,9 @@ mod error;
 mod manifest;
 mod members;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+use crate::project::source::Source;
 
 pub use self::bump::{Bump, Error as BumpError};
 use self::cargo::Cargo;
@@ -69,18 +71,19 @@ impl Package {
 
 impl Package {
     /// Discovers project packages.
-    pub(super) fn discover<F, E>(files: &[PathBuf], find: F) -> Result<Vec<Package>, E>
+    pub(super) fn discover_packages<T>(source: &T) -> Result<Vec<Package>, crate::project::Error>
     where
-        F: Fn(&Path) -> Result<Vec<u8>, E> + Copy,
-        E: From<Error>,
+        T: Source,
+        crate::project::Error: From<T::Error>,
     {
+        let files = source.get_files()?;
         let mut packages = Vec::new();
 
         for kind in PackageKind::variants() {
-            if let Ok(bytes) = find(kind.file_name()) {
+            if let Ok(bytes) = source.get_file_contents(kind.file_name()) {
                 let manifest = Manifest::from_bytes(*kind, &bytes)?;
 
-                packages.extend(manifest.packages(files, find)?);
+                packages.extend(manifest.discover_packages(&files, source)?);
             }
         }
 

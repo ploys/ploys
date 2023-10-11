@@ -12,8 +12,6 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use url::Url;
 
-use crate::package::Package;
-
 pub use self::error::Error;
 pub use self::repo::Repository;
 
@@ -76,12 +74,6 @@ impl Source for GitHub {
         Ok(format!("https://github.com/{}", self.repository)
             .parse()
             .unwrap())
-    }
-
-    fn get_packages(&self) -> Result<Vec<Package>, Self::Error> {
-        let files = self.get_files()?;
-
-        Package::discover(&files, |path| self.get_file_contents(path))
     }
 
     fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {

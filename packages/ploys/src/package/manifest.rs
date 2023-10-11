@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use crate::project::source::Source;
+
 use super::cargo::manifest::Manifest as CargoManifest;
 use super::error::Error;
 use super::members::Members;
@@ -41,10 +43,14 @@ impl Manifest {
     }
 
     /// Finds member packages using the closure to query individual paths.
-    pub fn packages<F, E>(self, files: &[PathBuf], find: F) -> Result<Vec<Package>, E>
+    pub fn discover_packages<T>(
+        self,
+        files: &[PathBuf],
+        source: &T,
+    ) -> Result<Vec<Package>, crate::project::Error>
     where
-        F: Fn(&Path) -> Result<Vec<u8>, E>,
-        E: From<Error>,
+        T: Source,
+        crate::project::Error: From<T::Error>,
     {
         let members = self.members()?;
         let file_name = self.file_name();
@@ -55,7 +61,7 @@ impl Manifest {
             for directory in self.directories(files) {
                 if members.includes(directory) {
                     let path = directory.join(file_name);
-                    let bytes = find(&path)?;
+                    let bytes = source.get_file_contents(&path)?;
                     let package = Self::from_bytes(self.package_kind(), &bytes)?.into_package(path);
 
                     if let Some(package) = package {

@@ -68,7 +68,7 @@ where
     {
         let source = T::open()?;
         let name = source.get_name()?;
-        let packages = source.get_packages()?;
+        let packages = Package::discover_packages(&source)?;
 
         Ok(Self {
             source,
@@ -81,7 +81,7 @@ where
     pub fn open_with(config: T::Config) -> Result<Self, Error> {
         let source = T::open_with(config)?;
         let name = source.get_name()?;
-        let packages = source.get_packages()?;
+        let packages = Package::discover_packages(&source)?;
 
         Ok(Self {
             source,
@@ -99,7 +99,7 @@ impl Project<Git> {
     {
         let source = Git::new(path)?;
         let name = source.get_name()?;
-        let packages = source.get_packages()?;
+        let packages = Package::discover_packages(&source)?;
 
         Ok(Self {
             source,
@@ -117,7 +117,7 @@ impl Project<GitHub> {
     {
         let source = GitHub::new(repository)?.validated()?;
         let name = source.get_name()?;
-        let packages = source.get_packages()?;
+        let packages = Package::discover_packages(&source)?;
 
         Ok(Self {
             source,
@@ -136,7 +136,7 @@ impl Project<GitHub> {
             .with_authentication_token(token)
             .validated()?;
         let name = source.get_name()?;
-        let packages = source.get_packages()?;
+        let packages = Package::discover_packages(&source)?;
 
         Ok(Self {
             source,
