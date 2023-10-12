@@ -98,7 +98,7 @@ impl From<Cargo> for Package {
 }
 
 /// The package kind.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PackageKind {
     /// The cargo package kind.
     Cargo,
@@ -106,7 +106,7 @@ pub enum PackageKind {
 
 impl PackageKind {
     /// Gets the package variants.
-    fn variants() -> &'static [Self] {
+    pub(super) fn variants() -> &'static [Self] {
         &[Self::Cargo]
     }
 
@@ -114,6 +114,13 @@ impl PackageKind {
     pub fn file_name(&self) -> &'static Path {
         match self {
             Self::Cargo => Path::new("Cargo.toml"),
+        }
+    }
+
+    /// Gets the lockfile name.
+    pub(super) fn lockfile_name(&self) -> Option<&'static Path> {
+        match self {
+            Self::Cargo => Some(Path::new("Cargo.lock")),
         }
     }
 }
