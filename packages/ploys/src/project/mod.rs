@@ -37,11 +37,13 @@
 mod error;
 pub mod source;
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use url::Url;
 
-use crate::package::{Bump, Package};
+use crate::lockfile::LockFile;
+use crate::package::{Bump, Package, PackageKind};
 
 pub use self::error::Error;
 use self::source::git::Git;
@@ -54,6 +56,7 @@ pub struct Project<T = Git> {
     source: T,
     name: String,
     packages: Vec<Package>,
+    lockfiles: HashMap<PackageKind, LockFile>,
 }
 
 impl<T> Project<T>
@@ -69,11 +72,13 @@ where
         let source = T::open()?;
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
 
         Ok(Self {
             source,
             name,
             packages,
+            lockfiles,
         })
     }
 
@@ -82,11 +87,13 @@ where
         let source = T::open_with(config)?;
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
 
         Ok(Self {
             source,
             name,
             packages,
+            lockfiles,
         })
     }
 }
@@ -100,11 +107,13 @@ impl Project<Git> {
         let source = Git::new(path)?;
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
 
         Ok(Self {
             source,
             name,
             packages,
+            lockfiles,
         })
     }
 }
@@ -118,11 +127,13 @@ impl Project<GitHub> {
         let source = GitHub::new(repository)?.validated()?;
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
 
         Ok(Self {
             source,
             name,
             packages,
+            lockfiles,
         })
     }
 
@@ -137,11 +148,13 @@ impl Project<GitHub> {
             .validated()?;
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
 
         Ok(Self {
             source,
             name,
             packages,
+            lockfiles,
         })
     }
 }
@@ -198,7 +211,15 @@ where
             .iter_mut()
             .find(|pkg| pkg.name() == package.as_ref())
         {
-            Some(package) => Ok(package.bump(bump)?),
+            Some(package) => {
+                package.bump(bump)?;
+
+                if let Some(lockfile) = self.lockfiles.get_mut(&package.kind()) {
+                    lockfile.set_package_version(package.name(), package.version());
+                }
+
+                Ok(())
+            }
             None => Err(Error::PackageNotFound(package.as_ref().to_owned())),
         }
     }

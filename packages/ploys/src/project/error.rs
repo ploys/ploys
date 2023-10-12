@@ -11,6 +11,8 @@ pub enum Error {
     Package(crate::package::Error),
     /// The package bump error.
     Bump(crate::package::BumpError),
+    /// The lockfile error.
+    LockFile(crate::lockfile::Error),
     /// The package not found error.
     PackageNotFound(String),
 }
@@ -22,6 +24,7 @@ impl Display for Error {
             Error::GitHub(github) => Display::fmt(github, f),
             Error::Package(err) => Display::fmt(err, f),
             Error::Bump(err) => Display::fmt(err, f),
+            Error::LockFile(err) => Display::fmt(err, f),
             Error::PackageNotFound(name) => write!(f, "Package not found: `{name}`."),
         }
     }
@@ -50,5 +53,11 @@ impl From<crate::package::Error> for Error {
 impl From<crate::package::BumpError> for Error {
     fn from(error: crate::package::BumpError) -> Self {
         Self::Bump(error)
+    }
+}
+
+impl From<crate::lockfile::Error> for Error {
+    fn from(error: crate::lockfile::Error) -> Self {
+        Self::LockFile(error)
     }
 }
