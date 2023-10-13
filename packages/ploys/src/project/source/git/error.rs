@@ -24,8 +24,8 @@ impl Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Git(error) => Display::fmt(error, f),
-            Self::Io(error) => Display::fmt(error, f),
+            Self::Git(err) => Display::fmt(err, f),
+            Self::Io(err) => Display::fmt(err, f),
         }
     }
 }
@@ -33,44 +33,44 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 impl From<std::io::Error> for Error {
-    fn from(error: std::io::Error) -> Self {
-        Self::Io(error)
+    fn from(err: std::io::Error) -> Self {
+        Self::Io(err)
     }
 }
 
 impl From<gix::open::Error> for Error {
-    fn from(error: gix::open::Error) -> Self {
-        Self::Git(error.into())
+    fn from(err: gix::open::Error) -> Self {
+        Self::Git(err.into())
     }
 }
 
 impl From<gix::remote::find::existing::Error> for Error {
-    fn from(error: gix::remote::find::existing::Error) -> Self {
-        Self::Git(error.into())
+    fn from(err: gix::remote::find::existing::Error) -> Self {
+        Self::Git(err.into())
     }
 }
 
 impl From<gix::revision::spec::parse::single::Error> for Error {
-    fn from(error: gix::revision::spec::parse::single::Error) -> Self {
-        Self::Git(error.into())
+    fn from(err: gix::revision::spec::parse::single::Error) -> Self {
+        Self::Git(err.into())
     }
 }
 
 impl From<gix::odb::find::existing::Error<gix::odb::store::find::Error>> for Error {
-    fn from(error: gix::odb::find::existing::Error<gix::odb::store::find::Error>) -> Self {
-        Self::Git(error.into())
+    fn from(err: gix::odb::find::existing::Error<gix::odb::store::find::Error>) -> Self {
+        Self::Git(err.into())
     }
 }
 
 impl From<gix::object::peel::to_kind::Error> for Error {
-    fn from(error: gix::object::peel::to_kind::Error) -> Self {
-        Self::Git(error.into())
+    fn from(err: gix::object::peel::to_kind::Error) -> Self {
+        Self::Git(err.into())
     }
 }
 
 impl From<gix::traverse::tree::breadthfirst::Error> for Error {
-    fn from(error: gix::traverse::tree::breadthfirst::Error) -> Self {
-        Self::Git(error.into())
+    fn from(err: gix::traverse::tree::breadthfirst::Error) -> Self {
+        Self::Git(err.into())
     }
 }
 
@@ -107,37 +107,37 @@ impl Display for GitError {
 impl std::error::Error for GitError {}
 
 impl From<gix::open::Error> for GitError {
-    fn from(error: gix::open::Error) -> Self {
-        Self::Open(Box::new(error))
+    fn from(err: gix::open::Error) -> Self {
+        Self::Open(Box::new(err))
     }
 }
 
 impl From<gix::remote::find::existing::Error> for GitError {
-    fn from(error: gix::remote::find::existing::Error) -> Self {
-        Self::Remote(Box::new(error))
+    fn from(err: gix::remote::find::existing::Error) -> Self {
+        Self::Remote(Box::new(err))
     }
 }
 
 impl From<gix::revision::spec::parse::single::Error> for GitError {
-    fn from(error: gix::revision::spec::parse::single::Error) -> Self {
-        Self::Revision(Box::new(error))
+    fn from(err: gix::revision::spec::parse::single::Error) -> Self {
+        Self::Revision(Box::new(err))
     }
 }
 
 impl From<gix::odb::find::existing::Error<gix::odb::store::find::Error>> for GitError {
-    fn from(error: gix::odb::find::existing::Error<gix::odb::store::find::Error>) -> Self {
-        Self::ObjectFind(Box::new(error))
+    fn from(err: gix::odb::find::existing::Error<gix::odb::store::find::Error>) -> Self {
+        Self::ObjectFind(Box::new(err))
     }
 }
 
 impl From<gix::object::peel::to_kind::Error> for GitError {
-    fn from(error: gix::object::peel::to_kind::Error) -> Self {
-        Self::ObjectKind(Box::new(error))
+    fn from(err: gix::object::peel::to_kind::Error) -> Self {
+        Self::ObjectKind(Box::new(err))
     }
 }
 
 impl From<gix::traverse::tree::breadthfirst::Error> for GitError {
-    fn from(error: gix::traverse::tree::breadthfirst::Error) -> Self {
-        Self::Traverse(Box::new(error))
+    fn from(err: gix::traverse::tree::breadthfirst::Error) -> Self {
+        Self::Traverse(Box::new(err))
     }
 }

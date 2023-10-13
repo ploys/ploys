@@ -20,12 +20,12 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Git(git) => Display::fmt(git, f),
-            Error::GitHub(github) => Display::fmt(github, f),
-            Error::Package(err) => Display::fmt(err, f),
-            Error::Bump(err) => Display::fmt(err, f),
-            Error::LockFile(err) => Display::fmt(err, f),
-            Error::PackageNotFound(name) => write!(f, "Package not found: `{name}`."),
+            Self::Git(git) => Display::fmt(git, f),
+            Self::GitHub(github) => Display::fmt(github, f),
+            Self::Package(err) => Display::fmt(err, f),
+            Self::Bump(err) => Display::fmt(err, f),
+            Self::LockFile(err) => Display::fmt(err, f),
+            Self::PackageNotFound(name) => write!(f, "Package not found: `{name}`."),
         }
     }
 }
@@ -33,31 +33,31 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 impl From<crate::project::source::git::Error> for Error {
-    fn from(error: crate::project::source::git::Error) -> Self {
-        Self::Git(error)
+    fn from(err: crate::project::source::git::Error) -> Self {
+        Self::Git(err)
     }
 }
 
 impl From<crate::project::source::github::Error> for Error {
-    fn from(error: crate::project::source::github::Error) -> Self {
-        Self::GitHub(error)
+    fn from(err: crate::project::source::github::Error) -> Self {
+        Self::GitHub(err)
     }
 }
 
 impl From<crate::package::Error> for Error {
-    fn from(error: crate::package::Error) -> Self {
-        Self::Package(error)
+    fn from(err: crate::package::Error) -> Self {
+        Self::Package(err)
     }
 }
 
 impl From<crate::package::BumpError> for Error {
-    fn from(error: crate::package::BumpError) -> Self {
-        Self::Bump(error)
+    fn from(err: crate::package::BumpError) -> Self {
+        Self::Bump(err)
     }
 }
 
 impl From<crate::lockfile::Error> for Error {
-    fn from(error: crate::lockfile::Error) -> Self {
-        Self::LockFile(error)
+    fn from(err: crate::lockfile::Error) -> Self {
+        Self::LockFile(err)
     }
 }
