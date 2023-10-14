@@ -1,0 +1,16 @@
+[package]
+name = "ploys-api"
+version = "0.0.0"
+description = "A remote API to manage projects, packages, releases and deployments."
+authors = ["Daniel Balcomb <daniel.balcomb@gmail.com>"]
+homepage = "https://ploys.dev"
+repository = "https://github.com/ploys/ploys"
+license = "MIT OR Apache-2.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+axum = "0.6.20"
+shuttle-axum = "0.29.0"
+shuttle-runtime = "0.29.0"
+tokio = "1.33.0"
