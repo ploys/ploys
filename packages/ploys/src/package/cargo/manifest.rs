@@ -1,3 +1,4 @@
+use std::fmt::{self, Debug};
 use std::path::PathBuf;
 
 use globset::{Glob, GlobSetBuilder};
@@ -219,10 +220,21 @@ impl<'a> IntoIterator for Dependencies<'a> {
     }
 }
 
+impl<'a> Debug for Dependencies<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_list().entries(Self(self.0)).finish()
+    }
+}
+
 /// The dependency item.
 pub struct Dependency<'a>(&'a str, Option<&'a dyn TableLike>);
 
 impl<'a> Dependency<'a> {
+    /// Gets the dependency name.
+    pub fn name(&self) -> &'a str {
+        self.0
+    }
+
     /// Gets the dependency path if it has been set.
     pub fn path(&self) -> Option<&'a str> {
         match self.1 {
@@ -232,5 +244,14 @@ impl<'a> Dependency<'a> {
             },
             None => None,
         }
+    }
+}
+
+impl<'a> Debug for Dependency<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Dependency")
+            .field("name", &self.name())
+            .field("path", &self.path())
+            .finish()
     }
 }
