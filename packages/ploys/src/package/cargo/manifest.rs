@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 use std::path::PathBuf;
 
 use globset::{Glob, GlobSetBuilder};
-use toml_edit::{Array, Document, Item, TableLike, Value};
+use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
 
 use crate::package::members::Members;
 
@@ -11,7 +11,7 @@ use super::Cargo;
 
 /// The cargo package manifest.
 #[derive(Clone, Debug)]
-pub struct Manifest(Document);
+pub struct Manifest(DocumentMut);
 
 impl Manifest {
     /// Gets the workspace table.
