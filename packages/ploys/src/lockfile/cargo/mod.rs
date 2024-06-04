@@ -2,14 +2,14 @@
 
 mod error;
 
-use toml_edit::{ArrayOfTables, Document, Item, TableLike, Value};
+use toml_edit::{ArrayOfTables, DocumentMut, Item, TableLike, Value};
 
 pub use self::error::Error;
 
 /// A `Cargo.lock` lockfile for Rust.
 #[derive(Clone, Debug)]
 pub struct CargoLockFile {
-    manifest: Document,
+    manifest: DocumentMut,
 }
 
 impl CargoLockFile {
