@@ -56,8 +56,8 @@ impl From<gix::revision::spec::parse::single::Error> for Error {
     }
 }
 
-impl From<gix::odb::find::existing::Error<gix::odb::store::find::Error>> for Error {
-    fn from(err: gix::odb::find::existing::Error<gix::odb::store::find::Error>) -> Self {
+impl From<gix::object::find::existing::Error> for Error {
+    fn from(err: gix::object::find::existing::Error) -> Self {
         Self::Git(err.into())
     }
 }
@@ -84,7 +84,7 @@ pub enum GitError {
     /// A revision parse error.
     Revision(Box<gix::revision::spec::parse::single::Error>),
     /// An object find error.
-    ObjectFind(Box<gix::odb::find::existing::Error<gix::odb::store::find::Error>>),
+    ObjectFind(Box<gix::object::find::existing::Error>),
     /// An object kind error.
     ObjectKind(Box<gix::object::peel::to_kind::Error>),
     /// A tree traversal error.
@@ -124,8 +124,8 @@ impl From<gix::revision::spec::parse::single::Error> for GitError {
     }
 }
 
-impl From<gix::odb::find::existing::Error<gix::odb::store::find::Error>> for GitError {
-    fn from(err: gix::odb::find::existing::Error<gix::odb::store::find::Error>) -> Self {
+impl From<gix::object::find::existing::Error> for GitError {
+    fn from(err: gix::object::find::existing::Error) -> Self {
         Self::ObjectFind(Box::new(err))
     }
 }
