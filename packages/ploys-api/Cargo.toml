@@ -10,7 +10,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum = "0.6.20"
-shuttle-axum = "0.29.0"
-shuttle-runtime = "0.29.0"
+axum = "0.7.5"
+shuttle-axum = "0.45.0"
+shuttle-runtime = "0.45.0"
 tokio = "1.33.0"
