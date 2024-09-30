@@ -1,15 +1,22 @@
 use std::borrow::Cow;
 
-use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRequest, Json, Request};
+use axum::body::Bytes;
+use axum::extract::rejection::{BytesRejection, ExtensionRejection};
+use axum::extract::{FromRequest, Request};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::{async_trait, RequestExt};
+use axum::{async_trait, Extension, RequestExt};
+use axum_extra::headers::ContentType;
 use axum_extra::typed_header::TypedHeaderRejection;
 use axum_extra::TypedHeader;
+use hmac::{Hmac, Mac};
+use mime::Mime;
+use serde_json::error::Category;
 use serde_json::Value;
+use sha2::Sha256;
 
-use super::header::XGitHubEvent;
+use super::header::{XGitHubEvent, XHubSignature256};
+use super::secret::WebhookSecret;
 
 /// The GitHub event payload.
 pub struct Payload {
@@ -26,34 +33,76 @@ where
 {
     type Rejection = PayloadRejection;
 
-    async fn from_request(mut req: Request, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(mut req: Request, _: &S) -> Result<Self, Self::Rejection> {
+        let content_type = req.extract_parts::<TypedHeader<ContentType>>().await?;
+        let mime: Mime = content_type.0.into();
+        let is_json = mime.type_() == "application"
+            && (mime.subtype() == "json" || mime.suffix().map_or(false, |name| name == "json"));
+
+        if !is_json {
+            return Err(PayloadRejection::ContentType);
+        }
+
         let event = req.extract_parts::<TypedHeader<XGitHubEvent>>().await?;
-        let value = Json::from_request(req, state).await?;
+        let signature = req.extract_parts::<TypedHeader<XHubSignature256>>().await?;
+        let secret = req.extract_parts::<Extension<WebhookSecret>>().await?;
+        let bytes = req.extract::<Bytes, _>().await?;
+
+        let mut hmac = Hmac::<Sha256>::new_from_slice(secret.value.as_bytes())
+            .expect("HMAC can take key of any size");
+
+        hmac.update(&bytes);
+
+        let digest = hmac.finalize().into_bytes();
+        let hex = hex::encode(digest);
+
+        if hex != signature.value() {
+            return Err(PayloadRejection::Signature);
+        }
+
+        let value = serde_json::from_slice(&bytes)?;
 
         Ok(Self {
             event: event.0.into_inner(),
-            value: value.0,
+            value,
         })
     }
 }
 
 pub enum PayloadRejection {
+    ContentType,
+    Signature,
     Header(TypedHeaderRejection),
-    Json(JsonRejection),
+    Bytes(BytesRejection),
+    Extension(ExtensionRejection),
+    Json(serde_json::Error),
 }
 
 impl PayloadRejection {
     pub fn status(&self) -> StatusCode {
         match self {
+            Self::ContentType => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            Self::Signature => StatusCode::FORBIDDEN,
             Self::Header(_) => StatusCode::BAD_REQUEST,
-            Self::Json(rej) => rej.status(),
+            Self::Bytes(rej) => rej.status(),
+            Self::Extension(rej) => rej.status(),
+            Self::Json(err) => match err.classify() {
+                Category::Data => StatusCode::UNPROCESSABLE_ENTITY,
+                _ => StatusCode::BAD_REQUEST,
+            },
         }
     }
 
     pub fn message(&self) -> Cow<'static, str> {
         match self {
+            Self::ContentType => {
+                Cow::Borrowed("Expected request with `Content-Type: application/json`")
+            }
+            Self::Signature => Cow::Borrowed("Invalid SHA256 signature."),
             Self::Header(rej) => Cow::Owned(rej.to_string()),
-            Self::Json(rej) => Cow::Owned(rej.body_text()),
+            Self::Bytes(rej) => Cow::Owned(rej.body_text()),
+            Self::Extension(rej) => Cow::Owned(rej.body_text()),
+            Self::Json(err) => Cow::Owned(err.to_string()),
         }
     }
 }
@@ -70,8 +119,20 @@ impl From<TypedHeaderRejection> for PayloadRejection {
     }
 }
 
-impl From<JsonRejection> for PayloadRejection {
-    fn from(rejection: JsonRejection) -> Self {
-        Self::Json(rejection)
+impl From<BytesRejection> for PayloadRejection {
+    fn from(value: BytesRejection) -> Self {
+        Self::Bytes(value)
+    }
+}
+
+impl From<ExtensionRejection> for PayloadRejection {
+    fn from(value: ExtensionRejection) -> Self {
+        Self::Extension(value)
+    }
+}
+
+impl From<serde_json::Error> for PayloadRejection {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Json(value)
     }
 }
