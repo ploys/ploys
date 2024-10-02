@@ -47,7 +47,7 @@ use crate::package::{Bump, Package, PackageKind};
 
 pub use self::error::Error;
 use self::source::git::Git;
-use self::source::github::GitHub;
+use self::source::github::{GitHub, Reference};
 use self::source::Source;
 
 /// A project from one of several supported sources.
@@ -137,6 +137,27 @@ impl Project<GitHub> {
         })
     }
 
+    /// Opens a project with the GitHub source and reference.
+    pub fn github_with_reference<R, F>(repository: R, reference: F) -> Result<Self, Error>
+    where
+        R: AsRef<str>,
+        F: Into<Reference>,
+    {
+        let source = GitHub::new(repository)?
+            .with_reference(reference)
+            .validated()?;
+        let name = source.get_name()?;
+        let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
+
+        Ok(Self {
+            source,
+            name,
+            packages,
+            lockfiles,
+        })
+    }
+
     /// Opens a project with the GitHub source and authentication token.
     pub fn github_with_authentication_token<R, T>(repository: R, token: T) -> Result<Self, Error>
     where
@@ -144,6 +165,34 @@ impl Project<GitHub> {
         T: Into<String>,
     {
         let source = GitHub::new(repository)?
+            .with_authentication_token(token)
+            .validated()?;
+        let name = source.get_name()?;
+        let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
+
+        Ok(Self {
+            source,
+            name,
+            packages,
+            lockfiles,
+        })
+    }
+
+    /// Opens a project with the GitHub source, reference, and authentication
+    /// token.
+    pub fn github_with_reference_and_authentication_token<R, F, T>(
+        repository: R,
+        reference: F,
+        token: T,
+    ) -> Result<Self, Error>
+    where
+        R: AsRef<str>,
+        F: Into<Reference>,
+        T: Into<String>,
+    {
+        let source = GitHub::new(repository)?
+            .with_reference(reference)
             .with_authentication_token(token)
             .validated()?;
         let name = source.get_name()?;
