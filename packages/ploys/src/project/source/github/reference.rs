@@ -1,8 +1,9 @@
 use std::fmt::{self, Display};
 
 /// The git reference.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum Reference {
+    #[default]
     Head,
     Sha(String),
     Branch(String),
