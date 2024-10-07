@@ -15,7 +15,6 @@ pub use self::gix::Gix;
 use super::Source;
 
 /// The local Git repository source.
-#[derive(Clone, Debug)]
 pub enum Git {
     /// The `gix` source for basic `git` operations.
     Gix(Gix),

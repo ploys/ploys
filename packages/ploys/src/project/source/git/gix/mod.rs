@@ -9,7 +9,6 @@ use url::Url;
 use super::{Error, GitConfig, Source};
 
 /// The local Git repository source using `gix`.
-#[derive(Clone, Debug)]
 pub struct Gix {
     repository: Repository,
 }
