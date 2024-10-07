@@ -3,13 +3,15 @@
 //! This module contains the utilities related to local Git project management.
 
 mod error;
+mod git2;
 mod gix;
 
 use std::path::{Path, PathBuf};
 
 use url::Url;
 
-pub use self::error::{Error, GitError};
+pub use self::error::{Error, GixError};
+pub use self::git2::Git2;
 pub use self::gix::Gix;
 
 use super::Source;
@@ -18,6 +20,8 @@ use super::Source;
 pub enum Git {
     /// The `gix` source for basic `git` operations.
     Gix(Gix),
+    /// The `git2` source for advanced `git` operations.
+    Git2(Git2),
 }
 
 impl Git {
@@ -44,18 +48,21 @@ impl Source for Git {
     fn get_name(&self) -> Result<String, Self::Error> {
         match self {
             Self::Gix(gix) => gix.get_name(),
+            Self::Git2(git2) => git2.get_name(),
         }
     }
 
     fn get_url(&self) -> Result<Url, Self::Error> {
         match self {
             Self::Gix(gix) => gix.get_url(),
+            Self::Git2(git2) => git2.get_url(),
         }
     }
 
     fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {
         match self {
             Self::Gix(gix) => gix.get_files(),
+            Self::Git2(git2) => git2.get_files(),
         }
     }
 
@@ -65,6 +72,7 @@ impl Source for Git {
     {
         match self {
             Self::Gix(gix) => gix.get_file_contents(path),
+            Self::Git2(git2) => git2.get_file_contents(path),
         }
     }
 }

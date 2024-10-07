@@ -10,7 +10,7 @@ use super::{Error, GitConfig, Source};
 
 /// The local Git repository source using `gix`.
 pub struct Gix {
-    repository: Repository,
+    pub(crate) repository: Repository,
 }
 
 impl Gix {
