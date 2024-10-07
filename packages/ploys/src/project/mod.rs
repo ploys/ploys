@@ -116,6 +116,26 @@ impl Project<Git> {
             lockfiles,
         })
     }
+
+    #[doc(hidden)]
+    pub fn git2<P>(path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        use self::source::git::Git2;
+
+        let source = Git::Git2(Git2::new(path)?);
+        let name = source.get_name()?;
+        let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
+
+        Ok(Self {
+            source,
+            name,
+            packages,
+            lockfiles,
+        })
+    }
 }
 
 impl Project<GitHub> {
