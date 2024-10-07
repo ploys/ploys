@@ -116,6 +116,26 @@ impl Project<Git> {
             lockfiles,
         })
     }
+
+    #[doc(hidden)]
+    pub fn git2<P>(path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        use self::source::git::Git2;
+
+        let source = Git::Git2(Git2::new(path)?);
+        let name = source.get_name()?;
+        let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
+
+        Ok(Self {
+            source,
+            name,
+            packages,
+            lockfiles,
+        })
+    }
 }
 
 impl Project<GitHub> {
@@ -271,5 +291,37 @@ where
             }
             None => Err(Error::PackageNotFound(package.as_ref().to_owned())),
         }
+    }
+}
+
+impl Project<Git> {
+    /// Upgrades the interior source in place to use advanced `git` operations.
+    ///
+    /// The `Git` source uses two internal implementations of `git`, one that is
+    /// pure Rust and another that uses C bindings. The former is not yet
+    /// feature complete and so this swaps to the other implementation to
+    /// support push operations.
+    pub fn upgrade(&mut self) -> Result<(), Error> {
+        use self::source::git::{Error, Git2};
+
+        if let Git::Gix(gix) = &self.source {
+            let path = gix
+                .repository
+                .path()
+                .join("..")
+                .canonicalize()
+                .map_err(Into::<Error>::into)?;
+
+            self.source = Git::Git2(Git2::new(path)?);
+        }
+
+        Ok(())
+    }
+
+    /// Upgrades the interior source to use advanced `git` operations.
+    pub fn upgraded(mut self) -> Result<Self, Error> {
+        self.upgrade()?;
+
+        Ok(self)
     }
 }

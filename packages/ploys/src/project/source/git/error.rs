@@ -4,8 +4,10 @@ use std::io;
 /// The Git source error.
 #[derive(Debug)]
 pub enum Error {
-    /// A Git error.
-    Git(GitError),
+    /// A `gix` error.
+    Gix(GixError),
+    /// A `git2` error.
+    Git2(git2::Error),
     /// An I/O error.
     Io(io::Error),
 }
@@ -13,7 +15,7 @@ pub enum Error {
 impl Error {
     /// Creates a remote not found error.
     pub(super) fn remote_not_found() -> Self {
-        Self::Git(GitError::Remote(Box::new(
+        Self::Gix(GixError::Remote(Box::new(
             gix::remote::find::existing::Error::NotFound {
                 name: String::from("origin").into(),
             },
@@ -24,7 +26,8 @@ impl Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Git(err) => Display::fmt(err, f),
+            Self::Gix(err) => Display::fmt(err, f),
+            Self::Git2(err) => Display::fmt(err, f),
             Self::Io(err) => Display::fmt(err, f),
         }
     }
@@ -40,43 +43,49 @@ impl From<std::io::Error> for Error {
 
 impl From<gix::open::Error> for Error {
     fn from(err: gix::open::Error) -> Self {
-        Self::Git(err.into())
+        Self::Gix(err.into())
     }
 }
 
 impl From<gix::remote::find::existing::Error> for Error {
     fn from(err: gix::remote::find::existing::Error) -> Self {
-        Self::Git(err.into())
+        Self::Gix(err.into())
     }
 }
 
 impl From<gix::revision::spec::parse::single::Error> for Error {
     fn from(err: gix::revision::spec::parse::single::Error) -> Self {
-        Self::Git(err.into())
+        Self::Gix(err.into())
     }
 }
 
 impl From<gix::object::find::existing::Error> for Error {
     fn from(err: gix::object::find::existing::Error) -> Self {
-        Self::Git(err.into())
+        Self::Gix(err.into())
     }
 }
 
 impl From<gix::object::peel::to_kind::Error> for Error {
     fn from(err: gix::object::peel::to_kind::Error) -> Self {
-        Self::Git(err.into())
+        Self::Gix(err.into())
     }
 }
 
 impl From<gix::traverse::tree::breadthfirst::Error> for Error {
     fn from(err: gix::traverse::tree::breadthfirst::Error) -> Self {
-        Self::Git(err.into())
+        Self::Gix(err.into())
+    }
+}
+
+impl From<git2::Error> for Error {
+    fn from(err: git2::Error) -> Self {
+        Self::Git2(err)
     }
 }
 
 /// A Git error.
 #[derive(Debug)]
-pub enum GitError {
+pub enum GixError {
     /// An open error.
     Open(Box<gix::open::Error>),
     /// A remote lookup error.
@@ -91,7 +100,7 @@ pub enum GitError {
     Traverse(Box<gix::traverse::tree::breadthfirst::Error>),
 }
 
-impl Display for GitError {
+impl Display for GixError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Open(err) => Display::fmt(err, f),
@@ -104,39 +113,39 @@ impl Display for GitError {
     }
 }
 
-impl std::error::Error for GitError {}
+impl std::error::Error for GixError {}
 
-impl From<gix::open::Error> for GitError {
+impl From<gix::open::Error> for GixError {
     fn from(err: gix::open::Error) -> Self {
         Self::Open(Box::new(err))
     }
 }
 
-impl From<gix::remote::find::existing::Error> for GitError {
+impl From<gix::remote::find::existing::Error> for GixError {
     fn from(err: gix::remote::find::existing::Error) -> Self {
         Self::Remote(Box::new(err))
     }
 }
 
-impl From<gix::revision::spec::parse::single::Error> for GitError {
+impl From<gix::revision::spec::parse::single::Error> for GixError {
     fn from(err: gix::revision::spec::parse::single::Error) -> Self {
         Self::Revision(Box::new(err))
     }
 }
 
-impl From<gix::object::find::existing::Error> for GitError {
+impl From<gix::object::find::existing::Error> for GixError {
     fn from(err: gix::object::find::existing::Error) -> Self {
         Self::ObjectFind(Box::new(err))
     }
 }
 
-impl From<gix::object::peel::to_kind::Error> for GitError {
+impl From<gix::object::peel::to_kind::Error> for GixError {
     fn from(err: gix::object::peel::to_kind::Error) -> Self {
         Self::ObjectKind(Box::new(err))
     }
 }
 
-impl From<gix::traverse::tree::breadthfirst::Error> for GitError {
+impl From<gix::traverse::tree::breadthfirst::Error> for GixError {
     fn from(err: gix::traverse::tree::breadthfirst::Error) -> Self {
         Self::Traverse(Box::new(err))
     }
