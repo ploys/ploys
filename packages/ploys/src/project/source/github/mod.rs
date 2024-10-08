@@ -58,6 +58,105 @@ impl GitHub {
 
         Ok(self)
     }
+
+    /// Sets the reference.
+    pub(crate) fn set_reference(&mut self, reference: impl Into<Reference>) {
+        self.reference = reference.into();
+    }
+
+    /// Gets the commit SHA.
+    pub(crate) fn sha(&self) -> Result<String, Error> {
+        #[derive(serde::Deserialize)]
+        struct RefResponse {
+            object: Object,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct Object {
+            sha: String,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct TreeResponse {
+            sha: String,
+        }
+
+        match &self.reference {
+            Reference::Head => {
+                let sha = self
+                    .repository
+                    .get("git/trees/HEAD", self.token.as_deref())
+                    .set("Accept", "application/vnd.github+json")
+                    .set("X-GitHub-Api-Version", "2022-11-28")
+                    .call()?
+                    .into_json::<TreeResponse>()?
+                    .sha;
+
+                Ok(sha)
+            }
+            Reference::Sha(sha) => Ok(sha.clone()),
+            Reference::Branch(branch) => {
+                let sha = self
+                    .repository
+                    .get(format!("git/ref/heads/{branch}"), self.token.as_deref())
+                    .set("Accept", "application/vnd.github+json")
+                    .set("X-GitHub-Api-Version", "2022-11-28")
+                    .call()?
+                    .into_json::<RefResponse>()?
+                    .object
+                    .sha;
+
+                Ok(sha)
+            }
+            Reference::Tag(tag) => {
+                let sha = self
+                    .repository
+                    .get(format!("git/ref/tags/{tag}"), self.token.as_deref())
+                    .set("Accept", "application/vnd.github+json")
+                    .set("X-GitHub-Api-Version", "2022-11-28")
+                    .call()?
+                    .into_json::<RefResponse>()?
+                    .object
+                    .sha;
+
+                Ok(sha)
+            }
+        }
+    }
+
+    /// Creates a new branch.
+    pub(crate) fn create_branch(&self, branch_name: &str) -> Result<String, Error> {
+        #[derive(serde::Serialize)]
+        struct Body {
+            r#ref: String,
+            sha: String,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct RefResponse {
+            object: Object,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct Object {
+            sha: String,
+        }
+
+        let sha = self
+            .repository
+            .post("git/refs", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(Body {
+                r#ref: format!("refs/heads/{}", branch_name),
+                sha: self.sha()?,
+            })?
+            .into_json::<RefResponse>()?
+            .object
+            .sha;
+
+        Ok(sha)
+    }
 }
 
 impl Source for GitHub {

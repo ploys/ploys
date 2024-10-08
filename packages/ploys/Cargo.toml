@@ -10,7 +10,7 @@ edition = "2021"
 
 [features]
 default = ["git", "github"]
-git = ["dep:gix", "dep:git2"]
+git = ["dep:gix", "dep:git2", "dep:auth-git2"]
 github = ["dep:ureq"]
 
 [dependencies]
@@ -25,4 +25,8 @@ url = "2.4.0"
 [dependencies.git2]
 version = "0.19.0"
 features = ["vendored-libgit2", "vendored-openssl"]
+optional = true
+
+[dependencies.auth-git2]
+version = "0.5.5"
 optional = true

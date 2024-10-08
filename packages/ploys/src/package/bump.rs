@@ -159,6 +159,39 @@ impl FromStr for Bump {
     }
 }
 
+/// The bump level or version.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BumpOrVersion {
+    Bump(Bump),
+    Version(Version),
+}
+
+impl FromStr for BumpOrVersion {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.parse::<Bump>() {
+            Ok(bump) => Ok(Self::Bump(bump)),
+            Err(_) => match s.parse::<Version>() {
+                Ok(version) => Ok(Self::Version(version)),
+                Err(err) => Err(Error::Semver(err)),
+            },
+        }
+    }
+}
+
+impl From<Bump> for BumpOrVersion {
+    fn from(bump: Bump) -> Self {
+        Self::Bump(bump)
+    }
+}
+
+impl From<Version> for BumpOrVersion {
+    fn from(version: Version) -> Self {
+        Self::Version(version)
+    }
+}
+
 /// The bump error.
 #[derive(Debug)]
 pub enum Error {

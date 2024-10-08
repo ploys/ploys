@@ -72,6 +72,14 @@ impl Repository {
     {
         self.request("GET", path, token)
     }
+
+    /// Creates a POST request.
+    pub(super) fn post<P>(&self, path: P, token: Option<&str>) -> Request
+    where
+        P: AsRef<str>,
+    {
+        self.request("POST", path, token)
+    }
 }
 
 impl Display for Repository {
