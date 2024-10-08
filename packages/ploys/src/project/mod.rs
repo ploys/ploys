@@ -46,13 +46,11 @@ use crate::lockfile::LockFile;
 use crate::package::{Bump, Package, PackageKind};
 
 pub use self::error::Error;
-use self::source::git::Git;
-use self::source::github::{GitHub, Reference};
 use self::source::Source;
 
 /// A project from one of several supported sources.
 #[derive(Clone, Debug)]
-pub struct Project<T = Git> {
+pub struct Project<T> {
     source: T,
     name: String,
     packages: Vec<Package>,
@@ -98,12 +96,15 @@ where
     }
 }
 
-impl Project<Git> {
+#[cfg(feature = "git")]
+impl Project<self::source::git::Git> {
     /// Opens a project with the Git source.
     pub fn git<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
+        use self::source::git::Git;
+
         let source = Git::new(path)?;
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
@@ -122,7 +123,7 @@ impl Project<Git> {
     where
         P: AsRef<Path>,
     {
-        use self::source::git::Git2;
+        use self::source::git::{Git, Git2};
 
         let source = Git::Git2(Git2::new(path)?);
         let name = source.get_name()?;
@@ -138,12 +139,15 @@ impl Project<Git> {
     }
 }
 
-impl Project<GitHub> {
+#[cfg(feature = "github")]
+impl Project<self::source::github::GitHub> {
     /// Opens a project with the GitHub source.
     pub fn github<R>(repository: R) -> Result<Self, Error>
     where
         R: AsRef<str>,
     {
+        use self::source::github::GitHub;
+
         let source = GitHub::new(repository)?.validated()?;
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
@@ -161,8 +165,10 @@ impl Project<GitHub> {
     pub fn github_with_reference<R, F>(repository: R, reference: F) -> Result<Self, Error>
     where
         R: AsRef<str>,
-        F: Into<Reference>,
+        F: Into<self::source::github::Reference>,
     {
+        use self::source::github::GitHub;
+
         let source = GitHub::new(repository)?
             .with_reference(reference)
             .validated()?;
@@ -184,6 +190,8 @@ impl Project<GitHub> {
         R: AsRef<str>,
         T: Into<String>,
     {
+        use self::source::github::GitHub;
+
         let source = GitHub::new(repository)?
             .with_authentication_token(token)
             .validated()?;
@@ -208,9 +216,11 @@ impl Project<GitHub> {
     ) -> Result<Self, Error>
     where
         R: AsRef<str>,
-        F: Into<Reference>,
+        F: Into<self::source::github::Reference>,
         T: Into<String>,
     {
+        use self::source::github::GitHub;
+
         let source = GitHub::new(repository)?
             .with_reference(reference)
             .with_authentication_token(token)
@@ -294,7 +304,8 @@ where
     }
 }
 
-impl Project<Git> {
+#[cfg(feature = "git")]
+impl Project<self::source::git::Git> {
     /// Upgrades the interior source in place to use advanced `git` operations.
     ///
     /// The `Git` source uses two internal implementations of `git`, one that is
@@ -302,7 +313,7 @@ impl Project<Git> {
     /// feature complete and so this swaps to the other implementation to
     /// support push operations.
     pub fn upgrade(&mut self) -> Result<(), Error> {
-        use self::source::git::{Error, Git2};
+        use self::source::git::{Error, Git, Git2};
 
         if let Git::Gix(gix) = &self.source {
             let path = gix
