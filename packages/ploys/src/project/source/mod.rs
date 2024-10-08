@@ -3,7 +3,10 @@
 //! This module contains the common functionality that is shared by different
 //! project sources.
 
+#[cfg(feature = "git")]
 pub mod git;
+
+#[cfg(feature = "github")]
 pub mod github;
 
 use std::path::{Path, PathBuf};
