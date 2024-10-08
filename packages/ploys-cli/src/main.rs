@@ -1,9 +1,12 @@
 mod project;
+mod release;
+mod util;
 
 use anyhow::Error;
 use clap::{Parser, Subcommand};
 
 use self::project::Project;
+use self::release::Release;
 
 /// Manage projects, packages, releases and deployments.
 #[derive(Parser)]
@@ -18,6 +21,7 @@ impl Args {
     fn exec(self) -> Result<(), Error> {
         match self.command {
             Command::Project(project) => project.exec(),
+            Command::Release(release) => release.exec(),
         }
     }
 }
@@ -27,6 +31,8 @@ impl Args {
 enum Command {
     /// Manages the project.
     Project(Project),
+    /// Manages releases.
+    Release(Release),
 }
 
 fn main() -> Result<(), Error> {
