@@ -38,6 +38,7 @@ impl Cargo {
         self.manifest.package().expect("package").version()
     }
 
+    /// Sets the package version.
     pub fn set_version<V>(&mut self, version: V) -> &mut Self
     where
         V: Into<String>,

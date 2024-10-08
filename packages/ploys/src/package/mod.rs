@@ -11,9 +11,11 @@ mod members;
 
 use std::path::Path;
 
+use semver::Version;
+
 use crate::project::source::Source;
 
-pub use self::bump::{Bump, Error as BumpError};
+pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;
 pub use self::error::Error;
 use self::manifest::Manifest;
@@ -59,6 +61,13 @@ impl Package {
         match self {
             Self::Cargo(_) => PackageKind::Cargo,
         }
+    }
+
+    /// Sets the package version.
+    pub fn set_version(&mut self, version: Version) {
+        match self {
+            Self::Cargo(cargo) => cargo.set_version(version.to_string()),
+        };
     }
 
     /// Bumps the package version.
