@@ -119,6 +119,27 @@ impl Project<self::source::git::Git> {
         })
     }
 
+    /// Opens a project with the Git source and reference.
+    pub fn git_with_reference<P, R>(path: P, reference: R) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+        R: Into<self::source::git::Reference>,
+    {
+        use self::source::git::Git;
+
+        let source = Git::new(path)?.with_reference(reference);
+        let name = source.get_name()?;
+        let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
+
+        Ok(Self {
+            source,
+            name,
+            packages,
+            lockfiles,
+        })
+    }
+
     #[doc(hidden)]
     pub fn git2<P>(path: P) -> Result<Self, Error>
     where
@@ -127,6 +148,27 @@ impl Project<self::source::git::Git> {
         use self::source::git::{Git, Git2};
 
         let source = Git::Git2(Git2::new(path)?);
+        let name = source.get_name()?;
+        let packages = Package::discover_packages(&source)?;
+        let lockfiles = LockFile::discover_lockfiles(&source)?;
+
+        Ok(Self {
+            source,
+            name,
+            packages,
+            lockfiles,
+        })
+    }
+
+    #[doc(hidden)]
+    pub fn git2_with_reference<P, R>(path: P, reference: R) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+        R: Into<self::source::git::Reference>,
+    {
+        use self::source::git::{Git, Git2};
+
+        let source = Git::Git2(Git2::new(path)?).with_reference(reference);
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -390,6 +432,7 @@ impl Project<self::source::git::Git> {
         package: impl AsRef<str>,
         version: impl Into<crate::package::BumpOrVersion>,
     ) -> Result<(), Error> {
+        use self::source::git::Reference;
         use crate::package::BumpOrVersion;
 
         self.upgrade()?;
@@ -417,7 +460,9 @@ impl Project<self::source::git::Git> {
             false => format!("release/{}-{version}", package.as_ref()),
         };
 
-        self.source.create_branch(&branch_name)?;
+        let sha = self.source.create_branch(&branch_name)?;
+
+        self.source.set_reference(Reference::Sha(sha));
 
         Ok(())
     }

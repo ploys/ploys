@@ -5,6 +5,7 @@
 mod error;
 mod git2;
 mod gix;
+mod reference;
 
 use std::path::{Path, PathBuf};
 
@@ -13,6 +14,7 @@ use url::Url;
 pub use self::error::{Error, GixError};
 pub use self::git2::Git2;
 pub use self::gix::Gix;
+pub use self::reference::Reference;
 
 use super::Source;
 
@@ -31,6 +33,32 @@ impl Git {
         P: AsRef<Path>,
     {
         Ok(Self::Gix(Gix::new(path)?))
+    }
+}
+
+impl Git {
+    /// Gets the reference.
+    pub fn reference(&self) -> &Reference {
+        match self {
+            Self::Gix(gix) => gix.reference(),
+            Self::Git2(git2) => git2.reference(),
+        }
+    }
+
+    /// Sets the reference.
+    pub fn set_reference(&mut self, reference: impl Into<Reference>) {
+        match self {
+            Self::Gix(gix) => gix.set_reference(reference),
+            Self::Git2(git2) => git2.set_reference(reference),
+        }
+    }
+}
+
+impl Git {
+    /// Builds the source with the given reference.
+    pub(crate) fn with_reference(mut self, reference: impl Into<Reference>) -> Self {
+        self.set_reference(reference);
+        self
     }
 
     /// Creates a new branch.
@@ -88,6 +116,7 @@ impl Source for Git {
 /// The Git source configuration.
 pub struct GitConfig {
     path: PathBuf,
+    reference: Reference,
 }
 
 impl GitConfig {
@@ -96,6 +125,15 @@ impl GitConfig {
     where
         P: Into<PathBuf>,
     {
-        Self { path: path.into() }
+        Self {
+            path: path.into(),
+            reference: Reference::Head,
+        }
+    }
+
+    /// Builds the configuration with the given reference.
+    pub fn with_reference(mut self, reference: impl Into<Reference>) -> Self {
+        self.reference = reference.into();
+        self
     }
 }
