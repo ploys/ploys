@@ -76,6 +76,20 @@ impl Package {
             Self::Cargo(cargo) => Ok(cargo.bump(bump)?),
         }
     }
+
+    /// Gets the package contents.
+    pub fn get_contents(&self) -> String {
+        match self {
+            Self::Cargo(cargo) => cargo.get_contents(),
+        }
+    }
+
+    /// Checks if the package has been changed.
+    pub fn is_changed(&self) -> bool {
+        match self {
+            Self::Cargo(cargo) => cargo.is_changed(),
+        }
+    }
 }
 
 impl Package {

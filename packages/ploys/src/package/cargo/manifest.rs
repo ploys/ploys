@@ -11,7 +11,7 @@ use super::Cargo;
 
 /// The cargo package manifest.
 #[derive(Clone, Debug)]
-pub struct Manifest(DocumentMut);
+pub struct Manifest(pub(super) DocumentMut);
 
 impl Manifest {
     /// Gets the workspace table.

@@ -33,6 +33,20 @@ impl LockFile {
         }
     }
 
+    /// Gets the contents of the lockfile.
+    pub fn get_contents(&self) -> String {
+        match self {
+            Self::Cargo(cargo) => cargo.get_contents(),
+        }
+    }
+
+    /// Checks if the lockfile has been changed.
+    pub fn is_changed(&self) -> bool {
+        match self {
+            Self::Cargo(cargo) => cargo.is_changed(),
+        }
+    }
+
     /// Discovers project lockfiles.
     pub(super) fn discover_lockfiles<T>(
         source: &T,
