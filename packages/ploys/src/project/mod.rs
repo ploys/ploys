@@ -326,6 +326,23 @@ where
             None => Err(Error::PackageNotFound(package.as_ref().to_owned())),
         }
     }
+
+    /// Gets the changed files.
+    pub fn get_changed_files(&self) -> impl Iterator<Item = (PathBuf, String)> + '_ {
+        self.packages()
+            .iter()
+            .filter(|package| package.is_changed())
+            .map(|package| (package.path().to_owned(), package.get_contents()))
+            .chain(
+                self.lockfiles
+                    .iter()
+                    .filter(|(_, lockfile)| lockfile.is_changed())
+                    .filter_map(|(kind, lockfile)| {
+                        kind.lockfile_name()
+                            .map(|name| (name.to_owned(), lockfile.get_contents()))
+                    }),
+            )
+    }
 }
 
 #[cfg(feature = "git")]

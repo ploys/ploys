@@ -10,6 +10,7 @@ pub use self::error::Error;
 #[derive(Clone, Debug)]
 pub struct CargoLockFile {
     manifest: DocumentMut,
+    changed: bool,
 }
 
 impl CargoLockFile {
@@ -21,13 +22,25 @@ impl CargoLockFile {
     {
         if let Some(mut package) = self.packages_mut().get_mut(package.as_ref()) {
             package.set_version(version);
+            self.changed = true;
         }
+    }
+
+    /// Gets the contents of the lockfile.
+    pub fn get_contents(&self) -> String {
+        self.manifest.to_string()
+    }
+
+    /// Checks if the lockfile has been changed.
+    pub fn is_changed(&self) -> bool {
+        self.changed
     }
 
     /// Creates a manifest from the given bytes.
     pub(super) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(Self {
             manifest: std::str::from_utf8(bytes)?.parse()?,
+            changed: false,
         })
     }
 

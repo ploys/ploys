@@ -15,12 +15,17 @@ use super::{Bump, BumpError};
 pub struct Cargo {
     manifest: Manifest,
     path: PathBuf,
+    changed: bool,
 }
 
 impl Cargo {
     /// Creates a new cargo package.
     fn new(manifest: Manifest, path: PathBuf) -> Self {
-        Self { manifest, path }
+        Self {
+            manifest,
+            path,
+            changed: false,
+        }
     }
 
     /// Gets the package name.
@@ -47,6 +52,7 @@ impl Cargo {
             .package_mut()
             .expect("package")
             .set_version(version);
+        self.changed = true;
         self
     }
 
@@ -60,5 +66,15 @@ impl Cargo {
         self.set_version(bump.bump_str(self.version())?.to_string());
 
         Ok(())
+    }
+
+    /// Gets the package contents.
+    pub fn get_contents(&self) -> String {
+        self.manifest.0.to_string()
+    }
+
+    /// Checks if the package has been changed.
+    pub fn is_changed(&self) -> bool {
+        self.changed
     }
 }
