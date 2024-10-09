@@ -5,11 +5,12 @@ use auth_git2::GitAuthenticator;
 use git2::{ObjectType, PushOptions, RemoteCallbacks, Repository, TreeWalkMode, TreeWalkResult};
 use url::Url;
 
-use super::{Error, GitConfig, Source};
+use super::{Error, GitConfig, Reference, Source};
 
 /// The local Git repository source using `git2`.
 pub struct Git2 {
     repository: Repository,
+    reference: Reference,
 }
 
 impl Git2 {
@@ -20,9 +21,24 @@ impl Git2 {
     {
         Ok(Self {
             repository: Repository::open(path.as_ref())?,
+            reference: Reference::Head,
         })
     }
+}
 
+impl Git2 {
+    /// Gets the reference.
+    pub fn reference(&self) -> &Reference {
+        &self.reference
+    }
+
+    /// Sets the reference.
+    pub fn set_reference(&mut self, reference: impl Into<Reference>) {
+        self.reference = reference.into();
+    }
+}
+
+impl Git2 {
     /// Creates a new branch.
     pub(crate) fn create_branch(&self, branch_name: &str) -> Result<String, Error> {
         let commit = self.repository.revparse_single("HEAD")?.peel_to_commit()?;
@@ -120,7 +136,8 @@ impl Source for Git2 {
     }
 
     fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {
-        let tree = self.repository.revparse_single("HEAD")?.peel_to_tree()?;
+        let spec = self.reference.to_string();
+        let tree = self.repository.revparse_single(&spec)?.peel_to_tree()?;
         let mut entries = Vec::new();
 
         tree.walk(TreeWalkMode::PreOrder, |path, entry| {
@@ -142,7 +159,8 @@ impl Source for Git2 {
     where
         P: AsRef<Path>,
     {
-        let tree = self.repository.revparse_single("HEAD")?.peel_to_tree()?;
+        let spec = self.reference.to_string();
+        let tree = self.repository.revparse_single(&spec)?.peel_to_tree()?;
         let entry = tree.get_path(path.as_ref())?;
         let object = entry.to_object(&self.repository)?;
 

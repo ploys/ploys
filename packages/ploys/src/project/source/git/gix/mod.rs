@@ -6,11 +6,12 @@ use gix::traverse::tree::Recorder;
 use gix::Repository;
 use url::Url;
 
-use super::{Error, GitConfig, Source};
+use super::{Error, GitConfig, Reference, Source};
 
 /// The local Git repository source using `gix`.
 pub struct Gix {
     pub(crate) repository: Repository,
+    pub(crate) reference: Reference,
 }
 
 impl Gix {
@@ -21,7 +22,20 @@ impl Gix {
     {
         Ok(Self {
             repository: gix::open(path.as_ref())?,
+            reference: Reference::Head,
         })
+    }
+}
+
+impl Gix {
+    /// Gets the reference.
+    pub fn reference(&self) -> &Reference {
+        &self.reference
+    }
+
+    /// Sets the reference.
+    pub fn set_reference(&mut self, reference: impl Into<Reference>) {
+        self.reference = reference.into();
     }
 }
 
@@ -68,9 +82,10 @@ impl Source for Gix {
     }
 
     fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {
+        let spec = self.reference.to_string();
         let tree = self
             .repository
-            .rev_parse_single("HEAD")?
+            .rev_parse_single(&*spec)?
             .object()?
             .peel_to_tree()?;
 
@@ -94,9 +109,10 @@ impl Source for Gix {
     where
         P: AsRef<Path>,
     {
+        let spec = self.reference.to_string();
         let mut tree = self
             .repository
-            .rev_parse_single("HEAD")?
+            .rev_parse_single(&*spec)?
             .object()?
             .peel_to_tree()?;
 
