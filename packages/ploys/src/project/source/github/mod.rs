@@ -9,13 +9,13 @@ mod repo;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 pub use self::error::Error;
 pub use self::repo::Repository;
 
-use super::revision::Revision;
+use super::revision::{Reference, Revision};
 use super::Source;
 
 /// The remote GitHub repository source.
@@ -151,6 +151,122 @@ impl GitHub {
             .sha;
 
         Ok(sha)
+    }
+
+    /// Commits the changes to the repository.
+    pub(crate) fn commit(
+        &self,
+        message: impl AsRef<str>,
+        files: impl Iterator<Item = (PathBuf, String)>,
+    ) -> Result<String, Error> {
+        #[derive(Serialize)]
+        struct CreateBlob {
+            content: String,
+            encoding: String,
+        }
+
+        #[derive(Deserialize)]
+        struct NewBlob {
+            sha: String,
+        }
+
+        #[derive(Serialize)]
+        struct CreateTree {
+            tree: Vec<TreeObject>,
+            base_tree: String,
+        }
+
+        #[derive(Serialize)]
+        struct TreeObject {
+            path: String,
+            mode: String,
+            r#type: String,
+            sha: String,
+        }
+
+        #[derive(Deserialize)]
+        struct NewTree {
+            sha: String,
+        }
+
+        #[derive(Serialize)]
+        struct CreateCommit {
+            message: String,
+            tree: String,
+            parents: Vec<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct NewCommit {
+            sha: String,
+        }
+
+        #[derive(Serialize)]
+        struct UpdateRef {
+            sha: String,
+        }
+
+        let base_sha = self.sha()?;
+
+        let mut tree = CreateTree {
+            tree: Vec::new(),
+            base_tree: base_sha.clone(),
+        };
+
+        for (path, content) in files {
+            let sha = self
+                .repository
+                .post("git/blobs", self.token.as_deref())
+                .set("Accept", "application/vnd.github+json")
+                .set("X-GitHub-Api-Version", "2022-11-28")
+                .send_json(CreateBlob {
+                    content,
+                    encoding: String::from("utf-8"),
+                })?
+                .into_json::<NewBlob>()?
+                .sha;
+
+            tree.tree.push(TreeObject {
+                path: path.to_string_lossy().into(),
+                mode: String::from("100644"),
+                r#type: String::from("blob"),
+                sha,
+            });
+        }
+
+        let tree_sha = self
+            .repository
+            .post("git/trees", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(tree)?
+            .into_json::<NewTree>()?
+            .sha;
+
+        let commit_sha = self
+            .repository
+            .post("git/commits", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(CreateCommit {
+                message: message.as_ref().to_owned(),
+                tree: tree_sha,
+                parents: vec![base_sha],
+            })?
+            .into_json::<NewCommit>()?
+            .sha;
+
+        if let Revision::Reference(Reference::Branch(branch)) = &self.revision {
+            self.repository
+                .patch(format!("git/refs/heads/{branch}"), self.token.as_deref())
+                .set("Accept", "application/vnd.github+json")
+                .set("X-GitHub-Api-Version", "2022-11-28")
+                .send_json(UpdateRef {
+                    sha: commit_sha.clone(),
+                })?;
+        }
+
+        Ok(commit_sha)
     }
 }
 

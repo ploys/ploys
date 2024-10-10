@@ -80,6 +80,14 @@ impl Repository {
     {
         self.request("POST", path, token)
     }
+
+    /// Creates a PATCH request.
+    pub(super) fn patch<P>(&self, path: P, token: Option<&str>) -> Request
+    where
+        P: AsRef<str>,
+    {
+        self.request("PATCH", path, token)
+    }
 }
 
 impl Display for Repository {
