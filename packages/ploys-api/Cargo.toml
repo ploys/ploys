@@ -15,10 +15,20 @@ axum = "0.7.5"
 axum-extra = { version = "0.9.3", features = ["typed-header"] }
 hex = "0.4.3"
 hmac = "0.12.1"
+jsonwebtoken = "9.3.0"
 mime = "0.3.17"
+reqwest = { version = "0.12.8", features = ["json"] }
+semver = "1.0.19"
+serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.117"
 sha2 = "0.10.8"
 shuttle-axum = "0.47.0"
 shuttle-runtime = "0.47.0"
+time = { version = "0.3.36", features = ["serde"] }
 tokio = { version = "1.33.0", features = ["rt", "macros"] }
 tower-service = "0.3.3"
+
+[dependencies.ploys]
+path = "../ploys"
+features = ["github"]
+default-features = false
