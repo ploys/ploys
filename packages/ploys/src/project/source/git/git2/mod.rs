@@ -41,7 +41,8 @@ impl Git2 {
 impl Git2 {
     /// Creates a new branch.
     pub(crate) fn create_branch(&self, branch_name: &str) -> Result<String, Error> {
-        let commit = self.repository.revparse_single("HEAD")?.peel_to_commit()?;
+        let spec = self.reference.to_string();
+        let commit = self.repository.revparse_single(&spec)?.peel_to_commit()?;
         let sha = commit.id().to_string();
         let remote_name = self
             .get_default_remote_name()?
