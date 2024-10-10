@@ -116,19 +116,7 @@ pub async fn create_release_pull_request(
         .await?
         .id;
 
-    client
-        .post(format!(
-            "https://api.github.com/repos/{repository_name}/issues/{issue_number}/labels"
-        ))
-        .header("Accept", "application/vnd.github+json")
-        .header("Authorization", format!("Bearer {token}"))
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("User-Agent", "ploys/ploys")
-        .json(&AddLabels {
-            labels: vec![String::from("release")],
-        })
-        .send()
-        .await?;
+    println!("Created pull request {issue_number}.");
 
     Ok(())
 }
@@ -144,11 +132,6 @@ struct CreatePullRequest {
 #[derive(Deserialize)]
 struct PullRequestResponse {
     id: u64,
-}
-
-#[derive(Serialize)]
-struct AddLabels {
-    labels: Vec<String>,
 }
 
 #[cfg(test)]
