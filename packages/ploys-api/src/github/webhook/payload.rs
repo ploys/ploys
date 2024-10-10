@@ -11,6 +11,7 @@ use axum_extra::typed_header::TypedHeaderRejection;
 use axum_extra::TypedHeader;
 use hmac::{Hmac, Mac};
 use mime::Mime;
+use serde::Deserialize;
 use serde_json::error::Category;
 use serde_json::Value;
 use sha2::Sha256;
@@ -19,11 +20,9 @@ use super::header::{XGitHubEvent, XHubSignature256};
 use super::secret::WebhookSecret;
 
 /// The GitHub event payload.
-pub struct Payload {
-    /// The event name.
-    pub event: String,
-    /// The payload value.
-    pub value: Value,
+pub enum Payload {
+    Create(CreatePayload),
+    Other(String, Value),
 }
 
 #[async_trait]
@@ -60,13 +59,41 @@ where
             return Err(PayloadRejection::Signature);
         }
 
-        let value = serde_json::from_slice(&bytes)?;
+        let event = event.0.into_inner();
 
-        Ok(Self {
-            event: event.0.into_inner(),
-            value,
+        Ok(match event.as_str() {
+            "create" => Self::Create(serde_json::from_slice(&bytes)?),
+            _ => Self::Other(event, serde_json::from_slice(&bytes)?),
         })
     }
+}
+
+/// The `create` webhook payload.
+#[derive(Debug, Deserialize)]
+pub struct CreatePayload {
+    pub r#ref: String,
+    pub ref_type: RefType,
+    pub master_branch: String,
+    pub repository: Repository,
+    pub installation: Installation,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RefType {
+    Tag,
+    Branch,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Repository {
+    pub id: u64,
+    pub full_name: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Installation {
+    pub id: u64,
 }
 
 pub enum PayloadRejection {
