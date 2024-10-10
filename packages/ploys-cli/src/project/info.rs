@@ -2,6 +2,7 @@ use anyhow::Error;
 use clap::Args;
 use console::style;
 use ploys::project::source::github::GitHub;
+use ploys::project::source::revision::Revision;
 use ploys::project::source::Source;
 use ploys::project::Project;
 
@@ -14,6 +15,18 @@ pub struct Info {
     #[clap(long)]
     remote: Option<RepoOrUrl>,
 
+    /// The target branch name.
+    #[arg(long, conflicts_with_all = ["tag", "sha"])]
+    branch: Option<String>,
+
+    /// The target tag name.
+    #[arg(long, conflicts_with_all = ["branch", "sha"])]
+    tag: Option<String>,
+
+    /// The target commit SHA.
+    #[arg(long, conflicts_with_all = ["branch", "tag"])]
+    sha: Option<String>,
+
     /// The authentication token for GitHub API access.
     #[clap(long, env = "GITHUB_TOKEN")]
     token: Option<String>,
@@ -24,15 +37,33 @@ impl Info {
     pub fn exec(self) -> Result<(), Error> {
         match &self.remote {
             Some(remote) => match &self.token {
-                Some(token) => self.print(Project::<GitHub>::github_with_authentication_token(
+                Some(token) => self.print(
+                    Project::<GitHub>::github_with_revision_and_authentication_token(
+                        remote.clone().try_into_repo()?.to_string(),
+                        self.revision(),
+                        token,
+                    )?,
+                ),
+                None => self.print(Project::github_with_revision(
                     remote.clone().try_into_repo()?.to_string(),
-                    token,
-                )?),
-                None => self.print(Project::github(
-                    remote.clone().try_into_repo()?.to_string(),
+                    self.revision(),
                 )?),
             },
-            None => self.print(Project::git(".")?),
+            None => self.print(Project::git_with_revision(".", self.revision())?),
+        }
+    }
+
+    /// Gets the Git revision.
+    pub fn revision(&self) -> Revision {
+        match &self.branch {
+            Some(branch) => Revision::branch(branch),
+            None => match &self.tag {
+                Some(tag) => Revision::tag(tag),
+                None => match &self.sha {
+                    Some(sha) => Revision::sha(sha),
+                    None => Revision::head(),
+                },
+            },
         }
     }
 
