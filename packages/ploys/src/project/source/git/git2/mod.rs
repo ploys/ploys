@@ -5,12 +5,14 @@ use auth_git2::GitAuthenticator;
 use git2::{ObjectType, PushOptions, RemoteCallbacks, Repository, TreeWalkMode, TreeWalkResult};
 use url::Url;
 
-use super::{Error, GitConfig, Reference, Source};
+use crate::project::source::revision::Revision;
+
+use super::{Error, GitConfig, Source};
 
 /// The local Git repository source using `git2`.
 pub struct Git2 {
     repository: Repository,
-    reference: Reference,
+    revision: Revision,
 }
 
 impl Git2 {
@@ -21,27 +23,33 @@ impl Git2 {
     {
         Ok(Self {
             repository: Repository::open(path.as_ref())?,
-            reference: Reference::Head,
+            revision: Revision::Head,
         })
     }
 }
 
 impl Git2 {
-    /// Gets the reference.
-    pub fn reference(&self) -> &Reference {
-        &self.reference
+    /// Gets the revision.
+    pub fn revision(&self) -> &Revision {
+        &self.revision
     }
 
-    /// Sets the reference.
-    pub fn set_reference(&mut self, reference: impl Into<Reference>) {
-        self.reference = reference.into();
+    /// Sets the revision.
+    pub fn set_revision(&mut self, revision: impl Into<Revision>) {
+        self.revision = revision.into();
+    }
+
+    /// Builds the source with the given revision.
+    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
+        self.set_revision(revision);
+        self
     }
 }
 
 impl Git2 {
     /// Creates a new branch.
     pub(crate) fn create_branch(&self, branch_name: &str) -> Result<String, Error> {
-        let spec = self.reference.to_string();
+        let spec = self.revision.to_string();
         let commit = self.repository.revparse_single(&spec)?.peel_to_commit()?;
         let sha = commit.id().to_string();
         let remote_name = self
@@ -137,7 +145,7 @@ impl Source for Git2 {
     }
 
     fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {
-        let spec = self.reference.to_string();
+        let spec = self.revision.to_string();
         let tree = self.repository.revparse_single(&spec)?.peel_to_tree()?;
         let mut entries = Vec::new();
 
@@ -160,7 +168,7 @@ impl Source for Git2 {
     where
         P: AsRef<Path>,
     {
-        let spec = self.reference.to_string();
+        let spec = self.revision.to_string();
         let tree = self.repository.revparse_single(&spec)?.peel_to_tree()?;
         let entry = tree.get_path(path.as_ref())?;
         let object = entry.to_object(&self.repository)?;

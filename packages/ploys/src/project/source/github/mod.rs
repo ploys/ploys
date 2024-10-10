@@ -4,7 +4,6 @@
 //! management.
 
 mod error;
-mod reference;
 mod repo;
 
 use std::io;
@@ -14,16 +13,16 @@ use serde::Deserialize;
 use url::Url;
 
 pub use self::error::Error;
-pub use self::reference::Reference;
 pub use self::repo::Repository;
 
+use super::revision::Revision;
 use super::Source;
 
 /// The remote GitHub repository source.
 #[derive(Clone, Debug)]
 pub struct GitHub {
     repository: Repository,
-    reference: Reference,
+    revision: Revision,
     token: Option<String>,
 }
 
@@ -35,17 +34,31 @@ impl GitHub {
     {
         Ok(Self {
             repository: repository.as_ref().parse::<Repository>()?,
-            reference: Reference::head(),
+            revision: Revision::head(),
             token: None,
         })
     }
+}
 
-    /// Builds the source with the given reference.
-    pub(crate) fn with_reference(mut self, reference: impl Into<Reference>) -> Self {
-        self.reference = reference.into();
-        self
+impl GitHub {
+    /// Gets the revision.
+    pub fn revision(&self) -> &Revision {
+        &self.revision
     }
 
+    /// Sets the revision.
+    pub fn set_revision(&mut self, revision: impl Into<Revision>) {
+        self.revision = revision.into();
+    }
+
+    /// Builds the source with the given revision.
+    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
+        self.revision = revision.into();
+        self
+    }
+}
+
+impl GitHub {
     /// Builds the source with the given authentication token.
     pub(crate) fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
         self.token = Some(token.into());
@@ -57,11 +70,6 @@ impl GitHub {
         self.repository.validate(self.token.as_deref())?;
 
         Ok(self)
-    }
-
-    /// Sets the reference.
-    pub(crate) fn set_reference(&mut self, reference: impl Into<Reference>) {
-        self.reference = reference.into();
     }
 
     /// Gets the commit SHA.
@@ -81,8 +89,9 @@ impl GitHub {
             sha: String,
         }
 
-        match &self.reference {
-            Reference::Head => {
+        match &self.revision {
+            Revision::Sha(sha) => Ok(sha.clone()),
+            Revision::Head => {
                 let sha = self
                     .repository
                     .get("git/trees/HEAD", self.token.as_deref())
@@ -94,24 +103,10 @@ impl GitHub {
 
                 Ok(sha)
             }
-            Reference::Sha(sha) => Ok(sha.clone()),
-            Reference::Branch(branch) => {
+            Revision::Reference(reference) => {
                 let sha = self
                     .repository
-                    .get(format!("git/ref/heads/{branch}"), self.token.as_deref())
-                    .set("Accept", "application/vnd.github+json")
-                    .set("X-GitHub-Api-Version", "2022-11-28")
-                    .call()?
-                    .into_json::<RefResponse>()?
-                    .object
-                    .sha;
-
-                Ok(sha)
-            }
-            Reference::Tag(tag) => {
-                let sha = self
-                    .repository
-                    .get(format!("git/ref/tags/{tag}"), self.token.as_deref())
+                    .get(format!("git/ref/{reference}"), self.token.as_deref())
                     .set("Accept", "application/vnd.github+json")
                     .set("X-GitHub-Api-Version", "2022-11-28")
                     .call()?
@@ -169,10 +164,10 @@ impl Source for GitHub {
     {
         match config.token {
             Some(token) => Ok(Self::new(config.repo)?
-                .with_reference(config.reference)
+                .with_revision(config.revision)
                 .with_authentication_token(token)
                 .validated()?),
-            None => Ok(Self::new(config.repo)?.with_reference(config.reference)),
+            None => Ok(Self::new(config.repo)?.with_revision(config.revision)),
         }
     }
 
@@ -190,7 +185,7 @@ impl Source for GitHub {
         let request = self
             .repository
             .get(
-                format!("git/trees/{}", self.reference),
+                format!("git/trees/{}", self.revision),
                 self.token.as_deref(),
             )
             .set("Accept", "application/vnd.github+json")
@@ -218,11 +213,7 @@ impl Source for GitHub {
         let request = self
             .repository
             .get(
-                format!(
-                    "contents/{}?ref={}",
-                    path.as_ref().display(),
-                    self.reference
-                ),
+                format!("contents/{}?ref={}", path.as_ref().display(), self.revision),
                 self.token.as_deref(),
             )
             .set("Accept", "application/vnd.github.raw")
@@ -246,7 +237,7 @@ impl Source for GitHub {
 /// The GitHub source configuration.
 pub struct GitHubConfig {
     repo: String,
-    reference: Reference,
+    revision: Revision,
     token: Option<String>,
 }
 
@@ -258,14 +249,14 @@ impl GitHubConfig {
     {
         Self {
             repo: repo.into(),
-            reference: Reference::head(),
+            revision: Revision::head(),
             token: None,
         }
     }
 
-    /// Builds the configuration with the given reference.
-    pub fn with_reference(mut self, reference: impl Into<Reference>) -> Self {
-        self.reference = reference.into();
+    /// Builds the configuration with the given revision.
+    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
+        self.revision = revision.into();
         self
     }
 
