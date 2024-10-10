@@ -204,7 +204,7 @@ impl Project<self::source::github::GitHub> {
         })
     }
 
-    /// Opens a project with the GitHub source and reference.
+    /// Opens a project with the GitHub source and revision.
     pub fn github_with_revision<R, V>(repository: R, revision: V) -> Result<Self, Error>
     where
         R: AsRef<str>,
@@ -250,7 +250,7 @@ impl Project<self::source::github::GitHub> {
         })
     }
 
-    /// Opens a project with the GitHub source, reference, and authentication
+    /// Opens a project with the GitHub source, revision, and authentication
     /// token.
     pub fn github_with_revision_and_authentication_token<R, V, T>(
         repository: R,
