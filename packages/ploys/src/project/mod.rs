@@ -460,9 +460,8 @@ impl Project<self::source::git::Git> {
             false => format!("release/{}-{version}", package.as_ref()),
         };
 
-        let sha = self.source.create_branch(&branch_name)?;
-
-        self.source.set_reference(Reference::Sha(sha));
+        self.source.create_branch(&branch_name)?;
+        self.source.set_reference(Reference::Branch(branch_name));
 
         Ok(())
     }
@@ -506,9 +505,8 @@ impl Project<self::source::github::GitHub> {
             false => format!("release/{}-{version}", package.as_ref()),
         };
 
-        let sha = self.source.create_branch(&branch_name)?;
-
-        self.source.set_reference(Reference::Sha(sha));
+        self.source.create_branch(&branch_name)?;
+        self.source.set_reference(Reference::Branch(branch_name));
 
         Ok(())
     }
