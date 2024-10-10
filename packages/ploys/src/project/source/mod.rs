@@ -9,6 +9,9 @@ pub mod git;
 #[cfg(feature = "github")]
 pub mod github;
 
+#[cfg(any(feature = "git", feature = "github"))]
+pub mod revision;
+
 use std::path::{Path, PathBuf};
 
 use url::Url;

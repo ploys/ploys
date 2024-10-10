@@ -119,15 +119,15 @@ impl Project<self::source::git::Git> {
         })
     }
 
-    /// Opens a project with the Git source and reference.
-    pub fn git_with_reference<P, R>(path: P, reference: R) -> Result<Self, Error>
+    /// Opens a project with the Git source and revision.
+    pub fn git_with_revision<P, R>(path: P, revision: R) -> Result<Self, Error>
     where
         P: AsRef<Path>,
-        R: Into<self::source::git::Reference>,
+        R: Into<self::source::revision::Revision>,
     {
         use self::source::git::Git;
 
-        let source = Git::new(path)?.with_reference(reference);
+        let source = Git::new(path)?.with_revision(revision);
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -161,14 +161,14 @@ impl Project<self::source::git::Git> {
     }
 
     #[doc(hidden)]
-    pub fn git2_with_reference<P, R>(path: P, reference: R) -> Result<Self, Error>
+    pub fn git2_with_revision<P, R>(path: P, revision: R) -> Result<Self, Error>
     where
         P: AsRef<Path>,
-        R: Into<self::source::git::Reference>,
+        R: Into<self::source::revision::Revision>,
     {
         use self::source::git::{Git, Git2};
 
-        let source = Git::Git2(Git2::new(path)?).with_reference(reference);
+        let source = Git::Git2(Git2::new(path)?).with_revision(revision);
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -204,16 +204,16 @@ impl Project<self::source::github::GitHub> {
         })
     }
 
-    /// Opens a project with the GitHub source and reference.
-    pub fn github_with_reference<R, F>(repository: R, reference: F) -> Result<Self, Error>
+    /// Opens a project with the GitHub source and revision.
+    pub fn github_with_revision<R, V>(repository: R, revision: V) -> Result<Self, Error>
     where
         R: AsRef<str>,
-        F: Into<self::source::github::Reference>,
+        V: Into<self::source::revision::Revision>,
     {
         use self::source::github::GitHub;
 
         let source = GitHub::new(repository)?
-            .with_reference(reference)
+            .with_revision(revision)
             .validated()?;
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
@@ -250,22 +250,22 @@ impl Project<self::source::github::GitHub> {
         })
     }
 
-    /// Opens a project with the GitHub source, reference, and authentication
+    /// Opens a project with the GitHub source, revision, and authentication
     /// token.
-    pub fn github_with_reference_and_authentication_token<R, F, T>(
+    pub fn github_with_revision_and_authentication_token<R, V, T>(
         repository: R,
-        reference: F,
+        revision: V,
         token: T,
     ) -> Result<Self, Error>
     where
         R: AsRef<str>,
-        F: Into<self::source::github::Reference>,
+        V: Into<self::source::revision::Revision>,
         T: Into<String>,
     {
         use self::source::github::GitHub;
 
         let source = GitHub::new(repository)?
-            .with_reference(reference)
+            .with_revision(revision)
             .with_authentication_token(token)
             .validated()?;
         let name = source.get_name()?;
@@ -432,7 +432,7 @@ impl Project<self::source::git::Git> {
         package: impl AsRef<str>,
         version: impl Into<crate::package::BumpOrVersion>,
     ) -> Result<(), Error> {
-        use self::source::git::Reference;
+        use self::source::revision::Revision;
         use crate::package::BumpOrVersion;
 
         self.upgrade()?;
@@ -461,7 +461,7 @@ impl Project<self::source::git::Git> {
         };
 
         self.source.create_branch(&branch_name)?;
-        self.source.set_reference(Reference::Branch(branch_name));
+        self.source.set_revision(Revision::branch(branch_name));
 
         Ok(())
     }
@@ -479,7 +479,7 @@ impl Project<self::source::github::GitHub> {
         package: impl AsRef<str>,
         version: impl Into<crate::package::BumpOrVersion>,
     ) -> Result<(), Error> {
-        use self::source::github::Reference;
+        use self::source::revision::Revision;
         use crate::package::BumpOrVersion;
 
         let version = match version.into() {
@@ -506,7 +506,7 @@ impl Project<self::source::github::GitHub> {
         };
 
         self.source.create_branch(&branch_name)?;
-        self.source.set_reference(Reference::Branch(branch_name));
+        self.source.set_revision(Revision::branch(branch_name));
 
         Ok(())
     }

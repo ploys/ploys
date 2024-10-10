@@ -5,7 +5,6 @@
 mod error;
 mod git2;
 mod gix;
-mod reference;
 
 use std::path::{Path, PathBuf};
 
@@ -14,8 +13,8 @@ use url::Url;
 pub use self::error::{Error, GixError};
 pub use self::git2::Git2;
 pub use self::gix::Gix;
-pub use self::reference::Reference;
 
+use super::revision::Revision;
 use super::Source;
 
 /// The local Git repository source.
@@ -37,30 +36,30 @@ impl Git {
 }
 
 impl Git {
-    /// Gets the reference.
-    pub fn reference(&self) -> &Reference {
+    /// Gets the revision.
+    pub fn revision(&self) -> &Revision {
         match self {
-            Self::Gix(gix) => gix.reference(),
-            Self::Git2(git2) => git2.reference(),
+            Self::Gix(gix) => gix.revision(),
+            Self::Git2(git2) => git2.revision(),
         }
     }
 
-    /// Sets the reference.
-    pub fn set_reference(&mut self, reference: impl Into<Reference>) {
+    /// Sets the revision.
+    pub fn set_revision(&mut self, revision: impl Into<Revision>) {
         match self {
-            Self::Gix(gix) => gix.set_reference(reference),
-            Self::Git2(git2) => git2.set_reference(reference),
+            Self::Gix(gix) => gix.set_revision(revision),
+            Self::Git2(git2) => git2.set_revision(revision),
         }
+    }
+
+    /// Builds the source with the given revision.
+    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
+        self.set_revision(revision);
+        self
     }
 }
 
 impl Git {
-    /// Builds the source with the given reference.
-    pub(crate) fn with_reference(mut self, reference: impl Into<Reference>) -> Self {
-        self.set_reference(reference);
-        self
-    }
-
     /// Creates a new branch.
     pub(crate) fn create_branch(&mut self, branch_name: &str) -> Result<String, Error> {
         match self {
@@ -116,7 +115,7 @@ impl Source for Git {
 /// The Git source configuration.
 pub struct GitConfig {
     path: PathBuf,
-    reference: Reference,
+    revision: Revision,
 }
 
 impl GitConfig {
@@ -127,13 +126,13 @@ impl GitConfig {
     {
         Self {
             path: path.into(),
-            reference: Reference::Head,
+            revision: Revision::Head,
         }
     }
 
-    /// Builds the configuration with the given reference.
-    pub fn with_reference(mut self, reference: impl Into<Reference>) -> Self {
-        self.reference = reference.into();
+    /// Builds the configuration with the given revision.
+    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
+        self.revision = revision.into();
         self
     }
 }
