@@ -38,6 +38,26 @@ pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Err
             }
             RefType::Tag => Ok(()),
         },
+        Payload::PullRequest(payload) => match &*payload.action {
+            "closed" if payload.pull_request.merged => {
+                if payload.pull_request.head.r#ref.starts_with("release/") {
+                    if let Some(sha) = payload.pull_request.merge_commit_sha {
+                        create_release(
+                            &payload.pull_request.head.r#ref[8..],
+                            &sha,
+                            payload.installation.id,
+                            payload.repository.id,
+                            &payload.repository.full_name,
+                            &state,
+                        )
+                        .await?;
+                    }
+                }
+
+                Ok(())
+            }
+            _ => Ok(()),
+        },
         Payload::Other(event, payload) => {
             println!("Event: {event}");
             println!("Payload: {payload:#}");
@@ -121,6 +141,88 @@ pub async fn create_release_pull_request(
     Ok(())
 }
 
+/// Creates a new release.
+async fn create_release(
+    release: &str,
+    sha: &str,
+    installation_id: u64,
+    repository_id: u64,
+    repository_name: &str,
+    state: &AppState,
+) -> Result<(), Error> {
+    let token = get_installation_access_token(installation_id, repository_id, state).await?;
+    let revision = Revision::sha(sha);
+    let project =
+        Project::github_with_revision_and_authentication_token(repository_name, revision, &token)?;
+    let package = project.packages().iter().find(|package| {
+        release.starts_with(package.name())
+            && release.as_bytes().get(package.name().len()) == Some(&b'-')
+            && release[package.name().len() + 1..]
+                .parse::<Version>()
+                .is_ok()
+    });
+
+    let (package, version) = match package {
+        Some(package) => (
+            package.name().to_owned(),
+            release[package.name().len() + 1..]
+                .parse::<Version>()
+                .map_err(|_| Error::Payload)?,
+        ),
+        None => {
+            let version = release.parse::<Version>().map_err(|_| Error::Payload)?;
+            let package = project
+                .packages()
+                .iter()
+                .find(|package| package.name() == project.name())
+                .ok_or_else(|| ploys::project::Error::PackageNotFound(project.name().to_owned()))?;
+
+            (package.name().to_owned(), version)
+        }
+    };
+
+    let name = match package == project.name() {
+        true => format!("{version}"),
+        false => format!("{package} {version}"),
+    };
+
+    let tag_name = match package == project.name() {
+        true => format!("{version}"),
+        false => format!("{package}-{version}"),
+    };
+
+    let prerelease = !version.pre.is_empty();
+    let is_latest = package == project.name() && !prerelease;
+
+    let client = Client::new();
+    let release_id = client
+        .post(format!(
+            "https://api.github.com/repos/{repository_name}/releases",
+        ))
+        .header("Accept", "application/vnd.github+json")
+        .header("Authorization", format!("Bearer {token}"))
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("User-Agent", "ploys/ploys")
+        .json(&CreateRelease {
+            tag_name,
+            target_commitish: sha.to_owned(),
+            name,
+            draft: false,
+            prerelease,
+            generate_release_notes: true,
+            make_latest: is_latest.into(),
+        })
+        .send()
+        .await?
+        .json::<ReleaseResponse>()
+        .await?
+        .id;
+
+    println!("Created release {release_id}");
+
+    Ok(())
+}
+
 #[derive(Serialize)]
 struct CreatePullRequest {
     title: String,
@@ -131,6 +233,38 @@ struct CreatePullRequest {
 
 #[derive(Deserialize)]
 struct PullRequestResponse {
+    id: u64,
+}
+
+#[derive(Serialize)]
+struct CreateRelease {
+    tag_name: String,
+    target_commitish: String,
+    name: String,
+    draft: bool,
+    prerelease: bool,
+    generate_release_notes: bool,
+    make_latest: MakeLatest,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+enum MakeLatest {
+    True,
+    False,
+}
+
+impl From<bool> for MakeLatest {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Self::True,
+            false => Self::False,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct ReleaseResponse {
     id: u64,
 }
 
