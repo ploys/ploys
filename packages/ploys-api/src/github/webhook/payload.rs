@@ -22,6 +22,7 @@ use super::secret::WebhookSecret;
 /// The GitHub event payload.
 pub enum Payload {
     Create(CreatePayload),
+    PullRequest(PullRequestPayload),
     Other(String, Value),
 }
 
@@ -63,6 +64,7 @@ where
 
         Ok(match event.as_str() {
             "create" => Self::Create(serde_json::from_slice(&bytes)?),
+            "pull_request" => Self::PullRequest(serde_json::from_slice(&bytes)?),
             _ => Self::Other(event, serde_json::from_slice(&bytes)?),
         })
     }
@@ -74,6 +76,15 @@ pub struct CreatePayload {
     pub r#ref: String,
     pub ref_type: RefType,
     pub master_branch: String,
+    pub repository: Repository,
+    pub installation: Installation,
+}
+
+/// The `pull_request` webhook payload.
+#[derive(Debug, Deserialize)]
+pub struct PullRequestPayload {
+    pub action: String,
+    pub pull_request: PullRequest,
     pub repository: Repository,
     pub installation: Installation,
 }
@@ -94,6 +105,18 @@ pub struct Repository {
 #[derive(Debug, Deserialize)]
 pub struct Installation {
     pub id: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PullRequest {
+    pub head: Branch,
+    pub merged: bool,
+    pub merge_commit_sha: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Branch {
+    pub r#ref: String,
 }
 
 pub enum PayloadRejection {
