@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    if: ${{ contains(github.event.release.tag_name, 'ploys-api') }}
+    concurrency: production
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: shuttle-hq/deploy-action@v2
+        with:
+          project-id: ${{ vars.SHUTTLE_PROJECT_ID }}
+          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          secrets: |
+            GITHUB_APP_CLIENT_ID = '${{ vars.APP_CLIENT_ID }}'
+            GITHUB_APP_PRIVATE_KEY = '''${{ secrets.APP_PRIVATE_KEY }}'''
+            GITHUB_APP_WEBHOOK_SECRET = '${{ secrets.APP_WEBHOOK_SECRET }}'
