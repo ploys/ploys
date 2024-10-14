@@ -12,7 +12,7 @@ jobs:
     concurrency: production
     environment:
       name: production
-      url: https://ploys-1sdu.shuttle.app/
+      url: ${{ vars.APP_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
