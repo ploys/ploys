@@ -1,10 +1,12 @@
 //! The `Cargo.toml` package for Rust.
 
+mod dependency;
 mod error;
 pub(super) mod manifest;
 
 use std::path::{Path, PathBuf};
 
+pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 use self::manifest::Manifest;
 
@@ -68,6 +70,72 @@ impl Cargo {
         Ok(())
     }
 
+    /// Gets the dependency with the given name.
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.dependencies().get(name)
+    }
+
+    /// Gets the mutable dependency with the given name.
+    pub fn get_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.dependencies_mut()
+            .into_iter()
+            .find(|dependency| dependency.name() == name.as_ref())
+    }
+
+    /// Gets the dependencies.
+    pub fn dependencies(&self) -> Dependencies<'_> {
+        self.manifest.dependencies()
+    }
+
+    // Gets the mutable dependencies.
+    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.manifest.dependencies_mut()
+    }
+
+    /// Gets the dev dependency with the given name.
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.dev_dependencies().get(name)
+    }
+
+    /// Gets the mutable dev dependency with the given name.
+    pub fn get_dev_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.dev_dependencies_mut()
+            .into_iter()
+            .find(|dependency| dependency.name() == name.as_ref())
+    }
+
+    /// Gets the dev dependencies.
+    pub fn dev_dependencies(&self) -> Dependencies<'_> {
+        self.manifest.dev_dependencies()
+    }
+
+    // Gets the mutable dev dependencies.
+    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.manifest.dev_dependencies_mut()
+    }
+
+    /// Gets the build dependency with the given name.
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.build_dependencies().get(name)
+    }
+
+    /// Gets the mutable build dependency with the given name.
+    pub fn get_build_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.build_dependencies_mut()
+            .into_iter()
+            .find(|dependency| dependency.name() == name.as_ref())
+    }
+
+    /// Gets the build dependencies.
+    pub fn build_dependencies(&self) -> Dependencies<'_> {
+        self.manifest.build_dependencies()
+    }
+
+    // Gets the mutable build dependencies.
+    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.manifest.build_dependencies_mut()
+    }
+
     /// Gets the package contents.
     pub fn get_contents(&self) -> String {
         self.manifest.0.to_string()
@@ -76,5 +144,10 @@ impl Cargo {
     /// Checks if the package has been changed.
     pub fn is_changed(&self) -> bool {
         self.changed
+    }
+
+    /// Sets the package as changed.
+    pub(crate) fn set_changed(&mut self, changed: bool) {
+        self.changed = changed;
     }
 }

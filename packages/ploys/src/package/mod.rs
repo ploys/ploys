@@ -5,6 +5,7 @@
 
 mod bump;
 pub mod cargo;
+mod dependency;
 mod error;
 mod manifest;
 mod members;
@@ -17,6 +18,7 @@ use crate::project::source::Source;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;
+pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 use self::manifest::Manifest;
 
@@ -77,6 +79,92 @@ impl Package {
         }
     }
 
+    /// Gets the dependency with the given name.
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the mutable dependency with the given name.
+    pub fn get_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dependency_mut(name).map(DependencyMut::Cargo),
+        }
+    }
+
+    /// Gets the dependencies.
+    pub fn dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.dependencies()),
+        }
+    }
+
+    /// Gets the mutable dependencies.
+    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.dependencies_mut()),
+        }
+    }
+
+    /// Gets the dev dependency with the given name.
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dev_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the mutable dev dependency with the given name.
+    pub fn get_dev_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dev_dependency_mut(name).map(DependencyMut::Cargo),
+        }
+    }
+
+    /// Gets the dev dependencies.
+    pub fn dev_dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.dev_dependencies()),
+        }
+    }
+
+    /// Gets the mutable dev dependencies.
+    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.dev_dependencies_mut()),
+        }
+    }
+
+    /// Gets the build dependency with the given name.
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_build_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the mutable build dependency with the given name.
+    pub fn get_build_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo
+                .get_build_dependency_mut(name)
+                .map(DependencyMut::Cargo),
+        }
+    }
+
+    /// Gets the build dependencies.
+    pub fn build_dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.build_dependencies()),
+        }
+    }
+
+    /// Gets the mutable build dependencies.
+    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.build_dependencies_mut()),
+        }
+    }
+
     /// Gets the package contents.
     pub fn get_contents(&self) -> String {
         match self {
@@ -88,6 +176,13 @@ impl Package {
     pub fn is_changed(&self) -> bool {
         match self {
             Self::Cargo(cargo) => cargo.is_changed(),
+        }
+    }
+
+    /// Sets the package as changed.
+    pub(crate) fn set_changed(&mut self, changed: bool) {
+        match self {
+            Self::Cargo(cargo) => cargo.set_changed(changed),
         }
     }
 }

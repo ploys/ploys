@@ -333,11 +333,28 @@ where
             .iter_mut()
             .find(|pkg| pkg.name() == package.as_ref())
         {
-            Some(package) => {
-                package.set_version(version);
+            Some(pkg) => {
+                pkg.set_version(version.clone());
 
-                if let Some(lockfile) = self.lockfiles.get_mut(&package.kind()) {
-                    lockfile.set_package_version(package.name(), package.version());
+                if let Some(lockfile) = self.lockfiles.get_mut(&pkg.kind()) {
+                    lockfile.set_package_version(pkg.name(), pkg.version());
+                }
+
+                for pkg in self.packages.iter_mut() {
+                    if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
+                        dependency.set_version(version.to_string());
+                        pkg.set_changed(true);
+                    }
+
+                    if let Some(mut dependency) = pkg.get_dev_dependency_mut(package.as_ref()) {
+                        dependency.set_version(version.to_string());
+                        pkg.set_changed(true);
+                    }
+
+                    if let Some(mut dependency) = pkg.get_build_dependency_mut(package.as_ref()) {
+                        dependency.set_version(version.to_string());
+                        pkg.set_changed(true);
+                    }
                 }
 
                 Ok(())
@@ -356,11 +373,30 @@ where
             .iter_mut()
             .find(|pkg| pkg.name() == package.as_ref())
         {
-            Some(package) => {
-                package.bump(bump)?;
+            Some(pkg) => {
+                pkg.bump(bump)?;
 
-                if let Some(lockfile) = self.lockfiles.get_mut(&package.kind()) {
-                    lockfile.set_package_version(package.name(), package.version());
+                if let Some(lockfile) = self.lockfiles.get_mut(&pkg.kind()) {
+                    lockfile.set_package_version(pkg.name(), pkg.version());
+                }
+
+                let version = pkg.version().to_owned();
+
+                for pkg in self.packages.iter_mut() {
+                    if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
+                        dependency.set_version(version.clone());
+                        pkg.set_changed(true);
+                    }
+
+                    if let Some(mut dependency) = pkg.get_dev_dependency_mut(package.as_ref()) {
+                        dependency.set_version(version.clone());
+                        pkg.set_changed(true);
+                    }
+
+                    if let Some(mut dependency) = pkg.get_build_dependency_mut(package.as_ref()) {
+                        dependency.set_version(version.clone());
+                        pkg.set_changed(true);
+                    }
                 }
 
                 Ok(())
