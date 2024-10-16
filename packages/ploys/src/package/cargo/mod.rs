@@ -1,5 +1,6 @@
 //! The `Cargo.toml` package for Rust.
 
+mod dependency;
 mod error;
 pub(super) mod manifest;
 
