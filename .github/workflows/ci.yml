@@ -16,20 +16,29 @@ jobs:
     strategy:
       matrix:
         include:
-          - label: linux
+          - label: linux, x86_64
             target: x86_64-unknown-linux-gnu
             toolchain: stable
             os: ubuntu-latest
+            cache: linux-x86-64
 
-          - label: macos
+          - label: macos, aarch64
+            target: aarch64-apple-darwin
+            toolchain: stable
+            os: macos-latest
+            cache: macos-aarch64
+
+          - label: macos, x86_64
             target: x86_64-apple-darwin
             toolchain: stable
             os: macos-latest
+            cache: macos-x86-64
 
-          - label: windows
+          - label: windows, x86_64
             target: x86_64-pc-windows-msvc
             toolchain: stable
             os: windows-latest
+            cache: windows-x86-64
 
     steps:
       - name: Checkout
@@ -43,6 +52,8 @@ jobs:
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.cache }}
 
       - name: Test
         run: cargo test --target ${{ matrix.target }} -- --include-ignored
