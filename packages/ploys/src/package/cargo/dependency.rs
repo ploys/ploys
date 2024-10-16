@@ -6,6 +6,7 @@ use toml_edit::{Item, TableLike};
 #[derive(Clone)]
 pub struct Dependency<'a> {
     name: &'a str,
+    version: Option<&'a str>,
     table: Option<&'a dyn TableLike>,
 }
 
@@ -13,6 +14,20 @@ impl<'a> Dependency<'a> {
     /// Gets the dependency name.
     pub fn name(&self) -> &'a str {
         self.name
+    }
+
+    /// Gets the dependency version if it has been set.
+    pub fn version(&self) -> Option<&'a str> {
+        match self.version {
+            Some(version) => Some(version),
+            None => match self.table {
+                Some(table) => match table.get("version") {
+                    Some(version) => version.as_str(),
+                    None => None,
+                },
+                None => None,
+            },
+        }
     }
 
     /// Gets the dependency path if it has been set.
@@ -31,6 +46,7 @@ impl<'a> Debug for Dependency<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Dependency")
             .field("name", &self.name())
+            .field("version", &self.version())
             .field("path", &self.path())
             .finish()
     }
@@ -40,6 +56,7 @@ impl<'a> From<(&'a str, &'a Item)> for Dependency<'a> {
     fn from((name, item): (&'a str, &'a Item)) -> Self {
         Self {
             name,
+            version: item.as_str(),
             table: item.as_table_like(),
         }
     }

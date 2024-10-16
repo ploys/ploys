@@ -15,6 +15,13 @@ impl<'a> Dependency<'a> {
         }
     }
 
+    /// Gets the dependency version if it has been set.
+    pub fn version(&self) -> Option<&'a str> {
+        match self {
+            Self::Cargo(dependency) => dependency.version(),
+        }
+    }
+
     /// Gets the dependency path if it has been set.
     pub fn path(&self) -> Option<&'a str> {
         match self {
