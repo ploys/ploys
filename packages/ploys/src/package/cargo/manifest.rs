@@ -62,10 +62,26 @@ impl Manifest {
             .unwrap_or_default()
     }
 
+    /// Gets the mutable dev dependencies table.
+    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.0
+            .get_mut("dev-dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+
     /// Gets the build dependencies table.
     pub fn build_dependencies(&self) -> Dependencies<'_> {
         self.0
             .get("build-dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+
+    /// Gets the mutable build dependencies table.
+    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.0
+            .get_mut("build-dependencies")
             .map(Into::into)
             .unwrap_or_default()
     }

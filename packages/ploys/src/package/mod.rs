@@ -107,6 +107,64 @@ impl Package {
         }
     }
 
+    /// Gets the dev dependency with the given name.
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dev_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the mutable dev dependency with the given name.
+    pub fn get_dev_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dev_dependency_mut(name).map(DependencyMut::Cargo),
+        }
+    }
+
+    /// Gets the dev dependencies.
+    pub fn dev_dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.dev_dependencies()),
+        }
+    }
+
+    /// Gets the mutable dev dependencies.
+    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.dev_dependencies_mut()),
+        }
+    }
+
+    /// Gets the build dependency with the given name.
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_build_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the mutable build dependency with the given name.
+    pub fn get_build_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo
+                .get_build_dependency_mut(name)
+                .map(DependencyMut::Cargo),
+        }
+    }
+
+    /// Gets the build dependencies.
+    pub fn build_dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.build_dependencies()),
+        }
+    }
+
+    /// Gets the mutable build dependencies.
+    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.build_dependencies_mut()),
+        }
+    }
+
     /// Gets the package contents.
     pub fn get_contents(&self) -> String {
         match self {
