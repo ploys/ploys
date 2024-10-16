@@ -18,7 +18,7 @@ use crate::project::source::Source;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;
-pub use self::dependency::{Dependencies, Dependency};
+pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 use self::manifest::Manifest;
 
@@ -86,10 +86,24 @@ impl Package {
         }
     }
 
+    /// Gets the mutable dependency with the given name.
+    pub fn get_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dependency_mut(name).map(DependencyMut::Cargo),
+        }
+    }
+
     /// Gets the dependencies.
     pub fn dependencies(&self) -> Dependencies<'_> {
         match self {
             Self::Cargo(cargo) => Dependencies::Cargo(cargo.dependencies()),
+        }
+    }
+
+    /// Gets the mutable dependencies.
+    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.dependencies_mut()),
         }
     }
 

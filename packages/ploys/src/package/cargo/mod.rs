@@ -6,7 +6,7 @@ pub(super) mod manifest;
 
 use std::path::{Path, PathBuf};
 
-pub use self::dependency::{Dependencies, Dependency};
+pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 use self::manifest::Manifest;
 
@@ -75,9 +75,21 @@ impl Cargo {
         self.dependencies().get(name)
     }
 
+    /// Gets the mutable dependency with the given name.
+    pub fn get_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.dependencies_mut()
+            .into_iter()
+            .find(|dependency| dependency.name() == name.as_ref())
+    }
+
     /// Gets the dependencies.
     pub fn dependencies(&self) -> Dependencies<'_> {
         self.manifest.dependencies()
+    }
+
+    // Gets the mutable dependencies.
+    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.manifest.dependencies_mut()
     }
 
     /// Gets the package contents.

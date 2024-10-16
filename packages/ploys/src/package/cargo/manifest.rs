@@ -5,7 +5,7 @@ use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
 
 use crate::package::members::Members;
 
-use super::dependency::Dependencies;
+use super::dependency::{Dependencies, DependenciesMut};
 use super::error::Error;
 use super::Cargo;
 
@@ -42,6 +42,14 @@ impl Manifest {
     pub fn dependencies(&self) -> Dependencies<'_> {
         self.0
             .get("dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+
+    /// Gets the mutable dependencies table.
+    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.0
+            .get_mut("dependencies")
             .map(Into::into)
             .unwrap_or_default()
     }

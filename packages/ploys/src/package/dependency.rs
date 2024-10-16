@@ -1,4 +1,7 @@
-use super::cargo::{Dependencies as CargoDependencies, Dependency as CargoDependency};
+use super::cargo::{
+    Dependencies as CargoDependencies, DependenciesMut as CargoDependenciesMut,
+    Dependency as CargoDependency, DependencyMut as CargoDependencyMut,
+};
 
 /// The package dependency.
 #[derive(Clone, Debug)]
@@ -52,6 +55,71 @@ impl<'a> IntoIterator for Dependencies<'a> {
     fn into_iter(self) -> Self::IntoIter {
         match self {
             Self::Cargo(dependencies) => Box::new(dependencies.into_iter().map(Dependency::Cargo)),
+        }
+    }
+}
+
+/// The mutable package dependency.
+#[derive(Debug)]
+pub enum DependencyMut<'a> {
+    /// A cargo package dependency.
+    Cargo(CargoDependencyMut<'a>),
+}
+
+impl<'a> DependencyMut<'a> {
+    /// Gets the dependency name.
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Cargo(dependency) => dependency.name(),
+        }
+    }
+
+    /// Gets the dependency version if it has been set.
+    pub fn version(&self) -> Option<&str> {
+        match self {
+            Self::Cargo(dependency) => dependency.version(),
+        }
+    }
+
+    /// Sets the dependency version.
+    pub fn set_version(&mut self, version: impl Into<String>) {
+        match self {
+            Self::Cargo(dependency) => dependency.set_version(version),
+        }
+    }
+
+    /// Gets the dependency path if it has been set.
+    pub fn path(&self) -> Option<&str> {
+        match self {
+            Self::Cargo(dependency) => dependency.path(),
+        }
+    }
+}
+
+/// The mutable package dependencies.
+#[derive(Debug)]
+pub enum DependenciesMut<'a> {
+    Cargo(CargoDependenciesMut<'a>),
+}
+
+impl<'a> DependenciesMut<'a> {
+    /// Gets the mutable dependency with the given name.
+    pub fn get_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(dependencies) => dependencies.get_mut(name).map(DependencyMut::Cargo),
+        }
+    }
+}
+
+impl<'a> IntoIterator for DependenciesMut<'a> {
+    type Item = DependencyMut<'a>;
+    type IntoIter = Box<dyn Iterator<Item = DependencyMut<'a>> + 'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Self::Cargo(dependencies) => {
+                Box::new(dependencies.into_iter().map(DependencyMut::Cargo))
+            }
         }
     }
 }
