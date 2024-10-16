@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Test (${{ matrix.label }})
+    name: Test (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -16,20 +16,21 @@ jobs:
     strategy:
       matrix:
         include:
-          - label: linux
-            target: x86_64-unknown-linux-gnu
-            toolchain: stable
-            os: ubuntu-latest
-
-          - label: macos
-            target: x86_64-apple-darwin
+          - target: aarch64-apple-darwin
             toolchain: stable
             os: macos-latest
 
-          - label: windows
-            target: x86_64-pc-windows-msvc
+          - target: x86_64-apple-darwin
+            toolchain: stable
+            os: macos-latest
+
+          - target: x86_64-pc-windows-msvc
             toolchain: stable
             os: windows-latest
+
+          - target: x86_64-unknown-linux-gnu
+            toolchain: stable
+            os: ubuntu-latest
 
     steps:
       - name: Checkout
