@@ -18,7 +18,7 @@ use crate::project::source::Source;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;
-pub use self::dependency::Dependency;
+pub use self::dependency::{Dependencies, Dependency};
 pub use self::error::Error;
 use self::manifest::Manifest;
 
@@ -83,6 +83,13 @@ impl Package {
     pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
         match self {
             Self::Cargo(cargo) => cargo.get_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the dependencies.
+    pub fn dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.dependencies()),
         }
     }
 

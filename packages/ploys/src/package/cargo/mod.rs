@@ -6,7 +6,7 @@ pub(super) mod manifest;
 
 use std::path::{Path, PathBuf};
 
-pub use self::dependency::Dependency;
+pub use self::dependency::{Dependencies, Dependency};
 pub use self::error::Error;
 use self::manifest::Manifest;
 
@@ -72,7 +72,12 @@ impl Cargo {
 
     /// Gets the dependency with the given name.
     pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
-        self.manifest.dependencies().get(name)
+        self.dependencies().get(name)
+    }
+
+    /// Gets the dependencies.
+    pub fn dependencies(&self) -> Dependencies<'_> {
+        self.manifest.dependencies()
     }
 
     /// Gets the package contents.
