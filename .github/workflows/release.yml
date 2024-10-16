@@ -42,3 +42,50 @@ jobs:
             GITHUB_APP_CLIENT_ID = '${{ vars.APP_CLIENT_ID }}'
             GITHUB_APP_PRIVATE_KEY = '''${{ secrets.APP_PRIVATE_KEY }}'''
             GITHUB_APP_WEBHOOK_SECRET = '${{ secrets.APP_WEBHOOK_SECRET }}'
+
+  build:
+    name: Build (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    if: ${{ contains(github.event.release.tag_name, 'ploys-cli') }}
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        include:
+          - label: linux, x86_64
+            target: x86_64-unknown-linux-gnu
+            toolchain: stable
+            os: ubuntu-latest
+
+          - label: macos, aarch64
+            target: aarch64-apple-darwin
+            toolchain: stable
+            os: macos-latest
+
+          - label: macos, x86_64
+            target: x86_64-apple-darwin
+            toolchain: stable
+            os: macos-latest
+
+          - label: windows, x86_64
+            target: x86_64-pc-windows-msvc
+            toolchain: stable
+            os: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: ${{ matrix.target }}
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Upload
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: ploys
+          target: ${{ matrix.target }}
+          token: ${{ secrets.GITHUB_TOKEN }}
