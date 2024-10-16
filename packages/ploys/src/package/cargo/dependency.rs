@@ -130,12 +130,20 @@ impl<'a> DependencyMut<'a> {
     pub fn set_version(&mut self, version: impl Into<String>) {
         if let Some(value) = self.item.as_value_mut() {
             *value = version.into().into();
-        } else if let Some(table) = self.item.as_table_like_mut() {
+
+            return;
+        }
+
+        if let Some(table) = self.item.as_table_like_mut() {
             if let Some(item) = table.get_mut("version") {
                 if let Some(value) = item.as_value_mut() {
                     *value = version.into().into();
+
+                    return;
                 }
             }
+
+            table.insert("version", Item::Value(version.into().into()));
         }
     }
 
