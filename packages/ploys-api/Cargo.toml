@@ -29,6 +29,7 @@ tokio = { version = "1.33.0", features = ["rt", "macros"] }
 tower-service = "0.3.3"
 
 [dependencies.ploys]
+version = "0.1.0"
 path = "../ploys"
 features = ["github"]
 default-features = false
