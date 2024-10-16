@@ -40,26 +40,26 @@ impl Manifest {
 
     /// Gets the dependencies table.
     pub fn dependencies(&self) -> Dependencies<'_> {
-        match self.0.get("dependencies") {
-            Some(item) => Dependencies(item.as_table_like()),
-            None => Dependencies(None),
-        }
+        self.0
+            .get("dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
     }
 
     /// Gets the dev dependencies table.
     pub fn dev_dependencies(&self) -> Dependencies<'_> {
-        match self.0.get("dev-dependencies") {
-            Some(item) => Dependencies(item.as_table_like()),
-            None => Dependencies(None),
-        }
+        self.0
+            .get("dev-dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
     }
 
     /// Gets the build dependencies table.
     pub fn build_dependencies(&self) -> Dependencies<'_> {
-        match self.0.get("build-dependencies") {
-            Some(item) => Dependencies(item.as_table_like()),
-            None => Dependencies(None),
-        }
+        self.0
+            .get("build-dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
     }
 
     /// Gets the workspace members.
