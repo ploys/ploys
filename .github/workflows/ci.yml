@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-    - main
+      - main
 
 jobs:
   test:
@@ -16,38 +16,38 @@ jobs:
     strategy:
       matrix:
         include:
-        - label: linux
-          target: x86_64-unknown-linux-gnu
-          toolchain: stable
-          os: ubuntu-latest
+          - label: linux
+            target: x86_64-unknown-linux-gnu
+            toolchain: stable
+            os: ubuntu-latest
 
-        - label: macos
-          target: x86_64-apple-darwin
-          toolchain: stable
-          os: macos-latest
+          - label: macos
+            target: x86_64-apple-darwin
+            toolchain: stable
+            os: macos-latest
 
-        - label: windows
-          target: x86_64-pc-windows-msvc
-          toolchain: stable
-          os: windows-latest
+          - label: windows
+            target: x86_64-pc-windows-msvc
+            toolchain: stable
+            os: windows-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup
-      uses: dtolnay/rust-toolchain@master
-      with:
-        targets: ${{ matrix.target }}
-        toolchain: ${{ matrix.toolchain }}
+      - name: Setup
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: ${{ matrix.target }}
+          toolchain: ${{ matrix.toolchain }}
 
-    - name: Cache
-      uses: Swatinem/rust-cache@v2
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
 
-    - name: Test
-      run: cargo test --target ${{ matrix.target }} -- --include-ignored
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        run: cargo test --target ${{ matrix.target }} -- --include-ignored
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   lint:
     name: Lint
@@ -55,21 +55,21 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup
-      uses: dtolnay/rust-toolchain@master
-      with:
-        targets: x86_64-unknown-linux-gnu
-        toolchain: stable
-        components: clippy, rustfmt
+      - name: Setup
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: x86_64-unknown-linux-gnu
+          toolchain: stable
+          components: clippy, rustfmt
 
-    - name: Cache
-      uses: Swatinem/rust-cache@v2
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
 
-    - name: Rustfmt
-      run: cargo fmt -- --check
+      - name: Rustfmt
+        run: cargo fmt -- --check
 
-    - name: Clippy
-      run: cargo clippy -- -D warnings
+      - name: Clippy
+        run: cargo clippy -- -D warnings
