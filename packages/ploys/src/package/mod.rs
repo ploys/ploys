@@ -5,6 +5,7 @@
 
 mod bump;
 pub mod cargo;
+mod dependency;
 mod error;
 mod manifest;
 mod members;
@@ -17,6 +18,7 @@ use crate::project::source::Source;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;
+pub use self::dependency::Dependency;
 pub use self::error::Error;
 use self::manifest::Manifest;
 
@@ -74,6 +76,13 @@ impl Package {
     pub fn bump(&mut self, bump: Bump) -> Result<(), BumpError> {
         match self {
             Self::Cargo(cargo) => Ok(cargo.bump(bump)?),
+        }
+    }
+
+    /// Gets the dependency with the given name.
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dependency(name).map(Dependency::Cargo),
         }
     }
 

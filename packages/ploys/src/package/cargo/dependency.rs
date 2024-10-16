@@ -33,7 +33,17 @@ impl<'a> Debug for Dependency<'a> {
 }
 
 /// The dependencies table.
+#[derive(Clone)]
 pub struct Dependencies<'a>(pub(super) Option<&'a dyn TableLike>);
+
+impl<'a> Dependencies<'a> {
+    /// Gets the dependency with the given name.
+    pub fn get(&self, name: impl AsRef<str>) -> Option<Dependency<'a>> {
+        self.clone()
+            .into_iter()
+            .find(|dependency| dependency.name() == name.as_ref())
+    }
+}
 
 impl<'a> IntoIterator for Dependencies<'a> {
     type Item = Dependency<'a>;
