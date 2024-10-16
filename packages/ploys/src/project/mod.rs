@@ -343,14 +343,17 @@ where
                 for pkg in self.packages.iter_mut() {
                     if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.to_string());
+                        pkg.set_changed(true);
                     }
 
                     if let Some(mut dependency) = pkg.get_dev_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.to_string());
+                        pkg.set_changed(true);
                     }
 
                     if let Some(mut dependency) = pkg.get_build_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.to_string());
+                        pkg.set_changed(true);
                     }
                 }
 
@@ -382,14 +385,17 @@ where
                 for pkg in self.packages.iter_mut() {
                     if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.clone());
+                        pkg.set_changed(true);
                     }
 
                     if let Some(mut dependency) = pkg.get_dev_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.clone());
+                        pkg.set_changed(true);
                     }
 
                     if let Some(mut dependency) = pkg.get_build_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.clone());
+                        pkg.set_changed(true);
                     }
                 }
 

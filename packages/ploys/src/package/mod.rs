@@ -178,6 +178,13 @@ impl Package {
             Self::Cargo(cargo) => cargo.is_changed(),
         }
     }
+
+    /// Sets the package as changed.
+    pub(crate) fn set_changed(&mut self, changed: bool) {
+        match self {
+            Self::Cargo(cargo) => cargo.set_changed(changed),
+        }
+    }
 }
 
 impl Package {
