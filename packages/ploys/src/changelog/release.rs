@@ -1,8 +1,219 @@
 use std::fmt::{self, Display};
 
 use markdown::mdast::Node;
+use markdown::ParseOptions;
 
-use super::{ChangesetRef, MultilineText, ReferenceRef};
+use super::{Changeset, ChangesetRef, MultilineText, ReferenceRef};
+
+/// A changelog release.
+#[derive(Clone, Debug)]
+pub struct Release {
+    version: String,
+    date: Option<String>,
+    url: Option<String>,
+    description: Option<String>,
+    changesets: Vec<Changeset>,
+    references: Vec<(String, String)>,
+}
+
+impl Release {
+    /// Constructs a new changelog release.
+    pub fn new(version: impl Into<String>) -> Self {
+        Self {
+            version: version.into(),
+            date: None,
+            url: None,
+            description: None,
+            changesets: Vec::new(),
+            references: Vec::new(),
+        }
+    }
+
+    /// Gets the release version.
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+
+    /// Gets the release date.
+    pub fn date(&self) -> Option<&str> {
+        self.date.as_deref()
+    }
+
+    /// Sets the release date.
+    pub fn set_date(&mut self, date: impl Into<String>) -> &mut Self {
+        self.date = Some(date.into());
+        self
+    }
+
+    /// Builds the release with the given date.
+    pub fn with_date(mut self, date: impl Into<String>) -> Self {
+        self.set_date(date);
+        self
+    }
+
+    /// Gets the release URL.
+    pub fn url(&self) -> Option<&str> {
+        self.url.as_deref()
+    }
+
+    /// Sets the release URL.
+    pub fn set_url(&mut self, url: impl Into<String>) -> &mut Self {
+        self.url = Some(url.into());
+        self
+    }
+
+    /// Builds the release with the given URL.
+    pub fn with_url(mut self, url: impl Into<String>) -> Self {
+        self.set_url(url);
+        self
+    }
+
+    /// Gets the release description.
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Sets the release description.
+    pub fn set_description(&mut self, description: impl Into<String>) -> &mut Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// Builds the release with the given description.
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.set_description(description);
+        self
+    }
+
+    /// Adds a changeset to the release.
+    pub fn add_changeset(&mut self, changeset: impl Into<Changeset>) -> &mut Self {
+        self.changesets.push(changeset.into());
+        self
+    }
+
+    /// Builds the release with the given changeset.
+    pub fn with_changeset(mut self, changeset: impl Into<Changeset>) -> Self {
+        self.add_changeset(changeset);
+        self
+    }
+
+    /// Gets an iterator over the changesets.
+    pub fn changesets(&self) -> impl Iterator<Item = &Changeset> {
+        self.changesets.iter()
+    }
+
+    /// Adds a reference to the release.
+    pub fn add_reference(&mut self, id: impl Into<String>, url: impl Into<String>) -> &mut Self {
+        self.references.push((id.into(), url.into()));
+        self
+    }
+
+    /// Builds the release with the given reference.
+    pub fn with_reference(mut self, id: impl Into<String>, url: impl Into<String>) -> Self {
+        self.add_reference(id, url);
+        self
+    }
+
+    /// Gets an iterator over the references.
+    pub fn references(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.references.iter().map(|(id, url)| (&**id, &**url))
+    }
+}
+
+impl Release {
+    /// Converts the release into markdown nodes.
+    pub(super) fn into_nodes(self) -> Vec<Node> {
+        let mut nodes = Vec::new();
+
+        let version = Node::LinkReference(markdown::mdast::LinkReference {
+            children: vec![Node::Text(markdown::mdast::Text {
+                value: self.version.clone(),
+                position: None,
+            })],
+            position: None,
+            reference_kind: markdown::mdast::ReferenceKind::Shortcut,
+            identifier: self.version,
+            label: None,
+        });
+
+        let date = self.date.map(|date| {
+            Node::Text(markdown::mdast::Text {
+                value: format!(" - {date}"),
+                position: None,
+            })
+        });
+
+        let heading = Node::Heading(markdown::mdast::Heading {
+            children: Some(version).into_iter().chain(date).collect(),
+            position: None,
+            depth: 2,
+        });
+
+        nodes.push(heading);
+
+        if let Some(description) = self.description {
+            let md = markdown::to_mdast(&description, &ParseOptions::default()).expect("markdown");
+
+            if let Node::Root(root) = md {
+                nodes.extend(root.children);
+            }
+        }
+
+        nodes.extend(self.changesets.into_iter().flat_map(Changeset::into_nodes));
+        nodes
+    }
+}
+
+impl Display for Release {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.date {
+            Some(date) => write!(f, "## [{}] - {date}", self.version)?,
+            None => write!(f, "## [{}]", self.version)?,
+        }
+
+        if let Some(description) = self.description() {
+            if f.alternate() {
+                write!(f, "\n\n{description:#}")?;
+            } else {
+                write!(f, "\n\n{description}")?;
+            }
+        }
+
+        let mut changesets = self.changesets().peekable();
+
+        if changesets.peek().is_some() {
+            write!(f, "\n\n")?;
+
+            while let Some(changeset) = changesets.next() {
+                if f.alternate() {
+                    write!(f, "{changeset:#}")?;
+                } else {
+                    write!(f, "{changeset}")?;
+                }
+
+                if changesets.peek().is_some() {
+                    write!(f, "\n\n")?;
+                }
+            }
+        }
+
+        let mut references = self.references().peekable();
+
+        if references.peek().is_some() {
+            write!(f, "\n\n")?;
+
+            while let Some((id, url)) = references.next() {
+                write!(f, "[{id}]: {url}")?;
+
+                if references.peek().is_some() {
+                    writeln!(f)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
 
 /// A changelog release entry.
 #[derive(Clone, Debug)]
@@ -171,5 +382,56 @@ impl<'a> Display for ReleaseRef<'a> {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use indoc::indoc;
+    use pretty_assertions::assert_eq;
+
+    use crate::changelog::{Change, Changeset};
+
+    use super::Release;
+
+    #[test]
+    fn test_release() {
+        let release = Release::new("0.1.0")
+            .with_date("2024-01-01")
+            .with_changeset(
+                Changeset::fixed()
+                    .with_description("Fixed some things.")
+                    .with_change(
+                        Change::new("Fixed `one`")
+                            .with_url("#1", "https://github.com/ploys/example/pull/1"),
+                    )
+                    .with_change(
+                        Change::new("Fixed `two`")
+                            .with_url("#2", "https://github.com/ploys/example/pull/2"),
+                    ),
+            )
+            .with_reference(
+                "0.1.0",
+                "https://github.com/ploys/example/releases/tag/0.1.0",
+            );
+
+        let output = indoc! {"
+            ## [0.1.0] - 2024-01-01
+
+            ### Fixed
+
+            Fixed some things.
+
+            - Fixed `one` ([#1](https://github.com/ploys/example/pull/1))
+            - Fixed `two` ([#2](https://github.com/ploys/example/pull/2))
+
+            [0.1.0]: https://github.com/ploys/example/releases/tag/0.1.0\
+        "};
+
+        assert_eq!(release.version(), "0.1.0");
+        assert_eq!(release.date(), Some("2024-01-01"));
+        assert_eq!(release.changesets().count(), 1);
+        assert_eq!(release.references().count(), 1);
+        assert_eq!(release.to_string(), output);
     }
 }
