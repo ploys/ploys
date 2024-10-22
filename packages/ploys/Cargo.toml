@@ -19,6 +19,7 @@ globset = "0.4.13"
 markdown = "=1.0.0-alpha.21"
 semver = "1.0.19"
 serde = { version = "1.0.185", features = ["derive"] }
+time = { version = "0.3.36", features = ["serde", "formatting"] }
 toml_edit = { version = "0.22.14", features = ["serde"] }
 ureq = { version = "2.7.1", features = ["json"], optional = true }
 url = "2.4.0"

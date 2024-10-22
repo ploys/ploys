@@ -582,4 +582,27 @@ impl Project<self::source::github::GitHub> {
 
         Ok(())
     }
+
+    /// Gets the changelog release for the given package version.
+    ///
+    /// This method queries the GitHub API to generate new release information
+    /// and may differ to the existing release information or changelogs. This
+    /// includes information for new releases as well as existing ones.
+    ///
+    /// It does not yet support parallel release or hotfix branches and expects
+    /// all development to be on the default branch in the repository settings.
+    pub fn get_changelog_release(
+        &self,
+        package: impl AsRef<str>,
+        version: impl AsRef<str>,
+    ) -> Result<crate::changelog::Release, Error> {
+        Ok(self.source.get_changelog_release(
+            package.as_ref(),
+            version
+                .as_ref()
+                .parse::<Version>()
+                .map_err(super::package::BumpError::Semver)?,
+            package.as_ref() == self.name(),
+        )?)
+    }
 }
