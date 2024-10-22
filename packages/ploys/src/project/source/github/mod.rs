@@ -4,13 +4,17 @@
 //! management.
 
 mod error;
+mod pull_request;
 mod repo;
 
 use std::io;
 use std::path::{Path, PathBuf};
 
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use url::Url;
+
+use crate::changelog::{Change, Changeset, Release};
 
 pub use self::error::Error;
 pub use self::repo::Repository;
@@ -267,6 +271,56 @@ impl GitHub {
         }
 
         Ok(commit_sha)
+    }
+
+    /// Gets the changelog release for the given package version.
+    pub(crate) fn get_changelog_release(
+        &self,
+        package: &str,
+        version: Version,
+        is_primary: bool,
+    ) -> Result<Release, Error> {
+        let pull_requests = self::pull_request::get_pull_requests(
+            &self.repository,
+            package,
+            &version,
+            is_primary,
+            self.token.as_deref(),
+        )?;
+
+        let package_label = format!("package: {package}");
+        let pull_requests = pull_requests
+            .into_iter()
+            .filter(|pull_request| {
+                pull_request
+                    .labels
+                    .nodes
+                    .iter()
+                    .any(|label| label.name == package_label)
+            })
+            .filter(|pull_request| {
+                !pull_request
+                    .labels
+                    .nodes
+                    .iter()
+                    .any(|label| label.name.contains("release"))
+            });
+
+        let mut release = Release::new(version.to_string());
+        let mut changeset = Changeset::changed();
+
+        for pull_request in pull_requests {
+            changeset.add_change(
+                Change::new(pull_request.title)
+                    .with_url(format!("#{}", pull_request.number), pull_request.permalink),
+            );
+        }
+
+        if changeset.changes().count() > 0 {
+            release.add_changeset(changeset);
+        }
+
+        Ok(release)
     }
 }
 

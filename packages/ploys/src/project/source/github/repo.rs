@@ -13,6 +13,11 @@ pub struct Repository {
 }
 
 impl Repository {
+    /// Gets the repository owner.
+    pub fn owner(&self) -> &str {
+        &self.owner
+    }
+
     /// Gets the repository name.
     pub fn name(&self) -> &str {
         &self.repo
@@ -87,6 +92,18 @@ impl Repository {
         P: AsRef<str>,
     {
         self.request("PATCH", path, token)
+    }
+
+    /// Creates a GraphQL HTTP request.
+    pub(super) fn graphql(&self, token: Option<&str>) -> Request {
+        let mut request =
+            ureq::post("https://api.github.com/graphql").set("User-Agent", "ploys/ploys");
+
+        if let Some(token) = &token {
+            request = request.set("Authorization", &format!("Bearer {token}"));
+        }
+
+        request
     }
 }
 
