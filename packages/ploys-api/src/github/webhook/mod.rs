@@ -114,7 +114,7 @@ pub async fn create_release_pull_request(
     };
 
     project.set_package_version(&package, version.clone())?;
-    project.commit(&message)?;
+    project.commit(&message, None)?;
 
     let issue_number = client
         .post(format!(
