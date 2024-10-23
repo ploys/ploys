@@ -2,88 +2,160 @@ use std::collections::BTreeMap;
 
 use semver::Version;
 use serde::{Deserialize, Serialize};
+use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
+
+use crate::changelog::{Change, Changeset, Release};
 
 use super::{Error, Repository};
 
-/// Gets the pull requests for the specified version.
-pub fn get_pull_requests(
+/// Gets the changelog release for the given package version.
+pub(super) fn get_release(
     repository: &Repository,
     package: &str,
     version: &Version,
     is_primary: bool,
     token: Option<&str>,
-) -> Result<Vec<PullRequest>, Error> {
-    let tag = match is_primary {
+) -> Result<Release, Error> {
+    let tags = get_all_tags(repository, token)?;
+    let tagname = match is_primary {
         true => version.to_string(),
         false => format!("{package}-{version}"),
     };
 
-    let sha = get_matching_tags(repository, &tag, token)?
-        .into_iter()
-        .find_map(|git_ref| {
-            (git_ref.r#ref.starts_with("refs/tags/") && tag == git_ref.r#ref[10..])
-                .then_some(git_ref.object.sha)
-        });
+    let tag = tags.iter().find(|tag| tag.name == tagname);
 
-    let prev_version = get_previous_version(repository, package, version, is_primary, token)?;
+    let prev_version = get_previous_version(package, version, is_primary, &tags);
     let prev_tag = prev_version.as_ref().map(|version| match is_primary {
         true => version.to_string(),
         false => format!("{package}-{version}"),
     });
 
-    if let Some(prev_version) = &prev_version {
-        if prev_version > version {
-            return Ok(Vec::new());
-        }
+    let timestamp = tag
+        .as_ref()
+        .map(|tag| tag.target.committed_date)
+        .unwrap_or_else(OffsetDateTime::now_utc);
+
+    let pull_requests = match (prev_tag, tag) {
+        (None, None) => self::all(repository, token)?,
+        (None, Some(tag)) => self::until(repository, &tag.name, &tag.target.oid, token)?,
+        (Some(_), _) if prev_version.expect("prev") > *version => Vec::new(),
+        (Some(from), None) => self::between(repository, &from, "HEAD", token)?,
+        (Some(from), Some(to)) => self::between(repository, &from, &to.name, token)?,
+    };
+
+    let package_label = format!("package: {package}");
+    let pull_requests = pull_requests
+        .into_iter()
+        .filter(|pull_request| {
+            pull_request
+                .labels
+                .nodes
+                .iter()
+                .any(|label| label.name == package_label)
+        })
+        .filter(|pull_request| {
+            !pull_request
+                .labels
+                .nodes
+                .iter()
+                .any(|label| label.name.contains("release"))
+        });
+
+    let mut release = Release::new(version.to_string());
+    let mut changeset = Changeset::changed();
+
+    release.set_date(timestamp.format(&Iso8601::DATE).expect("date"));
+    release.set_url(format!(
+        "https://github.com/{repository}/releases/tag/{tagname}"
+    ));
+
+    for pull_request in pull_requests {
+        changeset.add_change(
+            Change::new(pull_request.title)
+                .with_url(format!("#{}", pull_request.number), pull_request.permalink),
+        );
     }
 
-    match (prev_tag, sha) {
-        (None, None) => self::all(repository, token),
-        (None, Some(sha)) => self::until(repository, &tag, &sha, token),
-        (Some(previous), None) => self::between(repository, &previous, "HEAD", token),
-        (Some(previous), Some(_)) => self::between(repository, &previous, &tag, token),
+    if changeset.changes().count() > 0 {
+        release.add_changeset(changeset);
     }
+
+    Ok(release)
 }
 
-/// Gets matching tags.
-fn get_matching_tags(
-    repository: &Repository,
-    tag: &str,
-    token: Option<&str>,
-) -> Result<Vec<GitRef>, Error> {
-    Ok(repository
-        .get(format!("git/matching-refs/tags/{tag}"), token)
-        .set("Accept", "application/vnd.github+json")
-        .set("X-GitHub-Api-Version", "2022-11-28")
-        .call()?
-        .into_json()?)
+static ALL_TAGS_QUERY: &str = r#"
+query($owner: String!, $name: String!, $cursor: String) {
+  repository(owner: $owner, name: $name) {
+    refs(refPrefix: "refs/tags/", first: 100, after: $cursor) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      nodes {
+        name
+        target {
+          oid
+          ... on Commit {
+            committedDate
+          }
+        }
+      }
+    }
+  }
+}
+"#;
+
+/// Gets all tags.
+fn get_all_tags(repository: &Repository, token: Option<&str>) -> Result<Vec<GitTag>, Error> {
+    let mut tags = Vec::new();
+    let mut cursor = None;
+
+    loop {
+        let response = repository
+            .graphql(token)
+            .send_json(Query {
+                query: ALL_TAGS_QUERY,
+                variables: Variables {
+                    owner: repository.owner(),
+                    name: repository.name(),
+                    from: None,
+                    to: None,
+                    cursor: cursor.as_deref(),
+                },
+            })?
+            .into_json::<MatchingTagsResponse>()?;
+
+        tags.extend(response.data.repository.refs.nodes);
+
+        if response.data.repository.refs.page_info.has_next_page {
+            cursor = response.data.repository.refs.page_info.end_cursor;
+
+            continue;
+        }
+
+        break;
+    }
+
+    Ok(tags)
 }
 
 /// Gets the previous version or last version if no previous exists.
 fn get_previous_version(
-    repository: &Repository,
     package: &str,
     version: &Version,
     is_primary: bool,
-    token: Option<&str>,
-) -> Result<Option<Version>, Error> {
-    let tag = match is_primary {
-        true => String::new(),
-        false => format!("{package}-"),
-    };
-
-    let mut versions = get_matching_tags(repository, &tag, token)?
+    tags: &[GitTag],
+) -> Option<Version> {
+    let mut versions = tags
         .iter()
-        .filter_map(|git_ref| match git_ref.r#ref.starts_with("refs/tags/") {
-            true => Some(&git_ref.r#ref[10..]),
-            false => None,
-        })
         .filter_map(|tag| match is_primary {
-            true => tag.parse::<Version>().ok(),
+            true => tag.name.parse::<Version>().ok(),
             false => {
-                match tag.starts_with(package) && tag.as_bytes().get(package.len()) == Some(&b'-') {
-                    true => tag[package.len() + 1..].parse::<Version>().ok(),
+                match tag.name.starts_with(package)
+                    && tag.name.as_bytes().get(package.len()) == Some(&b'-')
+                {
+                    true => tag.name[package.len() + 1..].parse::<Version>().ok(),
                     false => None,
                 }
             }
@@ -98,13 +170,13 @@ fn get_previous_version(
         .filter(|previous_version| version.pre.is_empty() || previous_version.pre.is_empty())
         .last();
 
-    Ok(match previous_version {
+    match previous_version {
         Some(previous_version) => Some(previous_version.clone()),
         None => match versions.last() {
             Some(last_version) if last_version != version => Some(last_version.clone()),
             _ => None,
         },
-    })
+    }
 }
 
 static ALL_QUERY: &str = r#"
@@ -381,6 +453,11 @@ struct Query<'a> {
 }
 
 #[derive(Deserialize)]
+struct MatchingTagsResponse {
+    data: MatchingTagsResponseData,
+}
+
+#[derive(Deserialize)]
 struct AllResponse {
     data: AllResponseData,
 }
@@ -393,6 +470,11 @@ struct UntilResponse {
 #[derive(Deserialize)]
 struct BetweenResponse {
     data: BetweenResponseData,
+}
+
+#[derive(Deserialize)]
+struct MatchingTagsResponseData {
+    repository: MatchingTagsResponseRepository,
 }
 
 #[derive(Deserialize)]
@@ -411,6 +493,11 @@ struct BetweenResponseData {
 }
 
 #[derive(Deserialize)]
+struct MatchingTagsResponseRepository {
+    refs: MatchingTagsResponseRefs,
+}
+
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AllResponseRepository {
     default_branch_ref: AllResponseRef,
@@ -424,6 +511,13 @@ struct UntilResponseRepository {
 #[derive(Deserialize)]
 struct BetweenResponseRepository {
     r#ref: BetweenResponseRef,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MatchingTagsResponseRefs {
+    page_info: ResponsePageInfo,
+    nodes: Vec<GitTag>,
 }
 
 #[derive(Deserialize)]
@@ -482,34 +576,37 @@ struct PullRequests {
     nodes: Vec<PullRequest>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PullRequest {
-    pub number: u64,
-    pub title: String,
+    number: u64,
+    title: String,
     #[serde(with = "time::serde::iso8601")]
-    pub merged_at: OffsetDateTime,
-    pub permalink: String,
-    pub labels: Labels,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Labels {
-    pub nodes: Vec<Label>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Label {
-    pub name: String,
+    merged_at: OffsetDateTime,
+    permalink: String,
+    labels: Labels,
 }
 
 #[derive(Deserialize)]
-struct GitRef {
-    r#ref: String,
-    object: GitObject,
+struct Labels {
+    nodes: Vec<Label>,
 }
 
 #[derive(Deserialize)]
+struct Label {
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct GitTag {
+    name: String,
+    target: GitObject,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct GitObject {
-    sha: String,
+    oid: String,
+    #[serde(with = "time::serde::iso8601")]
+    committed_date: OffsetDateTime,
 }
