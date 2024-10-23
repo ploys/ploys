@@ -173,7 +173,7 @@ fn all(repository: &Repository, token: Option<&str>) -> Result<Vec<PullRequest>,
         }
 
         if commits.page_info.has_next_page {
-            cursor = Some(commits.page_info.end_cursor);
+            cursor = commits.page_info.end_cursor;
 
             continue;
         }
@@ -263,7 +263,7 @@ fn until(
         }
 
         if commits.page_info.has_next_page {
-            cursor = Some(commits.page_info.end_cursor);
+            cursor = commits.page_info.end_cursor;
 
             continue;
         }
@@ -347,7 +347,7 @@ fn between(
         }
 
         if commits.page_info.has_next_page {
-            cursor = Some(commits.page_info.end_cursor);
+            cursor = commits.page_info.end_cursor;
 
             continue;
         }
@@ -466,7 +466,7 @@ struct ResponseCommits {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ResponsePageInfo {
-    end_cursor: String,
+    end_cursor: Option<String>,
     has_next_page: bool,
 }
 
