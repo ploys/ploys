@@ -5,6 +5,7 @@ mod payload;
 pub mod secret;
 
 use axum::extract::State;
+use ploys::changelog::Changelog;
 use ploys::project::source::revision::Revision;
 use ploys::project::Project;
 use reqwest::Client;
@@ -88,9 +89,10 @@ pub async fn create_release_pull_request(
                 .is_ok()
     });
 
-    let (package, version) = match package {
+    let (package, path, version) = match package {
         Some(package) => (
             package.name().to_owned(),
+            package.path(),
             release[package.name().len() + 1..]
                 .parse::<Version>()
                 .map_err(|_| Error::Payload)?,
@@ -103,7 +105,7 @@ pub async fn create_release_pull_request(
                 .find(|package| package.name() == project.name())
                 .ok_or_else(|| ploys::project::Error::PackageNotFound(project.name().to_owned()))?;
 
-            (package.name().to_owned(), version)
+            (package.name().to_owned(), package.path(), version)
         }
     };
 
@@ -113,8 +115,29 @@ pub async fn create_release_pull_request(
         false => format!("Release `{package}@{version}`"),
     };
 
+    let changelog_path = path.parent().expect("parent").join("CHANGELOG.md");
+
+    let mut files = Vec::new();
+    let mut changelog = match project.get_file_contents(&changelog_path).ok() {
+        Some(bytes) => String::from_utf8(bytes)?
+            .parse::<Changelog>()
+            .expect("changelog"),
+        None => Changelog::new(),
+    };
+
+    let mut changelog_release = project.get_changelog_release(&package, version.to_string())?;
+
+    changelog.add_release(changelog_release.clone());
+    files.push((changelog_path, changelog.to_string()));
     project.set_package_version(&package, version.clone())?;
-    project.commit(&message, None)?;
+    project.commit(&message, files)?;
+    changelog_release.set_description(format!(
+        "Releasing package `{package}` version `{version}`."
+    ));
+
+    if let Some(url) = changelog_release.url() {
+        changelog_release.add_reference(version.to_string(), url.to_string());
+    }
 
     let issue_number = client
         .post(format!(
@@ -128,7 +151,7 @@ pub async fn create_release_pull_request(
             title: message,
             head: format!("release/{release}"),
             base: target_branch.to_owned(),
-            body: format!("Releasing package `{package}` version `{version}`."),
+            body: changelog_release.to_string(),
         })
         .send()
         .await?
@@ -162,9 +185,10 @@ async fn create_release(
                 .is_ok()
     });
 
-    let (package, version) = match package {
+    let (package, path, version) = match package {
         Some(package) => (
             package.name().to_owned(),
+            package.path(),
             release[package.name().len() + 1..]
                 .parse::<Version>()
                 .map_err(|_| Error::Payload)?,
@@ -177,7 +201,7 @@ async fn create_release(
                 .find(|package| package.name() == project.name())
                 .ok_or_else(|| ploys::project::Error::PackageNotFound(project.name().to_owned()))?;
 
-            (package.name().to_owned(), version)
+            (package.name().to_owned(), package.path(), version)
         }
     };
 
@@ -191,6 +215,24 @@ async fn create_release(
         false => format!("{package}-{version}"),
     };
 
+    let changelog_path = path.parent().expect("parent").join("CHANGELOG.md");
+    let changelog = match project.get_file_contents(changelog_path).ok() {
+        Some(bytes) => String::from_utf8(bytes)?
+            .parse::<Changelog>()
+            .expect("changelog"),
+        None => Changelog::new(),
+    };
+
+    let body = match changelog.get_release(version.to_string()) {
+        Some(release) => format!("{release:#}"),
+        None => {
+            let release = project.get_changelog_release(&package, version.to_string())?;
+
+            format!("{release:#}")
+        }
+    };
+
+    let body = body.lines().skip(2).collect::<Vec<_>>().join("\n");
     let prerelease = !version.pre.is_empty();
     let is_latest = package == project.name() && !prerelease;
 
@@ -207,9 +249,10 @@ async fn create_release(
             tag_name,
             target_commitish: sha.to_owned(),
             name,
+            body,
             draft: false,
             prerelease,
-            generate_release_notes: true,
+            generate_release_notes: false,
             make_latest: is_latest.into(),
         })
         .send()
@@ -241,6 +284,7 @@ struct CreateRelease {
     tag_name: String,
     target_commitish: String,
     name: String,
+    body: String,
     draft: bool,
     prerelease: bool,
     generate_release_notes: bool,
