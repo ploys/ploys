@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::fmt::{self, Display};
+use std::string::FromUtf8Error;
 
 use axum::response::{IntoResponse, Response};
 use reqwest::StatusCode;
@@ -11,6 +12,7 @@ pub enum Error {
     Jwt(jsonwebtoken::errors::Error),
     Request(reqwest::Error),
     Project(ploys::project::Error),
+    Utf8(FromUtf8Error),
 }
 
 impl Error {
@@ -20,6 +22,7 @@ impl Error {
             Self::Jwt(_) => StatusCode::FORBIDDEN,
             Self::Request(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Project(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Utf8(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -29,6 +32,7 @@ impl Error {
             Self::Jwt(error) => Cow::Owned(format!("JWT: {error}")),
             Self::Request(error) => Cow::Owned(format!("Request: {error}")),
             Self::Project(error) => Cow::Owned(format!("Project: {error}")),
+            Self::Utf8(error) => Cow::Owned(format!("UTF-8: {error}")),
         }
     }
 }
@@ -46,6 +50,7 @@ impl std::error::Error for Error {
             Self::Jwt(err) => Some(err),
             Self::Request(err) => Some(err),
             Self::Project(err) => Some(err),
+            Self::Utf8(err) => Some(err),
         }
     }
 }
@@ -71,5 +76,11 @@ impl From<reqwest::Error> for Error {
 impl From<ploys::project::Error> for Error {
     fn from(error: ploys::project::Error) -> Self {
         Self::Project(error)
+    }
+}
+
+impl From<FromUtf8Error> for Error {
+    fn from(error: FromUtf8Error) -> Self {
+        Self::Utf8(error)
     }
 }
