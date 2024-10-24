@@ -5,6 +5,22 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2024-10-24
+
+### Changed
+
+- Add CI test target `aarch64-apple-darwin` ([#77](https://github.com/ploys/ploys/pull/77))
+- Add support for package dependencies ([#82](https://github.com/ploys/ploys/pull/82))
+- Add changelog parser ([#87](https://github.com/ploys/ploys/pull/87))
+- Add changelog builder ([#88](https://github.com/ploys/ploys/pull/88))
+- Add changelog release generator ([#90](https://github.com/ploys/ploys/pull/90))
+- Add ability to commit additional files ([#92](https://github.com/ploys/ploys/pull/92))
+- Fix changelog generation for release with no commits ([#93](https://github.com/ploys/ploys/pull/93))
+- Add changelog release generator date and URL ([#94](https://github.com/ploys/ploys/pull/94))
+- Add initial package changelogs ([#99](https://github.com/ploys/ploys/pull/99))
+- Revert "Release `0.2.0` (#101)" ([#102](https://github.com/ploys/ploys/pull/102))
+- Fix missing `time` crate `parsing` and `formatting` features ([#103](https://github.com/ploys/ploys/pull/103))
+
 ## [0.1.0] - 2024-10-15
 
 ### Changed
@@ -41,4 +57,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add project commit methods ([#57](https://github.com/ploys/ploys/pull/57))
 - Add release workflow publish job ([#73](https://github.com/ploys/ploys/pull/73))
 
+[0.2.0]: https://github.com/ploys/ploys/releases/tag/0.2.0
 [0.1.0]: https://github.com/ploys/ploys/releases/tag/0.1.0
