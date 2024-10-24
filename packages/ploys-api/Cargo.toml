@@ -1,6 +1,6 @@
 [package]
 name = "ploys-api"
-version = "0.2.0"
+version = "0.2.1"
 description = "A remote API to manage projects, packages, releases and deployments."
 authors = ["Daniel Balcomb <daniel.balcomb@gmail.com>"]
 homepage = "https://ploys.dev"
