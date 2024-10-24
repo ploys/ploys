@@ -12,7 +12,7 @@ edition = "2021"
 anyhow = "1.0.72"
 clap = { version = "4.3.21", features = ["derive", "env"] }
 console = "0.15.7"
-ploys = { version = "0.2.0", path = "../ploys" }
+ploys = { version = "0.1.0", path = "../ploys" }
 url = "2.4.0"
 
 [dev-dependencies]
