@@ -1,6 +1,6 @@
 [package]
 name = "ploys"
-version = "0.1.0"
+version = "0.2.0"
 description = "A utility to manage projects, packages, releases and deployments."
 authors = ["Daniel Balcomb <daniel.balcomb@gmail.com>"]
 homepage = "https://ploys.dev"
