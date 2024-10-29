@@ -597,6 +597,21 @@ impl Project<self::source::github::GitHub> {
         Ok(())
     }
 
+    /// Initiates the release of the specified package version.
+    ///
+    /// It does not yet support parallel release or hotfix branches and expects
+    /// all development to be on the default branch in the repository settings.
+    pub fn initiate_package_release(
+        &self,
+        package: impl AsRef<str>,
+        version: impl Into<crate::package::BumpOrVersion>,
+    ) -> Result<(), Error> {
+        self.source
+            .initiate_package_release(package.as_ref(), version.into())?;
+
+        Ok(())
+    }
+
     /// Gets the changelog release for the given package version.
     ///
     /// This method queries the GitHub API to generate new release information
