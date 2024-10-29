@@ -6,8 +6,6 @@ use std::io;
 pub enum Error {
     /// A `gix` error.
     Gix(GixError),
-    /// A `git2` error.
-    Git2(git2::Error),
     /// An I/O error.
     Io(io::Error),
 }
@@ -27,7 +25,6 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Gix(err) => Display::fmt(err, f),
-            Self::Git2(err) => Display::fmt(err, f),
             Self::Io(err) => Display::fmt(err, f),
         }
     }
@@ -74,12 +71,6 @@ impl From<gix::object::peel::to_kind::Error> for Error {
 impl From<gix::traverse::tree::breadthfirst::Error> for Error {
     fn from(err: gix::traverse::tree::breadthfirst::Error) -> Self {
         Self::Gix(err.into())
-    }
-}
-
-impl From<git2::Error> for Error {
-    fn from(err: git2::Error) -> Self {
-        Self::Git2(err)
     }
 }
 

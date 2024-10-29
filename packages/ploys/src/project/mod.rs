@@ -139,47 +139,6 @@ impl Project<self::source::git::Git> {
             lockfiles,
         })
     }
-
-    #[doc(hidden)]
-    pub fn git2<P>(path: P) -> Result<Self, Error>
-    where
-        P: AsRef<Path>,
-    {
-        use self::source::git::{Git, Git2};
-
-        let source = Git::Git2(Git2::new(path)?);
-        let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
-
-        Ok(Self {
-            source,
-            name,
-            packages,
-            lockfiles,
-        })
-    }
-
-    #[doc(hidden)]
-    pub fn git2_with_revision<P, R>(path: P, revision: R) -> Result<Self, Error>
-    where
-        P: AsRef<Path>,
-        R: Into<self::source::revision::Revision>,
-    {
-        use self::source::git::{Git, Git2};
-
-        let source = Git::Git2(Git2::new(path)?).with_revision(revision);
-        let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
-
-        Ok(Self {
-            source,
-            name,
-            packages,
-            lockfiles,
-        })
-    }
 }
 
 #[cfg(feature = "github")]
@@ -420,39 +379,6 @@ where
                             .map(|name| (name.to_owned(), lockfile.get_contents()))
                     }),
             )
-    }
-}
-
-#[cfg(feature = "git")]
-impl Project<self::source::git::Git> {
-    /// Upgrades the interior source in place to use advanced `git` operations.
-    ///
-    /// The `Git` source uses two internal implementations of `git`, one that is
-    /// pure Rust and another that uses C bindings. The former is not yet
-    /// feature complete and so this swaps to the other implementation to
-    /// support push operations.
-    pub fn upgrade(&mut self) -> Result<(), Error> {
-        use self::source::git::{Error, Git, Git2};
-
-        if let Git::Gix(gix) = &self.source {
-            let path = gix
-                .repository
-                .path()
-                .join("..")
-                .canonicalize()
-                .map_err(Into::<Error>::into)?;
-
-            self.source = Git::Git2(Git2::new(path)?);
-        }
-
-        Ok(())
-    }
-
-    /// Upgrades the interior source to use advanced `git` operations.
-    pub fn upgraded(mut self) -> Result<Self, Error> {
-        self.upgrade()?;
-
-        Ok(self)
     }
 }
 
