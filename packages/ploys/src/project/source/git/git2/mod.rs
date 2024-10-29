@@ -1,14 +1,10 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use auth_git2::GitAuthenticator;
-use git2::build::TreeUpdateBuilder;
-use git2::{
-    FileMode, ObjectType, PushOptions, RemoteCallbacks, Repository, TreeWalkMode, TreeWalkResult,
-};
+use git2::{ObjectType, Repository, TreeWalkMode, TreeWalkResult};
 use url::Url;
 
-use crate::project::source::revision::{Reference, Revision};
+use crate::project::source::revision::Revision;
 
 use super::{Error, GitConfig, Source};
 
@@ -50,67 +46,6 @@ impl Git2 {
 }
 
 impl Git2 {
-    /// Commits the changes to the repository.
-    pub(crate) fn commit(
-        &self,
-        message: impl AsRef<str>,
-        files: impl Iterator<Item = (PathBuf, String)>,
-    ) -> Result<String, Error> {
-        let spec = self.revision.to_string();
-        let tree = self.repository.revparse_single(&spec)?.peel_to_tree()?;
-        let commit = self.repository.revparse_single(&spec)?.peel_to_commit()?;
-        let signature = self.repository.signature()?;
-        let mut tree_builder = TreeUpdateBuilder::new();
-
-        for (path, content) in files {
-            let blob = self.repository.blob(content.as_bytes())?;
-
-            tree_builder.upsert(path, blob, FileMode::Blob);
-        }
-
-        let tree_id = tree_builder.create_updated(&self.repository, &tree)?;
-        let tree = self.repository.find_tree(tree_id)?;
-        let update_ref = match &self.revision {
-            Revision::Head | Revision::Reference(Reference::Branch(_)) => {
-                Some(self.revision.to_string())
-            }
-            _ => None,
-        };
-
-        let sha = self.repository.commit(
-            update_ref.as_deref(),
-            &signature,
-            &signature,
-            message.as_ref(),
-            &tree,
-            &[&commit],
-        )?;
-
-        if let Revision::Reference(Reference::Branch(_)) = &self.revision {
-            let config = self.repository.config()?;
-            let auth = GitAuthenticator::new_empty()
-                .try_cred_helper(true)
-                .try_ssh_agent(true)
-                .add_default_ssh_keys();
-            let remote_name = self
-                .get_default_remote_name()?
-                .ok_or_else(Error::remote_not_found)?;
-
-            let mut remote = self.repository.find_remote(&remote_name)?;
-            let mut remote_callbacks = RemoteCallbacks::new();
-            let mut options = PushOptions::default();
-
-            remote_callbacks.credentials(auth.credentials(&config));
-            options.remote_callbacks(remote_callbacks);
-
-            let refspec = format!("{}:{}", self.revision, self.revision);
-
-            remote.push(&[refspec], Some(&mut options))?;
-        }
-
-        Ok(sha.to_string())
-    }
-
     /// Gets the default remote name.
     ///
     /// This replicates the logic from `remote_default_name` in `gix`.
