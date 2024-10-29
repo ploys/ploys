@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::changelog::Release;
+use crate::package::BumpOrVersion;
 
 pub use self::error::Error;
 pub use self::repo::Repository;
@@ -273,6 +274,32 @@ impl GitHub {
         Ok(commit_sha)
     }
 
+    /// Initiates the release of the specified package version.
+    pub(crate) fn initiate_package_release(
+        &self,
+        package: &str,
+        version: BumpOrVersion,
+    ) -> Result<(), Error> {
+        #[derive(Serialize)]
+        struct ClientPayload {
+            package: String,
+            version: String,
+        }
+
+        self.repository
+            .post("dispatches", self.token.as_deref())
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(RepositoryDispatchEvent {
+                event_type: String::from("ploys-package-release-initiate"),
+                client_payload: ClientPayload {
+                    package: package.to_owned(),
+                    version: version.to_string(),
+                },
+            })?;
+
+        Ok(())
+    }
+
     /// Gets the changelog release for the given package version.
     pub(crate) fn get_changelog_release(
         &self,
@@ -412,6 +439,12 @@ struct TreeResponse {
 struct TreeResponseEntry {
     path: String,
     r#type: String,
+}
+
+#[derive(Serialize)]
+struct RepositoryDispatchEvent<T> {
+    event_type: String,
+    client_payload: T,
 }
 
 #[cfg(test)]

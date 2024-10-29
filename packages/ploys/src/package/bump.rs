@@ -166,6 +166,15 @@ pub enum BumpOrVersion {
     Version(Version),
 }
 
+impl Display for BumpOrVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Bump(bump) => Display::fmt(bump, f),
+            Self::Version(version) => Display::fmt(version, f),
+        }
+    }
+}
+
 impl FromStr for BumpOrVersion {
     type Err = Error;
 
