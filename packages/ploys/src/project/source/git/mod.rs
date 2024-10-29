@@ -60,14 +60,6 @@ impl Git {
 }
 
 impl Git {
-    /// Creates a new branch.
-    pub(crate) fn create_branch(&mut self, branch_name: &str) -> Result<String, Error> {
-        match self {
-            Self::Gix(_) => unreachable!("upgrade called first"),
-            Self::Git2(git2) => git2.create_branch(branch_name),
-        }
-    }
-
     /// Commits the changes to the repository.
     pub(crate) fn commit(
         &self,
