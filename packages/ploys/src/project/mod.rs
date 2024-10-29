@@ -456,35 +456,6 @@ impl Project<self::source::git::Git> {
     }
 }
 
-#[cfg(feature = "git")]
-impl Project<self::source::git::Git> {
-    /// Commits the changes to the repository.
-    ///
-    /// This method takes a message and collection of files to include with the
-    /// commit.
-    pub fn commit(
-        &mut self,
-        message: impl AsRef<str>,
-        files: impl IntoIterator<Item = (std::path::PathBuf, String)>,
-    ) -> Result<String, Error> {
-        use self::source::revision::{Reference, Revision};
-
-        self.upgrade()?;
-
-        let files = self.get_changed_files().chain(files);
-        let sha = self.source.commit(message, files)?;
-
-        if !matches!(
-            self.source.revision(),
-            Revision::Reference(Reference::Branch(_))
-        ) {
-            self.source.set_revision(Revision::sha(sha.clone()));
-        }
-
-        Ok(sha)
-    }
-}
-
 #[cfg(feature = "github")]
 impl Project<self::source::github::GitHub> {
     /// Commits the changes to the repository.

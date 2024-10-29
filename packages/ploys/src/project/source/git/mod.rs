@@ -59,20 +59,6 @@ impl Git {
     }
 }
 
-impl Git {
-    /// Commits the changes to the repository.
-    pub(crate) fn commit(
-        &self,
-        message: impl AsRef<str>,
-        files: impl Iterator<Item = (PathBuf, String)>,
-    ) -> Result<String, Error> {
-        match self {
-            Self::Gix(_) => unreachable!("upgrade called first"),
-            Self::Git2(git2) => git2.commit(message, files),
-        }
-    }
-}
-
 impl Source for Git {
     type Config = GitConfig;
     type Error = Error;
