@@ -13,6 +13,7 @@ pub enum Error {
     Request(reqwest::Error),
     Project(ploys::project::Error),
     Utf8(FromUtf8Error),
+    Json(serde_json::Error),
 }
 
 impl Error {
@@ -23,6 +24,7 @@ impl Error {
             Self::Request(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Project(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Utf8(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Json(_) => StatusCode::UNPROCESSABLE_ENTITY,
         }
     }
 
@@ -33,6 +35,7 @@ impl Error {
             Self::Request(error) => Cow::Owned(format!("Request: {error}")),
             Self::Project(error) => Cow::Owned(format!("Project: {error}")),
             Self::Utf8(error) => Cow::Owned(format!("UTF-8: {error}")),
+            Self::Json(error) => Cow::Owned(format!("JSON: {error}")),
         }
     }
 }
@@ -51,6 +54,7 @@ impl std::error::Error for Error {
             Self::Request(err) => Some(err),
             Self::Project(err) => Some(err),
             Self::Utf8(err) => Some(err),
+            Self::Json(err) => Some(err),
         }
     }
 }
@@ -82,5 +86,11 @@ impl From<ploys::project::Error> for Error {
 impl From<FromUtf8Error> for Error {
     fn from(error: FromUtf8Error) -> Self {
         Self::Utf8(error)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Json(error)
     }
 }

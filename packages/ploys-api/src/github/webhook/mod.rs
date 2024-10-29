@@ -6,17 +6,19 @@ pub mod secret;
 
 use axum::extract::State;
 use ploys::changelog::Changelog;
+use ploys::package::BumpOrVersion;
 use ploys::project::source::revision::Revision;
 use ploys::project::Project;
 use reqwest::Client;
 use semver::Version;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 
 use crate::state::AppState;
 
 use self::auth::get_installation_access_token;
 use self::error::Error;
-use self::payload::{Payload, RefType};
+use self::payload::{Payload, RefType, RepositoryDispatchPayload};
 
 /// Receives the GitHub webhook event payload.
 pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Error> {
@@ -54,6 +56,14 @@ pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Err
                         .await?;
                     }
                 }
+
+                Ok(())
+            }
+            _ => Ok(()),
+        },
+        Payload::RepositoryDispatch(payload) => match &*payload.action {
+            "ploys-package-release-initiate" => {
+                initiate_release(payload, &state).await?;
 
                 Ok(())
             }
@@ -266,6 +276,111 @@ async fn create_release(
     Ok(())
 }
 
+/// Initiates the release process.
+///
+/// This does not yet support parallel release branches so simply ensures that
+/// all new versions are greater than the previous.
+async fn initiate_release(
+    payload: RepositoryDispatchPayload,
+    state: &AppState,
+) -> Result<(), Error> {
+    let ClientPayload { package, version } = serde_json::from_value(payload.client_payload)?;
+
+    let token =
+        get_installation_access_token(payload.installation.id, payload.repository.id, state)
+            .await?;
+
+    let mut project = Project::github_with_revision_and_authentication_token(
+        &payload.repository.full_name,
+        Revision::branch(&payload.branch),
+        &token,
+    )?;
+
+    let version = match version {
+        BumpOrVersion::Bump(bump) => {
+            project.bump_package_version(&package, bump)?;
+            project
+                .packages()
+                .iter()
+                .find(|pkg| pkg.name() == package)
+                .ok_or_else(|| ploys::project::Error::PackageNotFound(package.clone()))?
+                .version()
+                .parse::<Version>()
+                .map_err(ploys::package::BumpError::Semver)
+                .map_err(ploys::project::Error::Bump)?
+        }
+        BumpOrVersion::Version(version) => {
+            let current_version = project
+                .packages()
+                .iter()
+                .find(|pkg| pkg.name() == package)
+                .ok_or_else(|| ploys::project::Error::PackageNotFound(package.clone()))?
+                .version()
+                .parse::<Version>()
+                .map_err(ploys::package::BumpError::Semver)
+                .map_err(ploys::project::Error::Bump)?;
+
+            if version <= current_version {
+                return Err(
+                    ploys::project::Error::Bump(ploys::package::BumpError::Invalid(
+                        version.to_string(),
+                    ))
+                    .into(),
+                );
+            }
+
+            version
+        }
+    };
+
+    let client = Client::new();
+
+    let sha = client
+        .get(format!(
+            "https://api.github.com/repos/{}/git/ref/heads/{}",
+            payload.repository.full_name, payload.branch,
+        ))
+        .header("Accept", "application/vnd.github+json")
+        .header("Authorization", format!("Bearer {token}"))
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("User-Agent", "ploys/ploys")
+        .send()
+        .await?
+        .json::<RefResponse>()
+        .await?
+        .object
+        .sha;
+
+    client
+        .post(format!(
+            "https://api.github.com/repos/{}/git/refs",
+            payload.repository.full_name,
+        ))
+        .header("Accept", "application/vnd.github+json")
+        .header("Authorization", format!("Bearer {token}"))
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("User-Agent", "ploys/ploys")
+        .json(&NewBranch {
+            r#ref: match package == project.name() {
+                true => format!("refs/heads/release/{version}"),
+                false => format!("refs/heads/release/{package}-{version}"),
+            },
+            sha,
+        })
+        .send()
+        .await?;
+
+    Ok(())
+}
+
+#[serde_as]
+#[derive(Deserialize)]
+struct ClientPayload {
+    package: String,
+    #[serde_as(as = "DisplayFromStr")]
+    version: BumpOrVersion,
+}
+
 #[derive(Serialize)]
 struct CreatePullRequest {
     title: String,
@@ -310,6 +425,22 @@ impl From<bool> for MakeLatest {
 #[derive(Deserialize)]
 struct ReleaseResponse {
     id: u64,
+}
+
+#[derive(Deserialize)]
+struct RefResponse {
+    object: Object,
+}
+
+#[derive(Deserialize)]
+struct Object {
+    sha: String,
+}
+
+#[derive(Serialize)]
+struct NewBranch {
+    r#ref: String,
+    sha: String,
 }
 
 #[cfg(test)]

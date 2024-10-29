@@ -23,6 +23,7 @@ use super::secret::WebhookSecret;
 pub enum Payload {
     Create(CreatePayload),
     PullRequest(PullRequestPayload),
+    RepositoryDispatch(RepositoryDispatchPayload),
     Other(String, Value),
 }
 
@@ -65,6 +66,7 @@ where
         Ok(match event.as_str() {
             "create" => Self::Create(serde_json::from_slice(&bytes)?),
             "pull_request" => Self::PullRequest(serde_json::from_slice(&bytes)?),
+            "repository_dispatch" => Self::RepositoryDispatch(serde_json::from_slice(&bytes)?),
             _ => Self::Other(event, serde_json::from_slice(&bytes)?),
         })
     }
@@ -85,6 +87,16 @@ pub struct CreatePayload {
 pub struct PullRequestPayload {
     pub action: String,
     pub pull_request: PullRequest,
+    pub repository: Repository,
+    pub installation: Installation,
+}
+
+/// The `repository_dispatch` webhook payload.
+#[derive(Debug, Deserialize)]
+pub struct RepositoryDispatchPayload {
+    pub action: String,
+    pub branch: String,
+    pub client_payload: Value,
     pub repository: Repository,
     pub installation: Installation,
 }
