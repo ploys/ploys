@@ -1,3 +1,4 @@
+mod package;
 mod project;
 mod release;
 mod util;
@@ -5,6 +6,7 @@ mod util;
 use anyhow::Error;
 use clap::{Parser, Subcommand};
 
+use self::package::Package;
 use self::project::Project;
 use self::release::Release;
 
@@ -21,6 +23,7 @@ impl Args {
     fn exec(self) -> Result<(), Error> {
         match self.command {
             Command::Project(project) => project.exec(),
+            Command::Package(package) => package.exec(),
             Command::Release(release) => release.exec(),
         }
     }
@@ -31,6 +34,8 @@ impl Args {
 enum Command {
     /// Manages the project.
     Project(Project),
+    /// Manages the packages.
+    Package(Package),
     /// Manages releases.
     Release(Release),
 }
