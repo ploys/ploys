@@ -124,40 +124,6 @@ impl GitHub {
         }
     }
 
-    /// Creates a new branch.
-    pub(crate) fn create_branch(&self, branch_name: &str) -> Result<String, Error> {
-        #[derive(serde::Serialize)]
-        struct Body {
-            r#ref: String,
-            sha: String,
-        }
-
-        #[derive(serde::Deserialize)]
-        struct RefResponse {
-            object: Object,
-        }
-
-        #[derive(serde::Deserialize)]
-        struct Object {
-            sha: String,
-        }
-
-        let sha = self
-            .repository
-            .post("git/refs", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(Body {
-                r#ref: format!("refs/heads/{}", branch_name),
-                sha: self.sha()?,
-            })?
-            .into_json::<RefResponse>()?
-            .object
-            .sha;
-
-        Ok(sha)
-    }
-
     /// Commits the changes to the repository.
     pub(crate) fn commit(
         &self,

@@ -483,50 +483,6 @@ impl Project<self::source::git::Git> {
 
         Ok(sha)
     }
-
-    /// Releases the specified package.
-    ///
-    /// This triggers the release flow by creating a new remote branch. This
-    /// acts as a form of authentication to ensure that the user has permission
-    /// to create releases without authenticating with the API directly.
-    pub fn release_package(
-        &mut self,
-        package: impl AsRef<str>,
-        version: impl Into<crate::package::BumpOrVersion>,
-    ) -> Result<(), Error> {
-        use self::source::revision::Revision;
-        use crate::package::BumpOrVersion;
-
-        self.upgrade()?;
-
-        let version = match version.into() {
-            BumpOrVersion::Bump(bump) => {
-                self.bump_package_version(package.as_ref(), bump)?;
-                self.packages()
-                    .iter()
-                    .find(|pkg| pkg.name() == package.as_ref())
-                    .expect("package")
-                    .version()
-                    .parse::<Version>()
-                    .map_err(crate::package::BumpError::Semver)?
-            }
-            BumpOrVersion::Version(version) => {
-                self.set_package_version(package.as_ref(), version.clone())?;
-
-                version
-            }
-        };
-
-        let branch_name = match package.as_ref() == self.name() {
-            true => format!("release/{version}",),
-            false => format!("release/{}-{version}", package.as_ref()),
-        };
-
-        self.source.create_branch(&branch_name)?;
-        self.source.set_revision(Revision::branch(branch_name));
-
-        Ok(())
-    }
 }
 
 #[cfg(feature = "github")]
@@ -553,48 +509,6 @@ impl Project<self::source::github::GitHub> {
         }
 
         Ok(sha)
-    }
-
-    /// Releases the specified package.
-    ///
-    /// This triggers the release flow by creating a new remote branch. This
-    /// acts as a form of authentication to ensure that the user has permission
-    /// to create releases without authenticating with the API directly.
-    pub fn release_package(
-        &mut self,
-        package: impl AsRef<str>,
-        version: impl Into<crate::package::BumpOrVersion>,
-    ) -> Result<(), Error> {
-        use self::source::revision::Revision;
-        use crate::package::BumpOrVersion;
-
-        let version = match version.into() {
-            BumpOrVersion::Bump(bump) => {
-                self.bump_package_version(package.as_ref(), bump)?;
-                self.packages()
-                    .iter()
-                    .find(|pkg| pkg.name() == package.as_ref())
-                    .expect("package")
-                    .version()
-                    .parse::<Version>()
-                    .map_err(crate::package::BumpError::Semver)?
-            }
-            BumpOrVersion::Version(version) => {
-                self.set_package_version(package.as_ref(), version.clone())?;
-
-                version
-            }
-        };
-
-        let branch_name = match package.as_ref() == self.name() {
-            true => format!("release/{version}",),
-            false => format!("release/{}-{version}", package.as_ref()),
-        };
-
-        self.source.create_branch(&branch_name)?;
-        self.source.set_revision(Revision::branch(branch_name));
-
-        Ok(())
     }
 
     /// Initiates the release of the specified package version.

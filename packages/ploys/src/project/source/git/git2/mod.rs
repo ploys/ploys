@@ -50,38 +50,6 @@ impl Git2 {
 }
 
 impl Git2 {
-    /// Creates a new branch.
-    pub(crate) fn create_branch(&self, branch_name: &str) -> Result<String, Error> {
-        let spec = self.revision.to_string();
-        let commit = self.repository.revparse_single(&spec)?.peel_to_commit()?;
-        let sha = commit.id().to_string();
-        let remote_name = self
-            .get_default_remote_name()?
-            .ok_or_else(Error::remote_not_found)?;
-
-        let mut remote = self.repository.find_remote(&remote_name)?;
-        let mut branch = self.repository.branch(branch_name, &commit, false)?;
-
-        let config = self.repository.config()?;
-        let auth = GitAuthenticator::new_empty()
-            .try_cred_helper(true)
-            .try_ssh_agent(true)
-            .add_default_ssh_keys();
-
-        let mut remote_callbacks = RemoteCallbacks::new();
-        let mut options = PushOptions::default();
-
-        remote_callbacks.credentials(auth.credentials(&config));
-        options.remote_callbacks(remote_callbacks);
-
-        let refspec = format!("refs/heads/{branch_name}:refs/heads/{branch_name}");
-
-        branch.set_upstream(Some(branch_name))?;
-        remote.push(&[refspec], Some(&mut options))?;
-
-        Ok(sha)
-    }
-
     /// Commits the changes to the repository.
     pub(crate) fn commit(
         &self,
