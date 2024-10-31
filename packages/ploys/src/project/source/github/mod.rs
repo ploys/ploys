@@ -284,21 +284,7 @@ impl GitHub {
 }
 
 impl Source for GitHub {
-    type Config = GitHubConfig;
     type Error = Error;
-
-    fn open_with(config: Self::Config) -> Result<Self, Self::Error>
-    where
-        Self: Sized,
-    {
-        match config.token {
-            Some(token) => Ok(Self::new(config.repo)?
-                .with_revision(config.revision)
-                .with_authentication_token(token)
-                .validated()?),
-            None => Ok(Self::new(config.repo)?.with_revision(config.revision)),
-        }
-    }
 
     fn get_name(&self) -> Result<String, Self::Error> {
         Ok(self.repository.name().to_owned())
@@ -360,39 +346,6 @@ impl Source for GitHub {
             }
             _ => Err(io::Error::from(io::ErrorKind::NotFound))?,
         }
-    }
-}
-
-/// The GitHub source configuration.
-pub struct GitHubConfig {
-    repo: String,
-    revision: Revision,
-    token: Option<String>,
-}
-
-impl GitHubConfig {
-    /// Creates a new GitHub source configuration.
-    pub fn new<T>(repo: T) -> Self
-    where
-        T: Into<String>,
-    {
-        Self {
-            repo: repo.into(),
-            revision: Revision::head(),
-            token: None,
-        }
-    }
-
-    /// Builds the configuration with the given revision.
-    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
-        self.revision = revision.into();
-        self
-    }
-
-    /// Builds the configuration with the given authentication token.
-    pub fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
-        self.token = Some(token.into());
-        self
     }
 }
 

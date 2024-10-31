@@ -18,25 +18,8 @@ use url::Url;
 
 /// A project source.
 pub trait Source {
-    /// The source configuration.
-    type Config;
-
     /// The source error.
     type Error;
-
-    /// Opens the source.
-    fn open() -> Result<Self, Self::Error>
-    where
-        Self::Config: Default,
-        Self: Sized,
-    {
-        Self::open_with(Self::Config::default())
-    }
-
-    /// Opens the source with the given configuration.
-    fn open_with(config: Self::Config) -> Result<Self, Self::Error>
-    where
-        Self: Sized;
 
     /// Queries the source name.
     fn get_name(&self) -> Result<String, Self::Error>;

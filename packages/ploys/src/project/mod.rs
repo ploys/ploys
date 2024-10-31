@@ -58,45 +58,6 @@ pub struct Project<T> {
     lockfiles: HashMap<PackageKind, LockFile>,
 }
 
-impl<T> Project<T>
-where
-    T: Source,
-    Error: From<T::Error>,
-{
-    /// Opens the project.
-    pub fn open() -> Result<Self, Error>
-    where
-        T::Config: Default,
-    {
-        let source = T::open()?;
-        let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
-
-        Ok(Self {
-            source,
-            name,
-            packages,
-            lockfiles,
-        })
-    }
-
-    /// Opens the project with the given source configuration.
-    pub fn open_with(config: T::Config) -> Result<Self, Error> {
-        let source = T::open_with(config)?;
-        let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
-
-        Ok(Self {
-            source,
-            name,
-            packages,
-            lockfiles,
-        })
-    }
-}
-
 #[cfg(feature = "git")]
 impl Project<self::source::git::Git> {
     /// Opens a project with the Git source.
