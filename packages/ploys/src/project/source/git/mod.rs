@@ -55,15 +55,7 @@ impl Git {
 }
 
 impl Source for Git {
-    type Config = GitConfig;
     type Error = Error;
-
-    fn open_with(config: Self::Config) -> Result<Self, Self::Error>
-    where
-        Self: Sized,
-    {
-        Self::new(config.path)
-    }
 
     fn get_name(&self) -> Result<String, Self::Error> {
         let path = self.repository.path().join("..").canonicalize()?;
@@ -140,30 +132,5 @@ impl Source for Git {
         } else {
             Err(io::Error::from(io::ErrorKind::NotFound))?
         }
-    }
-}
-
-/// The Git source configuration.
-pub struct GitConfig {
-    path: PathBuf,
-    revision: Revision,
-}
-
-impl GitConfig {
-    /// Creates a new Git source configuration.
-    pub fn new<P>(path: P) -> Self
-    where
-        P: Into<PathBuf>,
-    {
-        Self {
-            path: path.into(),
-            revision: Revision::Head,
-        }
-    }
-
-    /// Builds the configuration with the given revision.
-    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
-        self.revision = revision.into();
-        self
     }
 }
