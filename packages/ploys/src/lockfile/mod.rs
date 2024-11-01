@@ -6,8 +6,6 @@
 pub mod cargo;
 mod error;
 
-use std::collections::HashMap;
-
 use crate::package::PackageKind;
 use crate::project::source::Source;
 
@@ -22,6 +20,13 @@ pub enum LockFile {
 }
 
 impl LockFile {
+    /// Gets the lockfile kind.
+    pub fn kind(&self) -> PackageKind {
+        match self {
+            Self::Cargo(_) => PackageKind::Cargo,
+        }
+    }
+
     /// Sets the package version.
     pub fn set_package_version<P, V>(&mut self, package: P, version: V)
     where
@@ -48,17 +53,15 @@ impl LockFile {
     }
 
     /// Discovers project lockfiles.
-    pub(super) fn discover_lockfiles(
-        source: &Source,
-    ) -> Result<HashMap<PackageKind, Self>, crate::project::Error> {
-        let mut lockfiles = HashMap::new();
+    pub(super) fn discover_lockfiles(source: &Source) -> Result<Vec<Self>, crate::project::Error> {
+        let mut lockfiles = Vec::new();
 
         for kind in PackageKind::variants() {
             if let Some(lockfile_name) = kind.lockfile_name() {
                 if let Ok(bytes) = source.get_file_contents(lockfile_name) {
                     let lockfile = LockFile::from_bytes(*kind, &bytes)?;
 
-                    lockfiles.insert(*kind, lockfile);
+                    lockfiles.push(lockfile);
                 }
             }
         }

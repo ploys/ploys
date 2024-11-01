@@ -70,19 +70,18 @@ impl Info {
 
         println!("\n{}:\n", style("Packages").underlined().bold());
 
-        let packages = project.packages();
-        let max_name_len = packages
-            .iter()
+        let max_name_len = project
+            .packages()
             .map(|pkg| pkg.name().len())
             .max()
             .unwrap_or_default();
-        let max_version_len = packages
-            .iter()
+        let max_version_len = project
+            .packages()
             .map(|pkg| pkg.version().len())
             .max()
             .unwrap_or_default();
 
-        for package in packages {
+        for package in project.packages() {
             println!(
                 "{:<max_name_len$}  {:>max_version_len$}  {}",
                 package.name(),

@@ -35,26 +35,26 @@
 //! ```
 
 mod error;
+mod file;
 pub mod source;
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use semver::Version;
 use url::Url;
 
 use crate::lockfile::LockFile;
-use crate::package::{Bump, Package, PackageKind};
+use crate::package::{Bump, Package};
 
 pub use self::error::Error;
+pub use self::file::{File, Fileset};
 use self::source::Source;
 
 /// A project from one of several supported sources.
 pub struct Project {
     source: Source,
     name: String,
-    packages: Vec<Package>,
-    lockfiles: HashMap<PackageKind, LockFile>,
+    files: Fileset,
 }
 
 #[cfg(feature = "git")]
@@ -68,14 +68,14 @@ impl Project {
 
         let source = Source::Git(Git::new(path)?);
         let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
+        let files = Fileset::new()
+            .with_files(Package::discover_packages(&source)?)
+            .with_files(LockFile::discover_lockfiles(&source)?);
 
         Ok(Self {
             source,
             name,
-            packages,
-            lockfiles,
+            files,
         })
     }
 
@@ -89,14 +89,14 @@ impl Project {
 
         let source = Source::Git(Git::new(path)?.with_revision(revision));
         let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
+        let files = Fileset::new()
+            .with_files(Package::discover_packages(&source)?)
+            .with_files(LockFile::discover_lockfiles(&source)?);
 
         Ok(Self {
             source,
             name,
-            packages,
-            lockfiles,
+            files,
         })
     }
 }
@@ -112,14 +112,14 @@ impl Project {
 
         let source = Source::GitHub(GitHub::new(repository)?.validated()?);
         let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
+        let files = Fileset::new()
+            .with_files(Package::discover_packages(&source)?)
+            .with_files(LockFile::discover_lockfiles(&source)?);
 
         Ok(Self {
             source,
             name,
-            packages,
-            lockfiles,
+            files,
         })
     }
 
@@ -137,14 +137,14 @@ impl Project {
                 .validated()?,
         );
         let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
+        let files = Fileset::new()
+            .with_files(Package::discover_packages(&source)?)
+            .with_files(LockFile::discover_lockfiles(&source)?);
 
         Ok(Self {
             source,
             name,
-            packages,
-            lockfiles,
+            files,
         })
     }
 
@@ -162,14 +162,14 @@ impl Project {
                 .validated()?,
         );
         let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
+        let files = Fileset::new()
+            .with_files(Package::discover_packages(&source)?)
+            .with_files(LockFile::discover_lockfiles(&source)?);
 
         Ok(Self {
             source,
             name,
-            packages,
-            lockfiles,
+            files,
         })
     }
 
@@ -194,14 +194,14 @@ impl Project {
                 .validated()?,
         );
         let name = source.get_name()?;
-        let packages = Package::discover_packages(&source)?;
-        let lockfiles = LockFile::discover_lockfiles(&source)?;
+        let files = Fileset::new()
+            .with_files(Package::discover_packages(&source)?)
+            .with_files(LockFile::discover_lockfiles(&source)?);
 
         Ok(Self {
             source,
             name,
-            packages,
-            lockfiles,
+            files,
         })
     }
 }
@@ -221,8 +221,13 @@ impl Project {
     }
 
     /// Gets the project packages.
-    pub fn packages(&self) -> &[Package] {
-        &self.packages
+    pub fn packages(&self) -> impl Iterator<Item = &Package> {
+        self.files.files().filter_map(|file| file.as_package())
+    }
+
+    // Gets the project lockfiles.
+    pub fn lockfiles(&self) -> impl Iterator<Item = &LockFile> {
+        self.files.files().filter_map(|file| file.as_lockfile())
     }
 
     /// Queries the project files.
@@ -249,19 +254,17 @@ impl Project {
     where
         S: AsRef<str>,
     {
-        match self
-            .packages
-            .iter_mut()
-            .find(|pkg| pkg.name() == package.as_ref())
-        {
+        match self.files.get_package_by_name_mut(package.as_ref()) {
             Some(pkg) => {
                 pkg.set_version(version.clone());
 
-                if let Some(lockfile) = self.lockfiles.get_mut(&pkg.kind()) {
+                let pkg = pkg.clone();
+
+                if let Some(lockfile) = self.files.get_lockfile_by_kind_mut(pkg.kind()) {
                     lockfile.set_package_version(pkg.name(), pkg.version());
                 }
 
-                for pkg in self.packages.iter_mut() {
+                for pkg in self.files.packages_mut() {
                     if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.to_string());
                         pkg.set_changed(true);
@@ -289,21 +292,19 @@ impl Project {
     where
         S: AsRef<str>,
     {
-        match self
-            .packages
-            .iter_mut()
-            .find(|pkg| pkg.name() == package.as_ref())
-        {
+        match self.files.get_package_by_name_mut(package.as_ref()) {
             Some(pkg) => {
                 pkg.bump(bump)?;
 
-                if let Some(lockfile) = self.lockfiles.get_mut(&pkg.kind()) {
+                let pkg = pkg.clone();
+
+                if let Some(lockfile) = self.files.get_lockfile_by_kind_mut(pkg.kind()) {
                     lockfile.set_package_version(pkg.name(), pkg.version());
                 }
 
                 let version = pkg.version().to_owned();
 
-                for pkg in self.packages.iter_mut() {
+                for pkg in self.files.packages_mut() {
                     if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.clone());
                         pkg.set_changed(true);
@@ -329,15 +330,15 @@ impl Project {
     /// Gets the changed files.
     pub fn get_changed_files(&self) -> impl Iterator<Item = (PathBuf, String)> + '_ {
         self.packages()
-            .iter()
             .filter(|package| package.is_changed())
             .map(|package| (package.path().to_owned(), package.get_contents()))
             .chain(
-                self.lockfiles
-                    .iter()
-                    .filter(|(_, lockfile)| lockfile.is_changed())
-                    .filter_map(|(kind, lockfile)| {
-                        kind.lockfile_name()
+                self.lockfiles()
+                    .filter(|lockfile| lockfile.is_changed())
+                    .filter_map(|lockfile| {
+                        lockfile
+                            .kind()
+                            .lockfile_name()
                             .map(|name| (name.to_owned(), lockfile.get_contents()))
                     }),
             )
