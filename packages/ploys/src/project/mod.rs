@@ -344,50 +344,55 @@ impl Project {
     }
 }
 
-#[cfg(feature = "github")]
 impl Project {
     /// Commits the changes to the repository.
     ///
     /// This method takes a message and collection of files to include with the
     /// commit.
+    #[allow(unused_variables)]
     pub fn commit(
         &mut self,
         message: impl AsRef<str>,
         files: impl IntoIterator<Item = (std::path::PathBuf, String)>,
     ) -> Result<String, Error> {
-        use self::source::revision::{Reference, Revision};
-
         let files = self.get_changed_files().chain(files).collect::<Vec<_>>();
 
+        #[cfg(feature = "github")]
+        #[allow(irrefutable_let_patterns)]
         if let Source::GitHub(github) = &mut self.source {
+            use self::source::revision::{Reference, Revision};
+
             let sha = github.commit(message, files.into_iter())?;
 
             if !matches!(github.revision(), Revision::Reference(Reference::Branch(_))) {
                 github.set_revision(Revision::sha(sha.clone()));
             }
 
-            Ok(sha)
-        } else {
-            Err(Error::Unsupported)
+            return Ok(sha);
         }
+
+        Err(Error::Unsupported)
     }
 
     /// Initiates the release of the specified package version.
     ///
     /// It does not yet support parallel release or hotfix branches and expects
     /// all development to be on the default branch in the repository settings.
+    #[allow(unused_variables)]
     pub fn initiate_package_release(
         &self,
         package: impl AsRef<str>,
         version: impl Into<crate::package::BumpOrVersion>,
     ) -> Result<(), Error> {
+        #[cfg(feature = "github")]
+        #[allow(irrefutable_let_patterns)]
         if let Source::GitHub(github) = &self.source {
             github.initiate_package_release(package.as_ref(), version.into())?;
 
-            Ok(())
-        } else {
-            Err(Error::Unsupported)
+            return Ok(());
         }
+
+        Err(Error::Unsupported)
     }
 
     /// Gets the changelog release for the given package version.
@@ -398,22 +403,25 @@ impl Project {
     ///
     /// It does not yet support parallel release or hotfix branches and expects
     /// all development to be on the default branch in the repository settings.
+    #[allow(unused_variables)]
     pub fn get_changelog_release(
         &self,
         package: impl AsRef<str>,
         version: impl AsRef<str>,
     ) -> Result<crate::changelog::Release, Error> {
+        #[cfg(feature = "github")]
+        #[allow(irrefutable_let_patterns)]
         if let Source::GitHub(github) = &self.source {
-            Ok(github.get_changelog_release(
+            return Ok(github.get_changelog_release(
                 package.as_ref(),
                 version
                     .as_ref()
                     .parse::<Version>()
                     .map_err(super::package::BumpError::Semver)?,
                 package.as_ref() == self.name(),
-            )?)
-        } else {
-            Err(Error::Unsupported)
+            )?);
         }
+
+        Err(Error::Unsupported)
     }
 }
