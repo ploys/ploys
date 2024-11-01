@@ -189,11 +189,9 @@ impl Package {
 
 impl Package {
     /// Discovers project packages.
-    pub(super) fn discover_packages<T>(source: &T) -> Result<Vec<Package>, crate::project::Error>
-    where
-        T: Source,
-        crate::project::Error: From<T::Error>,
-    {
+    pub(super) fn discover_packages(
+        source: &Source,
+    ) -> Result<Vec<Package>, crate::project::Error> {
         let files = source.get_files()?;
         let mut packages = Vec::new();
 

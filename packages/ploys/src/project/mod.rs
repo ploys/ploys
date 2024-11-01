@@ -50,16 +50,15 @@ pub use self::error::Error;
 use self::source::Source;
 
 /// A project from one of several supported sources.
-#[derive(Clone, Debug)]
-pub struct Project<T> {
-    source: T,
+pub struct Project {
+    source: Source,
     name: String,
     packages: Vec<Package>,
     lockfiles: HashMap<PackageKind, LockFile>,
 }
 
 #[cfg(feature = "git")]
-impl Project<self::source::git::Git> {
+impl Project {
     /// Opens a project with the Git source.
     pub fn git<P>(path: P) -> Result<Self, Error>
     where
@@ -67,7 +66,7 @@ impl Project<self::source::git::Git> {
     {
         use self::source::git::Git;
 
-        let source = Git::new(path)?;
+        let source = Source::Git(Git::new(path)?);
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -88,7 +87,7 @@ impl Project<self::source::git::Git> {
     {
         use self::source::git::Git;
 
-        let source = Git::new(path)?.with_revision(revision);
+        let source = Source::Git(Git::new(path)?.with_revision(revision));
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -103,7 +102,7 @@ impl Project<self::source::git::Git> {
 }
 
 #[cfg(feature = "github")]
-impl Project<self::source::github::GitHub> {
+impl Project {
     /// Opens a project with the GitHub source.
     pub fn github<R>(repository: R) -> Result<Self, Error>
     where
@@ -111,7 +110,7 @@ impl Project<self::source::github::GitHub> {
     {
         use self::source::github::GitHub;
 
-        let source = GitHub::new(repository)?.validated()?;
+        let source = Source::GitHub(GitHub::new(repository)?.validated()?);
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -132,9 +131,11 @@ impl Project<self::source::github::GitHub> {
     {
         use self::source::github::GitHub;
 
-        let source = GitHub::new(repository)?
-            .with_revision(revision)
-            .validated()?;
+        let source = Source::GitHub(
+            GitHub::new(repository)?
+                .with_revision(revision)
+                .validated()?,
+        );
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -155,9 +156,11 @@ impl Project<self::source::github::GitHub> {
     {
         use self::source::github::GitHub;
 
-        let source = GitHub::new(repository)?
-            .with_authentication_token(token)
-            .validated()?;
+        let source = Source::GitHub(
+            GitHub::new(repository)?
+                .with_authentication_token(token)
+                .validated()?,
+        );
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -184,10 +187,12 @@ impl Project<self::source::github::GitHub> {
     {
         use self::source::github::GitHub;
 
-        let source = GitHub::new(repository)?
-            .with_revision(revision)
-            .with_authentication_token(token)
-            .validated()?;
+        let source = Source::GitHub(
+            GitHub::new(repository)?
+                .with_revision(revision)
+                .with_authentication_token(token)
+                .validated()?,
+        );
         let name = source.get_name()?;
         let packages = Package::discover_packages(&source)?;
         let lockfiles = LockFile::discover_lockfiles(&source)?;
@@ -201,11 +206,7 @@ impl Project<self::source::github::GitHub> {
     }
 }
 
-impl<T> Project<T>
-where
-    T: Source,
-    Error: From<T::Error>,
-{
+impl Project {
     /// Gets the project name.
     pub fn name(&self) -> &str {
         &self.name
@@ -344,7 +345,7 @@ where
 }
 
 #[cfg(feature = "github")]
-impl Project<self::source::github::GitHub> {
+impl Project {
     /// Commits the changes to the repository.
     ///
     /// This method takes a message and collection of files to include with the
@@ -356,17 +357,19 @@ impl Project<self::source::github::GitHub> {
     ) -> Result<String, Error> {
         use self::source::revision::{Reference, Revision};
 
-        let files = self.get_changed_files().chain(files);
-        let sha = self.source.commit(message, files)?;
+        let files = self.get_changed_files().chain(files).collect::<Vec<_>>();
 
-        if !matches!(
-            self.source.revision(),
-            Revision::Reference(Reference::Branch(_))
-        ) {
-            self.source.set_revision(Revision::sha(sha.clone()));
+        if let Source::GitHub(github) = &mut self.source {
+            let sha = github.commit(message, files.into_iter())?;
+
+            if !matches!(github.revision(), Revision::Reference(Reference::Branch(_))) {
+                github.set_revision(Revision::sha(sha.clone()));
+            }
+
+            Ok(sha)
+        } else {
+            Err(Error::Unsupported)
         }
-
-        Ok(sha)
     }
 
     /// Initiates the release of the specified package version.
@@ -378,10 +381,13 @@ impl Project<self::source::github::GitHub> {
         package: impl AsRef<str>,
         version: impl Into<crate::package::BumpOrVersion>,
     ) -> Result<(), Error> {
-        self.source
-            .initiate_package_release(package.as_ref(), version.into())?;
+        if let Source::GitHub(github) = &self.source {
+            github.initiate_package_release(package.as_ref(), version.into())?;
 
-        Ok(())
+            Ok(())
+        } else {
+            Err(Error::Unsupported)
+        }
     }
 
     /// Gets the changelog release for the given package version.
@@ -397,13 +403,17 @@ impl Project<self::source::github::GitHub> {
         package: impl AsRef<str>,
         version: impl AsRef<str>,
     ) -> Result<crate::changelog::Release, Error> {
-        Ok(self.source.get_changelog_release(
-            package.as_ref(),
-            version
-                .as_ref()
-                .parse::<Version>()
-                .map_err(super::package::BumpError::Semver)?,
-            package.as_ref() == self.name(),
-        )?)
+        if let Source::GitHub(github) = &self.source {
+            Ok(github.get_changelog_release(
+                package.as_ref(),
+                version
+                    .as_ref()
+                    .parse::<Version>()
+                    .map_err(super::package::BumpError::Semver)?,
+                package.as_ref() == self.name(),
+            )?)
+        } else {
+            Err(Error::Unsupported)
+        }
     }
 }
