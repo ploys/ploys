@@ -1,4 +1,6 @@
+use std::collections::hash_map::IntoValues;
 use std::collections::HashMap;
+use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 
 use crate::lockfile::LockFile;
@@ -127,6 +129,33 @@ where
                 .map(Into::into)
                 .map(|file| (file.path().to_owned(), Some(file))),
         );
+    }
+}
+
+impl IntoIterator for Fileset {
+    type Item = File;
+    type IntoIter = Flatten<IntoValues<PathBuf, Option<File>>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.files.into_values().flatten()
+    }
+}
+
+impl<T> FromIterator<T> for Fileset
+where
+    T: Into<File>,
+{
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+    {
+        Self {
+            files: iter
+                .into_iter()
+                .map(Into::into)
+                .map(|file| (file.path().to_owned(), Some(file)))
+                .collect(),
+        }
     }
 }
 
