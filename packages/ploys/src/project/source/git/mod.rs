@@ -15,7 +15,6 @@ use url::Url;
 pub use self::error::Error;
 
 use super::revision::Revision;
-use super::Source;
 
 /// The local Git repository source.
 pub struct Git {
@@ -54,10 +53,8 @@ impl Git {
     }
 }
 
-impl Source for Git {
-    type Error = Error;
-
-    fn get_name(&self) -> Result<String, Self::Error> {
+impl Git {
+    pub fn get_name(&self) -> Result<String, Error> {
         let path = self.repository.path().join("..").canonicalize()?;
 
         if let Some(file_stem) = path.file_stem() {
@@ -70,7 +67,7 @@ impl Source for Git {
         )))
     }
 
-    fn get_url(&self) -> Result<Url, Self::Error> {
+    pub fn get_url(&self) -> Result<Url, Error> {
         match self
             .repository
             .find_default_remote(Direction::Push)
@@ -88,7 +85,7 @@ impl Source for Git {
         }
     }
 
-    fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {
+    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
         let spec = self.revision.to_string();
         let tree = self
             .repository
@@ -112,7 +109,7 @@ impl Source for Git {
         Ok(entries)
     }
 
-    fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Self::Error>
+    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
     where
         P: AsRef<Path>,
     {

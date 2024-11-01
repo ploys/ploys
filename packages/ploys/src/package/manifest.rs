@@ -43,15 +43,11 @@ impl Manifest {
     }
 
     /// Finds member packages using the closure to query individual paths.
-    pub fn discover_packages<T>(
+    pub fn discover_packages(
         self,
         files: &[PathBuf],
-        source: &T,
-    ) -> Result<Vec<Package>, crate::project::Error>
-    where
-        T: Source,
-        crate::project::Error: From<T::Error>,
-    {
+        source: &Source,
+    ) -> Result<Vec<Package>, crate::project::Error> {
         let members = self.members()?;
         let file_name = self.file_name();
 

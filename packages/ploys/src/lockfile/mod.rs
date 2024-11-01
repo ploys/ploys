@@ -48,13 +48,9 @@ impl LockFile {
     }
 
     /// Discovers project lockfiles.
-    pub(super) fn discover_lockfiles<T>(
-        source: &T,
-    ) -> Result<HashMap<PackageKind, Self>, crate::project::Error>
-    where
-        T: Source,
-        crate::project::Error: From<T::Error>,
-    {
+    pub(super) fn discover_lockfiles(
+        source: &Source,
+    ) -> Result<HashMap<PackageKind, Self>, crate::project::Error> {
         let mut lockfiles = HashMap::new();
 
         for kind in PackageKind::variants() {

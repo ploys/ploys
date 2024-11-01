@@ -1,7 +1,6 @@
 use anyhow::Error;
 use clap::Args;
 use ploys::package::BumpOrVersion;
-use ploys::project::source::github::GitHub;
 use ploys::project::Project;
 
 use crate::util::repo_or_url::RepoOrUrl;
@@ -37,7 +36,7 @@ impl Release {
             }
         };
 
-        let project = Project::<GitHub>::github_with_authentication_token(
+        let project = Project::github_with_authentication_token(
             remote.try_into_repo()?.to_string(),
             self.token,
         )?;

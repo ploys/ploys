@@ -1,9 +1,7 @@
 use anyhow::Error;
 use clap::Args;
 use console::style;
-use ploys::project::source::github::GitHub;
 use ploys::project::source::revision::Revision;
-use ploys::project::source::Source;
 use ploys::project::Project;
 
 use crate::util::repo_or_url::RepoOrUrl;
@@ -37,13 +35,11 @@ impl Info {
     pub fn exec(self) -> Result<(), Error> {
         match &self.remote {
             Some(remote) => match &self.token {
-                Some(token) => self.print(
-                    Project::<GitHub>::github_with_revision_and_authentication_token(
-                        remote.clone().try_into_repo()?.to_string(),
-                        self.revision(),
-                        token,
-                    )?,
-                ),
+                Some(token) => self.print(Project::github_with_revision_and_authentication_token(
+                    remote.clone().try_into_repo()?.to_string(),
+                    self.revision(),
+                    token,
+                )?),
                 None => self.print(Project::github_with_revision(
                     remote.clone().try_into_repo()?.to_string(),
                     self.revision(),
@@ -67,11 +63,7 @@ impl Info {
         }
     }
 
-    pub fn print<T>(&self, project: Project<T>) -> Result<(), Error>
-    where
-        T: Source,
-        ploys::project::Error: From<T::Error>,
-    {
+    pub fn print(&self, project: Project) -> Result<(), Error> {
         println!("{}:\n", style("Project").underlined().bold());
         println!("Name:       {}", project.name());
         println!("Repository: {}", project.get_url()?);

@@ -21,7 +21,6 @@ pub use self::error::Error;
 pub use self::repo::Repository;
 
 use super::revision::{Reference, Revision};
-use super::Source;
 
 /// The remote GitHub repository source.
 #[derive(Clone, Debug)]
@@ -283,20 +282,18 @@ impl GitHub {
     }
 }
 
-impl Source for GitHub {
-    type Error = Error;
-
-    fn get_name(&self) -> Result<String, Self::Error> {
+impl GitHub {
+    pub fn get_name(&self) -> Result<String, Error> {
         Ok(self.repository.name().to_owned())
     }
 
-    fn get_url(&self) -> Result<Url, Self::Error> {
+    pub fn get_url(&self) -> Result<Url, Error> {
         Ok(format!("https://github.com/{}", self.repository)
             .parse()
             .unwrap())
     }
 
-    fn get_files(&self) -> Result<Vec<PathBuf>, Self::Error> {
+    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
         let request = self
             .repository
             .get(
@@ -321,7 +318,7 @@ impl Source for GitHub {
         Ok(entries)
     }
 
-    fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Self::Error>
+    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
     where
         P: AsRef<Path>,
     {
@@ -368,8 +365,6 @@ struct RepositoryDispatchEvent<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::project::source::Source;
-
     use super::{Error, GitHub};
 
     #[test]

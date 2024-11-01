@@ -4,12 +4,8 @@ use std::fmt::{self, Display};
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
-    /// The Git source error.
-    #[cfg(feature = "git")]
-    Git(crate::project::source::git::Error),
-    /// The GitHub source error.
-    #[cfg(feature = "github")]
-    GitHub(crate::project::source::github::Error),
+    /// The source error.
+    Source(super::source::Error),
     /// The package error.
     Package(crate::package::Error),
     /// The package bump error.
@@ -18,36 +14,28 @@ pub enum Error {
     LockFile(crate::lockfile::Error),
     /// The package not found error.
     PackageNotFound(String),
+    /// The action is not supported.
+    Unsupported,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            #[cfg(feature = "git")]
-            Self::Git(git) => Display::fmt(git, f),
-            #[cfg(feature = "github")]
-            Self::GitHub(github) => Display::fmt(github, f),
+            Self::Source(err) => Display::fmt(err, f),
             Self::Package(err) => Display::fmt(err, f),
             Self::Bump(err) => Display::fmt(err, f),
             Self::LockFile(err) => Display::fmt(err, f),
             Self::PackageNotFound(name) => write!(f, "Package not found: `{name}`."),
+            Self::Unsupported => write!(f, "Action not supported"),
         }
     }
 }
 
 impl std::error::Error for Error {}
 
-#[cfg(feature = "git")]
-impl From<crate::project::source::git::Error> for Error {
-    fn from(err: crate::project::source::git::Error) -> Self {
-        Self::Git(err)
-    }
-}
-
-#[cfg(feature = "github")]
-impl From<crate::project::source::github::Error> for Error {
-    fn from(err: crate::project::source::github::Error) -> Self {
-        Self::GitHub(err)
+impl From<super::source::Error> for Error {
+    fn from(err: super::source::Error) -> Self {
+        Self::Source(err)
     }
 }
 
@@ -66,5 +54,19 @@ impl From<crate::package::BumpError> for Error {
 impl From<crate::lockfile::Error> for Error {
     fn from(err: crate::lockfile::Error) -> Self {
         Self::LockFile(err)
+    }
+}
+
+#[cfg(feature = "git")]
+impl From<super::source::git::Error> for Error {
+    fn from(err: super::source::git::Error) -> Self {
+        Self::Source(err.into())
+    }
+}
+
+#[cfg(feature = "github")]
+impl From<super::source::github::Error> for Error {
+    fn from(err: super::source::github::Error) -> Self {
+        Self::Source(err.into())
     }
 }
