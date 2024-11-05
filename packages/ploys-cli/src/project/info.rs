@@ -1,8 +1,8 @@
 use anyhow::Error;
 use clap::Args;
 use console::style;
-use ploys::project::repository::revision::Revision;
 use ploys::project::Project;
+use ploys::repository::revision::Revision;
 
 use crate::util::repo_or_url::RepoOrUrl;
 

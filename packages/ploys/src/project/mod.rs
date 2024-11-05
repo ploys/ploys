@@ -36,7 +36,6 @@
 
 mod error;
 mod file;
-pub mod repository;
 
 use std::path::{Path, PathBuf};
 
@@ -45,10 +44,10 @@ use url::Url;
 
 use crate::lockfile::LockFile;
 use crate::package::{Bump, Package};
+use crate::repository::Source;
 
 pub use self::error::Error;
 pub use self::file::{File, Fileset};
-use self::repository::Source;
 
 /// A project from one of several supported sources.
 pub struct Project {
@@ -64,7 +63,7 @@ impl Project {
     where
         P: AsRef<Path>,
     {
-        use self::repository::git::Git;
+        use crate::repository::git::Git;
 
         let source = Source::Git(Git::new(path)?);
         let name = source.get_name()?;
@@ -83,9 +82,9 @@ impl Project {
     pub fn git_with_revision<P, R>(path: P, revision: R) -> Result<Self, Error>
     where
         P: AsRef<Path>,
-        R: Into<self::repository::revision::Revision>,
+        R: Into<crate::repository::revision::Revision>,
     {
-        use self::repository::git::Git;
+        use crate::repository::git::Git;
 
         let source = Source::Git(Git::new(path)?.with_revision(revision));
         let name = source.get_name()?;
@@ -108,7 +107,7 @@ impl Project {
     where
         R: AsRef<str>,
     {
-        use self::repository::github::GitHub;
+        use crate::repository::github::GitHub;
 
         let source = Source::GitHub(GitHub::new(repository)?.validated()?);
         let name = source.get_name()?;
@@ -127,9 +126,9 @@ impl Project {
     pub fn github_with_revision<R, V>(repository: R, revision: V) -> Result<Self, Error>
     where
         R: AsRef<str>,
-        V: Into<self::repository::revision::Revision>,
+        V: Into<crate::repository::revision::Revision>,
     {
-        use self::repository::github::GitHub;
+        use crate::repository::github::GitHub;
 
         let source = Source::GitHub(
             GitHub::new(repository)?
@@ -154,7 +153,7 @@ impl Project {
         R: AsRef<str>,
         T: Into<String>,
     {
-        use self::repository::github::GitHub;
+        use crate::repository::github::GitHub;
 
         let source = Source::GitHub(
             GitHub::new(repository)?
@@ -182,10 +181,10 @@ impl Project {
     ) -> Result<Self, Error>
     where
         R: AsRef<str>,
-        V: Into<self::repository::revision::Revision>,
+        V: Into<crate::repository::revision::Revision>,
         T: Into<String>,
     {
-        use self::repository::github::GitHub;
+        use crate::repository::github::GitHub;
 
         let source = Source::GitHub(
             GitHub::new(repository)?
@@ -361,7 +360,7 @@ impl Project {
         #[cfg(feature = "github")]
         #[allow(irrefutable_let_patterns)]
         if let Source::GitHub(github) = &mut self.source {
-            use self::repository::revision::{Reference, Revision};
+            use crate::repository::revision::{Reference, Revision};
 
             let sha = github.commit(message, files.into_iter())?;
 
