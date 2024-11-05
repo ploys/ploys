@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::io;
 
-/// The GitHub source error.
+/// The GitHub repository error.
 #[derive(Debug)]
 pub enum Error {
     /// An HTTP status response.

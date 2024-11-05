@@ -36,7 +36,6 @@
 
 mod error;
 mod file;
-pub mod source;
 
 use std::path::{Path, PathBuf};
 
@@ -45,56 +44,56 @@ use url::Url;
 
 use crate::lockfile::LockFile;
 use crate::package::{Bump, Package};
+use crate::repository::Repository;
 
 pub use self::error::Error;
 pub use self::file::{File, Fileset};
-use self::source::Source;
 
-/// A project from one of several supported sources.
+/// A project from one of several supported repositories.
 pub struct Project {
-    source: Source,
+    repository: Repository,
     name: String,
     files: Fileset,
 }
 
 #[cfg(feature = "git")]
 impl Project {
-    /// Opens a project with the Git source.
+    /// Opens a project with the Git repository.
     pub fn git<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
-        use self::source::git::Git;
+        use crate::repository::git::Git;
 
-        let source = Source::Git(Git::new(path)?);
-        let name = source.get_name()?;
+        let repository = Repository::Git(Git::new(path)?);
+        let name = repository.get_name()?;
         let files = Fileset::new()
-            .with_files(Package::discover_packages(&source)?)
-            .with_files(LockFile::discover_lockfiles(&source)?);
+            .with_files(Package::discover_packages(&repository)?)
+            .with_files(LockFile::discover_lockfiles(&repository)?);
 
         Ok(Self {
-            source,
+            repository,
             name,
             files,
         })
     }
 
-    /// Opens a project with the Git source and revision.
+    /// Opens a project with the Git repository and revision.
     pub fn git_with_revision<P, R>(path: P, revision: R) -> Result<Self, Error>
     where
         P: AsRef<Path>,
-        R: Into<self::source::revision::Revision>,
+        R: Into<crate::repository::revision::Revision>,
     {
-        use self::source::git::Git;
+        use crate::repository::git::Git;
 
-        let source = Source::Git(Git::new(path)?.with_revision(revision));
-        let name = source.get_name()?;
+        let repository = Repository::Git(Git::new(path)?.with_revision(revision));
+        let name = repository.get_name()?;
         let files = Fileset::new()
-            .with_files(Package::discover_packages(&source)?)
-            .with_files(LockFile::discover_lockfiles(&source)?);
+            .with_files(Package::discover_packages(&repository)?)
+            .with_files(LockFile::discover_lockfiles(&repository)?);
 
         Ok(Self {
-            source,
+            repository,
             name,
             files,
         })
@@ -103,77 +102,77 @@ impl Project {
 
 #[cfg(feature = "github")]
 impl Project {
-    /// Opens a project with the GitHub source.
+    /// Opens a project with the GitHub repository.
     pub fn github<R>(repository: R) -> Result<Self, Error>
     where
         R: AsRef<str>,
     {
-        use self::source::github::GitHub;
+        use crate::repository::github::GitHub;
 
-        let source = Source::GitHub(GitHub::new(repository)?.validated()?);
-        let name = source.get_name()?;
+        let repository = Repository::GitHub(GitHub::new(repository)?.validated()?);
+        let name = repository.get_name()?;
         let files = Fileset::new()
-            .with_files(Package::discover_packages(&source)?)
-            .with_files(LockFile::discover_lockfiles(&source)?);
+            .with_files(Package::discover_packages(&repository)?)
+            .with_files(LockFile::discover_lockfiles(&repository)?);
 
         Ok(Self {
-            source,
+            repository,
             name,
             files,
         })
     }
 
-    /// Opens a project with the GitHub source and revision.
+    /// Opens a project with the GitHub repository and revision.
     pub fn github_with_revision<R, V>(repository: R, revision: V) -> Result<Self, Error>
     where
         R: AsRef<str>,
-        V: Into<self::source::revision::Revision>,
+        V: Into<crate::repository::revision::Revision>,
     {
-        use self::source::github::GitHub;
+        use crate::repository::github::GitHub;
 
-        let source = Source::GitHub(
+        let repository = Repository::GitHub(
             GitHub::new(repository)?
                 .with_revision(revision)
                 .validated()?,
         );
-        let name = source.get_name()?;
+        let name = repository.get_name()?;
         let files = Fileset::new()
-            .with_files(Package::discover_packages(&source)?)
-            .with_files(LockFile::discover_lockfiles(&source)?);
+            .with_files(Package::discover_packages(&repository)?)
+            .with_files(LockFile::discover_lockfiles(&repository)?);
 
         Ok(Self {
-            source,
+            repository,
             name,
             files,
         })
     }
 
-    /// Opens a project with the GitHub source and authentication token.
+    /// Opens a project with the GitHub repository and authentication token.
     pub fn github_with_authentication_token<R, T>(repository: R, token: T) -> Result<Self, Error>
     where
         R: AsRef<str>,
         T: Into<String>,
     {
-        use self::source::github::GitHub;
+        use crate::repository::github::GitHub;
 
-        let source = Source::GitHub(
+        let repository = Repository::GitHub(
             GitHub::new(repository)?
                 .with_authentication_token(token)
                 .validated()?,
         );
-        let name = source.get_name()?;
+        let name = repository.get_name()?;
         let files = Fileset::new()
-            .with_files(Package::discover_packages(&source)?)
-            .with_files(LockFile::discover_lockfiles(&source)?);
+            .with_files(Package::discover_packages(&repository)?)
+            .with_files(LockFile::discover_lockfiles(&repository)?);
 
         Ok(Self {
-            source,
+            repository,
             name,
             files,
         })
     }
 
-    /// Opens a project with the GitHub source, revision, and authentication
+    /// Opens a project with the GitHub repository, revision, and authentication
     /// token.
     pub fn github_with_revision_and_authentication_token<R, V, T>(
         repository: R,
@@ -182,24 +181,24 @@ impl Project {
     ) -> Result<Self, Error>
     where
         R: AsRef<str>,
-        V: Into<self::source::revision::Revision>,
+        V: Into<crate::repository::revision::Revision>,
         T: Into<String>,
     {
-        use self::source::github::GitHub;
+        use crate::repository::github::GitHub;
 
-        let source = Source::GitHub(
+        let repository = Repository::GitHub(
             GitHub::new(repository)?
                 .with_revision(revision)
                 .with_authentication_token(token)
                 .validated()?,
         );
-        let name = source.get_name()?;
+        let name = repository.get_name()?;
         let files = Fileset::new()
-            .with_files(Package::discover_packages(&source)?)
-            .with_files(LockFile::discover_lockfiles(&source)?);
+            .with_files(Package::discover_packages(&repository)?)
+            .with_files(LockFile::discover_lockfiles(&repository)?);
 
         Ok(Self {
-            source,
+            repository,
             name,
             files,
         })
@@ -217,7 +216,7 @@ impl Project {
     /// This method may perform file system operations or network requests to
     /// query the latest project information.
     pub fn get_url(&self) -> Result<Url, Error> {
-        Ok(self.source.get_url()?)
+        Ok(self.repository.get_url()?)
     }
 
     /// Gets the project packages.
@@ -235,7 +234,7 @@ impl Project {
     /// This method may perform file system operations or network requests to
     /// query the latest project information.
     pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
-        Ok(self.source.get_files()?)
+        Ok(self.repository.get_files()?)
     }
 
     /// Queries the contents of a project file.
@@ -246,7 +245,7 @@ impl Project {
     where
         P: AsRef<Path>,
     {
-        Ok(self.source.get_file_contents(path)?)
+        Ok(self.repository.get_file_contents(path)?)
     }
 
     /// Sets the version of the target package.
@@ -360,8 +359,8 @@ impl Project {
 
         #[cfg(feature = "github")]
         #[allow(irrefutable_let_patterns)]
-        if let Source::GitHub(github) = &mut self.source {
-            use self::source::revision::{Reference, Revision};
+        if let Repository::GitHub(github) = &mut self.repository {
+            use crate::repository::revision::{Reference, Revision};
 
             let sha = github.commit(message, files.into_iter())?;
 
@@ -387,7 +386,7 @@ impl Project {
     ) -> Result<(), Error> {
         #[cfg(feature = "github")]
         #[allow(irrefutable_let_patterns)]
-        if let Source::GitHub(github) = &self.source {
+        if let Repository::GitHub(github) = &self.repository {
             github.initiate_package_release(package.as_ref(), version.into())?;
 
             return Ok(());
@@ -412,7 +411,7 @@ impl Project {
     ) -> Result<crate::changelog::Release, Error> {
         #[cfg(feature = "github")]
         #[allow(irrefutable_let_patterns)]
-        if let Source::GitHub(github) = &self.source {
+        if let Repository::GitHub(github) = &self.repository {
             return Ok(github.get_changelog_release(
                 package.as_ref(),
                 version

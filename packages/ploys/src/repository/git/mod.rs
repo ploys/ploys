@@ -16,14 +16,14 @@ pub use self::error::Error;
 
 use super::revision::Revision;
 
-/// The local Git repository source.
+/// The local Git repository.
 pub struct Git {
     repository: Repository,
     revision: Revision,
 }
 
 impl Git {
-    /// Creates a Git source.
+    /// Creates a Git repository.
     pub(crate) fn new<P>(path: P) -> Result<Self, Error>
     where
         P: AsRef<Path>,
@@ -46,7 +46,7 @@ impl Git {
         self.revision = revision.into();
     }
 
-    /// Builds the source with the given revision.
+    /// Builds the repository with the given revision.
     pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
         self.set_revision(revision);
         self

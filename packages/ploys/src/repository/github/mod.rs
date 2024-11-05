@@ -22,7 +22,7 @@ pub use self::repo::Repository;
 
 use super::revision::{Reference, Revision};
 
-/// The remote GitHub repository source.
+/// The remote GitHub repository.
 #[derive(Clone, Debug)]
 pub struct GitHub {
     repository: Repository,
@@ -31,7 +31,7 @@ pub struct GitHub {
 }
 
 impl GitHub {
-    /// Creates a GitHub source.
+    /// Creates a GitHub repository.
     pub(crate) fn new<R>(repository: R) -> Result<Self, Error>
     where
         R: AsRef<str>,
@@ -55,7 +55,7 @@ impl GitHub {
         self.revision = revision.into();
     }
 
-    /// Builds the source with the given revision.
+    /// Builds the repository with the given revision.
     pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
         self.revision = revision.into();
         self
@@ -63,13 +63,13 @@ impl GitHub {
 }
 
 impl GitHub {
-    /// Builds the source with the given authentication token.
+    /// Builds the repository with the given authentication token.
     pub(crate) fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
         self.token = Some(token.into());
         self
     }
 
-    /// Builds the source with validation to ensure it exists.
+    /// Builds the repository with validation to ensure it exists.
     pub(crate) fn validated(self) -> Result<Self, Error> {
         self.repository.validate(self.token.as_deref())?;
 
