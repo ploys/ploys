@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::{anyhow, Error};
-use ploys::project::source::github::Repository;
+use ploys::project::repository::github::Repository;
 use url::Url;
 
 /// The repository string or remote URL.

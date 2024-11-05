@@ -7,7 +7,7 @@ pub mod secret;
 use axum::extract::State;
 use ploys::changelog::Changelog;
 use ploys::package::BumpOrVersion;
-use ploys::project::source::revision::Revision;
+use ploys::project::repository::revision::Revision;
 use ploys::project::Project;
 use reqwest::Client;
 use semver::Version;

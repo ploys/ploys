@@ -7,7 +7,7 @@ pub mod cargo;
 mod error;
 
 use crate::package::PackageKind;
-use crate::project::source::Source;
+use crate::project::repository::Source;
 
 use self::cargo::CargoLockFile;
 pub use self::error::Error;

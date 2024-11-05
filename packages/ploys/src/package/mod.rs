@@ -14,7 +14,7 @@ use std::path::Path;
 
 use semver::Version;
 
-use crate::project::source::Source;
+use crate::project::repository::Source;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;

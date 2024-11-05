@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::project::source::Source;
+use crate::project::repository::Source;
 
 use super::cargo::manifest::Manifest as CargoManifest;
 use super::error::Error;

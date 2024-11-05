@@ -5,7 +5,7 @@ use std::fmt::{self, Display};
 #[non_exhaustive]
 pub enum Error {
     /// The source error.
-    Source(super::source::Error),
+    Source(super::repository::Error),
     /// The package error.
     Package(crate::package::Error),
     /// The package bump error.
@@ -33,8 +33,8 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<super::source::Error> for Error {
-    fn from(err: super::source::Error) -> Self {
+impl From<super::repository::Error> for Error {
+    fn from(err: super::repository::Error) -> Self {
         Self::Source(err)
     }
 }
@@ -58,15 +58,15 @@ impl From<crate::lockfile::Error> for Error {
 }
 
 #[cfg(feature = "git")]
-impl From<super::source::git::Error> for Error {
-    fn from(err: super::source::git::Error) -> Self {
+impl From<super::repository::git::Error> for Error {
+    fn from(err: super::repository::git::Error) -> Self {
         Self::Source(err.into())
     }
 }
 
 #[cfg(feature = "github")]
-impl From<super::source::github::Error> for Error {
-    fn from(err: super::source::github::Error) -> Self {
+impl From<super::repository::github::Error> for Error {
+    fn from(err: super::repository::github::Error) -> Self {
         Self::Source(err.into())
     }
 }
