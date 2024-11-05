@@ -4,8 +4,8 @@ use std::fmt::{self, Display};
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
-    /// The source error.
-    Source(crate::repository::Error),
+    /// The repository error.
+    Repository(crate::repository::Error),
     /// The package error.
     Package(crate::package::Error),
     /// The package bump error.
@@ -21,7 +21,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Source(err) => Display::fmt(err, f),
+            Self::Repository(err) => Display::fmt(err, f),
             Self::Package(err) => Display::fmt(err, f),
             Self::Bump(err) => Display::fmt(err, f),
             Self::LockFile(err) => Display::fmt(err, f),
@@ -35,7 +35,7 @@ impl std::error::Error for Error {}
 
 impl From<crate::repository::Error> for Error {
     fn from(err: crate::repository::Error) -> Self {
-        Self::Source(err)
+        Self::Repository(err)
     }
 }
 
@@ -60,13 +60,13 @@ impl From<crate::lockfile::Error> for Error {
 #[cfg(feature = "git")]
 impl From<crate::repository::git::Error> for Error {
     fn from(err: crate::repository::git::Error) -> Self {
-        Self::Source(err.into())
+        Self::Repository(err.into())
     }
 }
 
 #[cfg(feature = "github")]
 impl From<crate::repository::github::Error> for Error {
     fn from(err: crate::repository::github::Error) -> Self {
-        Self::Source(err.into())
+        Self::Repository(err.into())
     }
 }

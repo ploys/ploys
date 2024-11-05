@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-/// The project source error.
+/// The repository error.
 #[derive(Debug)]
 pub enum Error {
     #[cfg(feature = "git")]

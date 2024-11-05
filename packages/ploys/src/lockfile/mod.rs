@@ -7,7 +7,7 @@ pub mod cargo;
 mod error;
 
 use crate::package::PackageKind;
-use crate::repository::Source;
+use crate::repository::Repository;
 
 use self::cargo::CargoLockFile;
 pub use self::error::Error;
@@ -53,12 +53,14 @@ impl LockFile {
     }
 
     /// Discovers project lockfiles.
-    pub(super) fn discover_lockfiles(source: &Source) -> Result<Vec<Self>, crate::project::Error> {
+    pub(super) fn discover_lockfiles(
+        repository: &Repository,
+    ) -> Result<Vec<Self>, crate::project::Error> {
         let mut lockfiles = Vec::new();
 
         for kind in PackageKind::variants() {
             if let Some(lockfile_name) = kind.lockfile_name() {
-                if let Ok(bytes) = source.get_file_contents(lockfile_name) {
+                if let Ok(bytes) = repository.get_file_contents(lockfile_name) {
                     let lockfile = LockFile::from_bytes(*kind, &bytes)?;
 
                     lockfiles.push(lockfile);

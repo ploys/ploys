@@ -1,7 +1,7 @@
-//! Project source configuration
+//! Repository inspection and management utilities
 //!
-//! This module contains the common functionality that is shared by different
-//! project sources.
+//! This module includes utilities for inspecting and managing repositories
+//! located on the local file system or in a remote version control system.
 
 mod error;
 
@@ -20,16 +20,16 @@ use url::Url;
 
 pub use self::error::Error;
 
-/// A project source.
-pub enum Source {
+/// A source code repository.
+pub enum Repository {
     #[cfg(feature = "git")]
     Git(self::git::Git),
     #[cfg(feature = "github")]
     GitHub(self::github::GitHub),
 }
 
-impl Source {
-    /// Queries the source name.
+impl Repository {
+    /// Queries the project name.
     pub fn get_name(&self) -> Result<String, Error> {
         match self {
             #[cfg(feature = "git")]
@@ -39,7 +39,7 @@ impl Source {
         }
     }
 
-    /// Queries the source URL.
+    /// Queries the project URL.
     pub fn get_url(&self) -> Result<Url, Error> {
         match self {
             #[cfg(feature = "git")]

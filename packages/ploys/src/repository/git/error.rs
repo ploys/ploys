@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 use std::io;
 
-/// The Git source error.
+/// The Git repository error.
 #[derive(Debug)]
 pub enum Error {
     /// A `gix` error.

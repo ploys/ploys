@@ -14,7 +14,7 @@ use std::path::Path;
 
 use semver::Version;
 
-use crate::repository::Source;
+use crate::repository::Repository;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;
@@ -190,16 +190,16 @@ impl Package {
 impl Package {
     /// Discovers project packages.
     pub(super) fn discover_packages(
-        source: &Source,
+        repository: &Repository,
     ) -> Result<Vec<Package>, crate::project::Error> {
-        let files = source.get_files()?;
+        let files = repository.get_files()?;
         let mut packages = Vec::new();
 
         for kind in PackageKind::variants() {
-            if let Ok(bytes) = source.get_file_contents(kind.file_name()) {
+            if let Ok(bytes) = repository.get_file_contents(kind.file_name()) {
                 let manifest = Manifest::from_bytes(*kind, &bytes)?;
 
-                packages.extend(manifest.discover_packages(&files, source)?);
+                packages.extend(manifest.discover_packages(&files, repository)?);
             }
         }
 

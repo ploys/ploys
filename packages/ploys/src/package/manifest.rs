@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::repository::Source;
+use crate::repository::Repository;
 
 use super::cargo::manifest::Manifest as CargoManifest;
 use super::error::Error;
@@ -46,7 +46,7 @@ impl Manifest {
     pub fn discover_packages(
         self,
         files: &[PathBuf],
-        source: &Source,
+        repository: &Repository,
     ) -> Result<Vec<Package>, crate::project::Error> {
         let members = self.members()?;
         let file_name = self.file_name();
@@ -57,7 +57,7 @@ impl Manifest {
             for directory in self.directories(files) {
                 if members.includes(directory) {
                     let path = directory.join(file_name);
-                    let bytes = source.get_file_contents(&path)?;
+                    let bytes = repository.get_file_contents(&path)?;
                     let package = Self::from_bytes(self.package_kind(), &bytes)?.into_package(path);
 
                     if let Some(package) = package {
