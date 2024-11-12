@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
-pub use self::lockfile::CargoLockFile;
+pub use self::lockfile::CargoLockfile;
 use self::manifest::Manifest;
 
 use super::{Bump, BumpError};

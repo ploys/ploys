@@ -6,12 +6,12 @@ use crate::package::cargo::Error;
 
 /// A `Cargo.lock` lockfile for Rust.
 #[derive(Clone, Debug)]
-pub struct CargoLockFile {
+pub struct CargoLockfile {
     manifest: DocumentMut,
     changed: bool,
 }
 
-impl CargoLockFile {
+impl CargoLockfile {
     /// Sets the package version.
     pub fn set_package_version<P, V>(&mut self, package: P, version: V)
     where

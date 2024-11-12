@@ -6,16 +6,16 @@
 use crate::package::{Error, PackageKind};
 use crate::repository::Repository;
 
-use super::cargo::CargoLockFile;
+use super::cargo::CargoLockfile;
 
 /// A lockfile in one of several supported formats.
 #[derive(Clone, Debug)]
-pub enum LockFile {
+pub enum Lockfile {
     /// A `Cargo.lock` lockfile for Rust.
-    Cargo(CargoLockFile),
+    Cargo(CargoLockfile),
 }
 
-impl LockFile {
+impl Lockfile {
     /// Gets the lockfile kind.
     pub fn kind(&self) -> PackageKind {
         match self {
@@ -57,7 +57,7 @@ impl LockFile {
         for kind in PackageKind::variants() {
             if let Some(lockfile_name) = kind.lockfile_name() {
                 if let Ok(bytes) = repository.get_file_contents(lockfile_name) {
-                    let lockfile = LockFile::from_bytes(*kind, &bytes)?;
+                    let lockfile = Lockfile::from_bytes(*kind, &bytes)?;
 
                     lockfiles.push(lockfile);
                 }
@@ -70,7 +70,7 @@ impl LockFile {
     /// Creates a lockfile from the given bytes.
     fn from_bytes(kind: PackageKind, bytes: &[u8]) -> Result<Self, Error> {
         match kind {
-            PackageKind::Cargo => Ok(Self::Cargo(CargoLockFile::from_bytes(bytes)?)),
+            PackageKind::Cargo => Ok(Self::Cargo(CargoLockfile::from_bytes(bytes)?)),
         }
     }
 }
