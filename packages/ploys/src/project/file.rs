@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 
-use crate::lockfile::LockFile;
-use crate::package::{Package, PackageKind};
+use crate::package::{Lockfile, Package, PackageKind};
 
 /// A collection of files.
 #[derive(Clone, Debug, Default)]
@@ -66,12 +65,12 @@ impl Fileset {
     }
 
     /// Gets a lockfile with the given kind.
-    pub fn get_lockfile_by_kind(&self, kind: PackageKind) -> Option<&LockFile> {
+    pub fn get_lockfile_by_kind(&self, kind: PackageKind) -> Option<&Lockfile> {
         self.get_file(kind.lockfile_name()?)?.as_lockfile()
     }
 
     /// Gets a mutable lockfile with the given kind.
-    pub fn get_lockfile_by_kind_mut(&mut self, kind: PackageKind) -> Option<&mut LockFile> {
+    pub fn get_lockfile_by_kind_mut(&mut self, kind: PackageKind) -> Option<&mut Lockfile> {
         self.get_file_mut(kind.lockfile_name()?)?.as_lockfile_mut()
     }
 
@@ -96,12 +95,12 @@ impl Fileset {
     }
 
     /// Gets an iterator over the lockfiles.
-    pub fn lockfiles(&self) -> impl Iterator<Item = &LockFile> {
+    pub fn lockfiles(&self) -> impl Iterator<Item = &Lockfile> {
         self.files().filter_map(File::as_lockfile)
     }
 
     /// Gets an iterator over the mutable lockfiles.
-    pub fn lockfiles_mut(&mut self) -> impl Iterator<Item = &mut LockFile> {
+    pub fn lockfiles_mut(&mut self) -> impl Iterator<Item = &mut Lockfile> {
         self.files_mut().filter_map(File::as_lockfile_mut)
     }
 
@@ -163,7 +162,7 @@ where
 #[derive(Clone, Debug)]
 pub enum File {
     Package(Package),
-    Lockfile(LockFile),
+    Lockfile(Lockfile),
 }
 
 impl File {
@@ -192,7 +191,7 @@ impl File {
     }
 
     /// Gets the file as a lockfile.
-    pub fn as_lockfile(&self) -> Option<&LockFile> {
+    pub fn as_lockfile(&self) -> Option<&Lockfile> {
         match self {
             Self::Lockfile(lockfile) => Some(lockfile),
             _ => None,
@@ -200,7 +199,7 @@ impl File {
     }
 
     /// Gets the file as a mutable lockfile.
-    pub fn as_lockfile_mut(&mut self) -> Option<&mut LockFile> {
+    pub fn as_lockfile_mut(&mut self) -> Option<&mut Lockfile> {
         match self {
             Self::Lockfile(lockfile) => Some(lockfile),
             _ => None,
@@ -214,8 +213,8 @@ impl From<Package> for File {
     }
 }
 
-impl From<LockFile> for File {
-    fn from(value: LockFile) -> Self {
+impl From<Lockfile> for File {
+    fn from(value: Lockfile) -> Self {
         Self::Lockfile(value)
     }
 }

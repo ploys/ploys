@@ -7,6 +7,7 @@ mod bump;
 pub mod cargo;
 mod dependency;
 mod error;
+mod lockfile;
 mod manifest;
 mod members;
 
@@ -20,6 +21,7 @@ pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
+pub use self::lockfile::Lockfile;
 use self::manifest::Manifest;
 
 /// A package in one of several supported formats.

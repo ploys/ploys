@@ -1,19 +1,17 @@
 //! The `Cargo.lock` lockfile for Rust.
 
-mod error;
-
 use toml_edit::{ArrayOfTables, DocumentMut, Item, TableLike, Value};
 
-pub use self::error::Error;
+use crate::package::cargo::Error;
 
 /// A `Cargo.lock` lockfile for Rust.
 #[derive(Clone, Debug)]
-pub struct CargoLockFile {
+pub struct CargoLockfile {
     manifest: DocumentMut,
     changed: bool,
 }
 
-impl CargoLockFile {
+impl CargoLockfile {
     /// Sets the package version.
     pub fn set_package_version<P, V>(&mut self, package: P, version: V)
     where
@@ -37,7 +35,7 @@ impl CargoLockFile {
     }
 
     /// Creates a manifest from the given bytes.
-    pub(super) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(Self {
             manifest: std::str::from_utf8(bytes)?.parse()?,
             changed: false,

@@ -42,8 +42,7 @@ use std::path::{Path, PathBuf};
 use semver::Version;
 use url::Url;
 
-use crate::lockfile::LockFile;
-use crate::package::{Bump, Package};
+use crate::package::{Bump, Lockfile, Package};
 use crate::repository::Repository;
 
 pub use self::error::Error;
@@ -69,7 +68,7 @@ impl Project {
         let name = repository.get_name()?;
         let files = Fileset::new()
             .with_files(Package::discover_packages(&repository)?)
-            .with_files(LockFile::discover_lockfiles(&repository)?);
+            .with_files(Lockfile::discover_lockfiles(&repository)?);
 
         Ok(Self {
             repository,
@@ -90,7 +89,7 @@ impl Project {
         let name = repository.get_name()?;
         let files = Fileset::new()
             .with_files(Package::discover_packages(&repository)?)
-            .with_files(LockFile::discover_lockfiles(&repository)?);
+            .with_files(Lockfile::discover_lockfiles(&repository)?);
 
         Ok(Self {
             repository,
@@ -113,7 +112,7 @@ impl Project {
         let name = repository.get_name()?;
         let files = Fileset::new()
             .with_files(Package::discover_packages(&repository)?)
-            .with_files(LockFile::discover_lockfiles(&repository)?);
+            .with_files(Lockfile::discover_lockfiles(&repository)?);
 
         Ok(Self {
             repository,
@@ -138,7 +137,7 @@ impl Project {
         let name = repository.get_name()?;
         let files = Fileset::new()
             .with_files(Package::discover_packages(&repository)?)
-            .with_files(LockFile::discover_lockfiles(&repository)?);
+            .with_files(Lockfile::discover_lockfiles(&repository)?);
 
         Ok(Self {
             repository,
@@ -163,7 +162,7 @@ impl Project {
         let name = repository.get_name()?;
         let files = Fileset::new()
             .with_files(Package::discover_packages(&repository)?)
-            .with_files(LockFile::discover_lockfiles(&repository)?);
+            .with_files(Lockfile::discover_lockfiles(&repository)?);
 
         Ok(Self {
             repository,
@@ -195,7 +194,7 @@ impl Project {
         let name = repository.get_name()?;
         let files = Fileset::new()
             .with_files(Package::discover_packages(&repository)?)
-            .with_files(LockFile::discover_lockfiles(&repository)?);
+            .with_files(Lockfile::discover_lockfiles(&repository)?);
 
         Ok(Self {
             repository,
@@ -225,7 +224,7 @@ impl Project {
     }
 
     // Gets the project lockfiles.
-    pub fn lockfiles(&self) -> impl Iterator<Item = &LockFile> {
+    pub fn lockfiles(&self) -> impl Iterator<Item = &Lockfile> {
         self.files.files().filter_map(|file| file.as_lockfile())
     }
 

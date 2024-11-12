@@ -3,23 +3,19 @@
 //! This module includes utilities for inspecting and managing lockfiles across
 //! different package managers.
 
-pub mod cargo;
-mod error;
-
-use crate::package::PackageKind;
+use crate::package::{Error, PackageKind};
 use crate::repository::Repository;
 
-use self::cargo::CargoLockFile;
-pub use self::error::Error;
+use super::cargo::CargoLockfile;
 
 /// A lockfile in one of several supported formats.
 #[derive(Clone, Debug)]
-pub enum LockFile {
+pub enum Lockfile {
     /// A `Cargo.lock` lockfile for Rust.
-    Cargo(CargoLockFile),
+    Cargo(CargoLockfile),
 }
 
-impl LockFile {
+impl Lockfile {
     /// Gets the lockfile kind.
     pub fn kind(&self) -> PackageKind {
         match self {
@@ -53,7 +49,7 @@ impl LockFile {
     }
 
     /// Discovers project lockfiles.
-    pub(super) fn discover_lockfiles(
+    pub(crate) fn discover_lockfiles(
         repository: &Repository,
     ) -> Result<Vec<Self>, crate::project::Error> {
         let mut lockfiles = Vec::new();
@@ -61,7 +57,7 @@ impl LockFile {
         for kind in PackageKind::variants() {
             if let Some(lockfile_name) = kind.lockfile_name() {
                 if let Ok(bytes) = repository.get_file_contents(lockfile_name) {
-                    let lockfile = LockFile::from_bytes(*kind, &bytes)?;
+                    let lockfile = Lockfile::from_bytes(*kind, &bytes)?;
 
                     lockfiles.push(lockfile);
                 }
@@ -74,7 +70,7 @@ impl LockFile {
     /// Creates a lockfile from the given bytes.
     fn from_bytes(kind: PackageKind, bytes: &[u8]) -> Result<Self, Error> {
         match kind {
-            PackageKind::Cargo => Ok(Self::Cargo(CargoLockFile::from_bytes(bytes)?)),
+            PackageKind::Cargo => Ok(Self::Cargo(CargoLockfile::from_bytes(bytes)?)),
         }
     }
 }
