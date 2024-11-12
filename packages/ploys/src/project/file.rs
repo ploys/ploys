@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 
-use crate::lockfile::LockFile;
-use crate::package::{Package, PackageKind};
+use crate::package::{LockFile, Package, PackageKind};
 
 /// A collection of files.
 #[derive(Clone, Debug, Default)]

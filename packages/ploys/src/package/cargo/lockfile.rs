@@ -35,7 +35,7 @@ impl CargoLockFile {
     }
 
     /// Creates a manifest from the given bytes.
-    pub(super) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(Self {
             manifest: std::str::from_utf8(bytes)?.parse()?,
             changed: false,

@@ -3,12 +3,10 @@
 //! This module includes utilities for inspecting and managing lockfiles across
 //! different package managers.
 
-pub mod cargo;
-
 use crate::package::{Error, PackageKind};
 use crate::repository::Repository;
 
-use self::cargo::CargoLockFile;
+use super::cargo::CargoLockFile;
 
 /// A lockfile in one of several supported formats.
 #[derive(Clone, Debug)]
@@ -51,7 +49,7 @@ impl LockFile {
     }
 
     /// Discovers project lockfiles.
-    pub(super) fn discover_lockfiles(
+    pub(crate) fn discover_lockfiles(
         repository: &Repository,
     ) -> Result<Vec<Self>, crate::project::Error> {
         let mut lockfiles = Vec::new();

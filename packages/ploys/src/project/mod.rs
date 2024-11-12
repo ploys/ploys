@@ -42,8 +42,7 @@ use std::path::{Path, PathBuf};
 use semver::Version;
 use url::Url;
 
-use crate::lockfile::LockFile;
-use crate::package::{Bump, Package};
+use crate::package::{Bump, LockFile, Package};
 use crate::repository::Repository;
 
 pub use self::error::Error;
