@@ -4,13 +4,11 @@
 //! different package managers.
 
 pub mod cargo;
-mod error;
 
-use crate::package::PackageKind;
+use crate::package::{Error, PackageKind};
 use crate::repository::Repository;
 
 use self::cargo::CargoLockFile;
-pub use self::error::Error;
 
 /// A lockfile in one of several supported formats.
 #[derive(Clone, Debug)]

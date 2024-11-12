@@ -1,10 +1,8 @@
 //! The `Cargo.lock` lockfile for Rust.
 
-mod error;
-
 use toml_edit::{ArrayOfTables, DocumentMut, Item, TableLike, Value};
 
-pub use self::error::Error;
+use crate::package::cargo::Error;
 
 /// A `Cargo.lock` lockfile for Rust.
 #[derive(Clone, Debug)]
