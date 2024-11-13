@@ -35,18 +35,17 @@
 //! ```
 
 mod error;
-mod file;
 
 use std::path::{Path, PathBuf};
 
 use semver::Version;
 use url::Url;
 
+use crate::file::Fileset;
 use crate::package::{Bump, Lockfile, Package};
 use crate::repository::Repository;
 
 pub use self::error::Error;
-pub use self::file::{File, Fileset};
 
 /// A project from one of several supported repositories.
 pub struct Project {
