@@ -72,16 +72,16 @@ impl Info {
 
         let max_name_len = project
             .packages()
-            .map(|pkg| pkg.name().len())
+            .map(|(_, pkg)| pkg.name().len())
             .max()
             .unwrap_or_default();
         let max_version_len = project
             .packages()
-            .map(|pkg| pkg.version().len())
+            .map(|(_, pkg)| pkg.version().len())
             .max()
             .unwrap_or_default();
 
-        for package in project.packages() {
+        for (_, package) in project.packages() {
             println!(
                 "{:<max_name_len$}  {:>max_version_len$}  {}",
                 package.name(),

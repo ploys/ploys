@@ -91,7 +91,7 @@ pub async fn create_release_pull_request(
     let revision = Revision::branch(format!("release/{release}"));
     let mut project =
         Project::github_with_revision_and_authentication_token(repository_name, revision, &token)?;
-    let package = project.packages().find(|package| {
+    let package = project.packages().find(|(_, package)| {
         release.starts_with(package.name())
             && release.as_bytes().get(package.name().len()) == Some(&b'-')
             && release[package.name().len() + 1..]
@@ -100,21 +100,21 @@ pub async fn create_release_pull_request(
     });
 
     let (package, path, version) = match package {
-        Some(package) => (
+        Some((path, package)) => (
             package.name().to_owned(),
-            package.path(),
+            path,
             release[package.name().len() + 1..]
                 .parse::<Version>()
                 .map_err(|_| Error::Payload)?,
         ),
         None => {
             let version = release.parse::<Version>().map_err(|_| Error::Payload)?;
-            let package = project
+            let (path, package) = project
                 .packages()
-                .find(|package| package.name() == project.name())
+                .find(|(_, package)| package.name() == project.name())
                 .ok_or_else(|| ploys::project::Error::PackageNotFound(project.name().to_owned()))?;
 
-            (package.name().to_owned(), package.path(), version)
+            (package.name().to_owned(), path, version)
         }
     };
 
@@ -186,7 +186,7 @@ async fn create_release(
     let revision = Revision::sha(sha);
     let project =
         Project::github_with_revision_and_authentication_token(repository_name, revision, &token)?;
-    let package = project.packages().find(|package| {
+    let package = project.packages().find(|(_, package)| {
         release.starts_with(package.name())
             && release.as_bytes().get(package.name().len()) == Some(&b'-')
             && release[package.name().len() + 1..]
@@ -195,21 +195,21 @@ async fn create_release(
     });
 
     let (package, path, version) = match package {
-        Some(package) => (
+        Some((path, package)) => (
             package.name().to_owned(),
-            package.path(),
+            path,
             release[package.name().len() + 1..]
                 .parse::<Version>()
                 .map_err(|_| Error::Payload)?,
         ),
         None => {
             let version = release.parse::<Version>().map_err(|_| Error::Payload)?;
-            let package = project
+            let (path, package) = project
                 .packages()
-                .find(|package| package.name() == project.name())
+                .find(|(_, package)| package.name() == project.name())
                 .ok_or_else(|| ploys::project::Error::PackageNotFound(project.name().to_owned()))?;
 
-            (package.name().to_owned(), package.path(), version)
+            (package.name().to_owned(), path, version)
         }
     };
 
@@ -299,8 +299,9 @@ async fn initiate_release(
             project.bump_package_version(&package, bump)?;
             project
                 .packages()
-                .find(|pkg| pkg.name() == package)
+                .find(|(_, pkg)| pkg.name() == package)
                 .ok_or_else(|| ploys::project::Error::PackageNotFound(package.clone()))?
+                .1
                 .version()
                 .parse::<Version>()
                 .map_err(ploys::package::BumpError::Semver)
@@ -309,8 +310,9 @@ async fn initiate_release(
         BumpOrVersion::Version(version) => {
             let current_version = project
                 .packages()
-                .find(|pkg| pkg.name() == package)
+                .find(|(_, pkg)| pkg.name() == package)
                 .ok_or_else(|| ploys::project::Error::PackageNotFound(package.clone()))?
+                .1
                 .version()
                 .parse::<Version>()
                 .map_err(ploys::package::BumpError::Semver)

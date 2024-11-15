@@ -125,9 +125,9 @@ impl Manifest {
     }
 
     /// Converts this manifest into a package with the given path.
-    pub fn into_package(self, path: PathBuf) -> Option<Cargo> {
+    pub fn into_package(self) -> Option<Cargo> {
         match self.package().is_some() {
-            true => Some(Cargo::new(self, path)),
+            true => Some(Cargo::new(self)),
             false => None,
         }
     }

@@ -11,7 +11,7 @@ mod lockfile;
 mod manifest;
 mod members;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use semver::Version;
 
@@ -50,13 +50,6 @@ impl Package {
     pub fn version(&self) -> &str {
         match self {
             Self::Cargo(cargo) => cargo.version(),
-        }
-    }
-
-    /// Gets the package manifest file path.
-    pub fn path(&self) -> &Path {
-        match self {
-            Self::Cargo(cargo) => cargo.path(),
         }
     }
 
@@ -193,7 +186,7 @@ impl Package {
     /// Discovers project packages.
     pub(super) fn discover_packages(
         repository: &Repository,
-    ) -> Result<Vec<Package>, crate::project::Error> {
+    ) -> Result<Vec<(PathBuf, Package)>, crate::project::Error> {
         let files = repository.get_files()?;
         let mut packages = Vec::new();
 
