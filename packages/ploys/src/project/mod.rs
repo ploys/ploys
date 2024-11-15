@@ -65,9 +65,7 @@ impl Project {
 
         let repository = Repository::Git(Git::new(path)?);
         let name = repository.get_name()?;
-        let files = Fileset::new()
-            .with_files(Package::discover_packages(&repository)?)
-            .with_files(Lockfile::discover_lockfiles(&repository)?);
+        let files = repository.get_fileset()?;
 
         Ok(Self {
             repository,
@@ -86,9 +84,7 @@ impl Project {
 
         let repository = Repository::Git(Git::new(path)?.with_revision(revision));
         let name = repository.get_name()?;
-        let files = Fileset::new()
-            .with_files(Package::discover_packages(&repository)?)
-            .with_files(Lockfile::discover_lockfiles(&repository)?);
+        let files = repository.get_fileset()?;
 
         Ok(Self {
             repository,
@@ -109,9 +105,7 @@ impl Project {
 
         let repository = Repository::GitHub(GitHub::new(repository)?.validated()?);
         let name = repository.get_name()?;
-        let files = Fileset::new()
-            .with_files(Package::discover_packages(&repository)?)
-            .with_files(Lockfile::discover_lockfiles(&repository)?);
+        let files = repository.get_fileset()?;
 
         Ok(Self {
             repository,
@@ -134,9 +128,7 @@ impl Project {
                 .validated()?,
         );
         let name = repository.get_name()?;
-        let files = Fileset::new()
-            .with_files(Package::discover_packages(&repository)?)
-            .with_files(Lockfile::discover_lockfiles(&repository)?);
+        let files = repository.get_fileset()?;
 
         Ok(Self {
             repository,
@@ -159,9 +151,7 @@ impl Project {
                 .validated()?,
         );
         let name = repository.get_name()?;
-        let files = Fileset::new()
-            .with_files(Package::discover_packages(&repository)?)
-            .with_files(Lockfile::discover_lockfiles(&repository)?);
+        let files = repository.get_fileset()?;
 
         Ok(Self {
             repository,
@@ -191,9 +181,7 @@ impl Project {
                 .validated()?,
         );
         let name = repository.get_name()?;
-        let files = Fileset::new()
-            .with_files(Package::discover_packages(&repository)?)
-            .with_files(Lockfile::discover_lockfiles(&repository)?);
+        let files = repository.get_fileset()?;
 
         Ok(Self {
             repository,
