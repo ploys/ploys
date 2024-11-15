@@ -18,6 +18,9 @@ use std::path::{Path, PathBuf};
 
 use url::Url;
 
+use crate::file::Fileset;
+use crate::package::{Lockfile, Package};
+
 pub use self::error::Error;
 
 /// A source code repository.
@@ -70,5 +73,12 @@ impl Repository {
             #[cfg(feature = "github")]
             Self::GitHub(github) => Ok(github.get_file_contents(path)?),
         }
+    }
+
+    /// Gets the repository fileset.
+    pub(crate) fn get_fileset(&self) -> Result<Fileset, crate::project::Error> {
+        Ok(Fileset::new()
+            .with_files(Package::discover_packages(self)?)
+            .with_files(Lockfile::discover_lockfiles(self)?))
     }
 }
