@@ -25,7 +25,7 @@ pub use self::lockfile::Lockfile;
 use self::manifest::Manifest;
 
 /// A package in one of several supported formats.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Package {
     /// A `Cargo.toml` package for Rust.
     Cargo(Cargo),

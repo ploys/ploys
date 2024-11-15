@@ -153,3 +153,11 @@ impl Cargo {
         self.changed = changed;
     }
 }
+
+impl PartialEq for Cargo {
+    fn eq(&self, other: &Self) -> bool {
+        self.manifest == other.manifest && self.path == other.path
+    }
+}
+
+impl Eq for Cargo {}

@@ -7,7 +7,7 @@ use crate::package::{Lockfile, Package};
 pub use self::fileset::Fileset;
 
 /// A file in one of a number of formats.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum File {
     Package(Package),
     Lockfile(Lockfile),

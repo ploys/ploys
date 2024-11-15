@@ -133,6 +133,14 @@ impl Manifest {
     }
 }
 
+impl PartialEq for Manifest {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.to_string() == other.0.to_string()
+    }
+}
+
+impl Eq for Manifest {}
+
 /// The workspace table.
 pub struct Workspace<'a>(&'a dyn TableLike);
 
