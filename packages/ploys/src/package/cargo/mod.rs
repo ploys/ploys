@@ -5,8 +5,6 @@ mod error;
 mod lockfile;
 pub(super) mod manifest;
 
-use std::path::{Path, PathBuf};
-
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 pub use self::lockfile::CargoLockfile;
@@ -18,16 +16,14 @@ use super::{Bump, BumpError};
 #[derive(Clone, Debug)]
 pub struct Cargo {
     manifest: Manifest,
-    path: PathBuf,
     changed: bool,
 }
 
 impl Cargo {
     /// Creates a new cargo package.
-    fn new(manifest: Manifest, path: PathBuf) -> Self {
+    fn new(manifest: Manifest) -> Self {
         Self {
             manifest,
-            path,
             changed: false,
         }
     }
@@ -58,11 +54,6 @@ impl Cargo {
             .set_version(version);
         self.changed = true;
         self
-    }
-
-    /// Gets the package path.
-    pub fn path(&self) -> &Path {
-        &self.path
     }
 
     /// Bumps the package version.
@@ -156,7 +147,7 @@ impl Cargo {
 
 impl PartialEq for Cargo {
     fn eq(&self, other: &Self) -> bool {
-        self.manifest == other.manifest && self.path == other.path
+        self.manifest == other.manifest
     }
 }
 

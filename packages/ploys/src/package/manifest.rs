@@ -47,7 +47,7 @@ impl Manifest {
         self,
         files: &[PathBuf],
         repository: &Repository,
-    ) -> Result<Vec<Package>, crate::project::Error> {
+    ) -> Result<Vec<(PathBuf, Package)>, crate::project::Error> {
         let members = self.members()?;
         let file_name = self.file_name();
 
@@ -58,20 +58,20 @@ impl Manifest {
                 if members.includes(directory) {
                     let path = directory.join(file_name);
                     let bytes = repository.get_file_contents(&path)?;
-                    let package = Self::from_bytes(self.package_kind(), &bytes)?.into_package(path);
+                    let package = Self::from_bytes(self.package_kind(), &bytes)?.into_package();
 
                     if let Some(package) = package {
-                        packages.push(package);
+                        packages.push((path, package));
                     }
                 }
             }
         }
 
-        if let Some(package) = self.into_package(file_name.to_owned()) {
-            packages.push(package);
+        if let Some(package) = self.into_package() {
+            packages.push((file_name.to_owned(), package));
         }
 
-        packages.sort_by_key(|package| package.name().to_owned());
+        packages.sort_by_key(|(_, package)| package.name().to_owned());
 
         Ok(packages)
     }
@@ -84,9 +84,9 @@ impl Manifest {
     }
 
     /// Converts this manifest into a package with the given path.
-    pub fn into_package(self, path: PathBuf) -> Option<Package> {
+    pub fn into_package(self) -> Option<Package> {
         Some(match self {
-            Self::Cargo(manifest) => Package::Cargo(manifest.into_package(path)?),
+            Self::Cargo(manifest) => Package::Cargo(manifest.into_package()?),
         })
     }
 }

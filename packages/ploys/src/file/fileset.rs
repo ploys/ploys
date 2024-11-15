@@ -27,9 +27,10 @@ impl Fileset {
     }
 
     /// Builds the fileset with the given files.
-    pub fn with_files<I, T>(mut self, files: I) -> Self
+    pub fn with_files<I, P, T>(mut self, files: I) -> Self
     where
-        I: IntoIterator<Item = T>,
+        I: IntoIterator<Item = (P, T)>,
+        P: Into<PathBuf>,
         T: Into<File>,
     {
         self.extend(files);
@@ -37,10 +38,10 @@ impl Fileset {
     }
 
     /// Inserts the given file.
-    pub fn insert_file(&mut self, file: impl Into<File>) -> &mut Self {
+    pub fn insert_file(&mut self, path: impl Into<PathBuf>, file: impl Into<File>) -> &mut Self {
         let file = file.into();
 
-        self.files.insert(file.path().to_owned(), Some(file));
+        self.files.insert(path.into(), Some(file));
         self
     }
 
@@ -55,15 +56,18 @@ impl Fileset {
     }
 
     /// Gets a package with the given name.
-    pub fn get_package_by_name(&self, name: impl AsRef<str>) -> Option<&Package> {
+    pub fn get_package_by_name(&self, name: impl AsRef<str>) -> Option<(&Path, &Package)> {
         self.packages()
-            .find(|package| package.name() == name.as_ref())
+            .find(|(_, package)| package.name() == name.as_ref())
     }
 
     /// Gets a mutable package with the given name.
-    pub fn get_package_by_name_mut(&mut self, name: impl AsRef<str>) -> Option<&mut Package> {
+    pub fn get_package_by_name_mut(
+        &mut self,
+        name: impl AsRef<str>,
+    ) -> Option<(&Path, &mut Package)> {
         self.packages_mut()
-            .find(|package| package.name() == name.as_ref())
+            .find(|(_, package)| package.name() == name.as_ref())
     }
 
     /// Gets a lockfile with the given kind.
@@ -77,33 +81,41 @@ impl Fileset {
     }
 
     /// Gets an iterator over the files.
-    pub fn files(&self) -> impl Iterator<Item = &File> {
-        self.files.values().filter_map(Option::as_ref)
+    pub fn files(&self) -> impl Iterator<Item = (&Path, &File)> {
+        self.files
+            .iter()
+            .filter_map(|(path, file)| Some((path.as_path(), file.as_ref()?)))
     }
 
     /// Gets an iterator over the mutable files.
-    pub fn files_mut(&mut self) -> impl Iterator<Item = &mut File> {
-        self.files.values_mut().filter_map(Option::as_mut)
+    pub fn files_mut(&mut self) -> impl Iterator<Item = (&Path, &mut File)> {
+        self.files
+            .iter_mut()
+            .filter_map(|(path, file)| Some((path.as_path(), file.as_mut()?)))
     }
 
     /// Gets an iterator over the packages.
-    pub fn packages(&self) -> impl Iterator<Item = &Package> {
-        self.files().filter_map(File::as_package)
+    pub fn packages(&self) -> impl Iterator<Item = (&Path, &Package)> {
+        self.files()
+            .filter_map(|(path, file)| Some((path, file.as_package()?)))
     }
 
     /// Gets an iterator over the mutable packages.
-    pub fn packages_mut(&mut self) -> impl Iterator<Item = &mut Package> {
-        self.files_mut().filter_map(File::as_package_mut)
+    pub fn packages_mut(&mut self) -> impl Iterator<Item = (&Path, &mut Package)> {
+        self.files_mut()
+            .filter_map(|(path, file)| Some((path, file.as_package_mut()?)))
     }
 
     /// Gets an iterator over the lockfiles.
-    pub fn lockfiles(&self) -> impl Iterator<Item = &Lockfile> {
-        self.files().filter_map(File::as_lockfile)
+    pub fn lockfiles(&self) -> impl Iterator<Item = (&Path, &Lockfile)> {
+        self.files()
+            .filter_map(|(path, file)| Some((path, file.as_lockfile()?)))
     }
 
     /// Gets an iterator over the mutable lockfiles.
-    pub fn lockfiles_mut(&mut self) -> impl Iterator<Item = &mut Lockfile> {
-        self.files_mut().filter_map(File::as_lockfile_mut)
+    pub fn lockfiles_mut(&mut self) -> impl Iterator<Item = (&Path, &mut Lockfile)> {
+        self.files_mut()
+            .filter_map(|(path, file)| Some((path, file.as_lockfile_mut()?)))
     }
 
     /// Gets the number of files in the fileset.
@@ -117,18 +129,18 @@ impl Fileset {
     }
 }
 
-impl<T> Extend<T> for Fileset
+impl<P, T> Extend<(P, T)> for Fileset
 where
+    P: Into<PathBuf>,
     T: Into<File>,
 {
     fn extend<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item = T>,
+        I: IntoIterator<Item = (P, T)>,
     {
         self.files.extend(
             iter.into_iter()
-                .map(Into::into)
-                .map(|file| (file.path().to_owned(), Some(file))),
+                .map(|(path, file)| (path.into(), Some(file.into()))),
         );
     }
 }
@@ -142,19 +154,19 @@ impl IntoIterator for Fileset {
     }
 }
 
-impl<T> FromIterator<T> for Fileset
+impl<P, T> FromIterator<(P, T)> for Fileset
 where
+    P: Into<PathBuf>,
     T: Into<File>,
 {
     fn from_iter<I>(iter: I) -> Self
     where
-        I: IntoIterator<Item = T>,
+        I: IntoIterator<Item = (P, T)>,
     {
         Self {
             files: iter
                 .into_iter()
-                .map(Into::into)
-                .map(|file| (file.path().to_owned(), Some(file)))
+                .map(|(path, file)| (path.into(), Some(file.into())))
                 .collect(),
         }
     }

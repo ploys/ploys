@@ -3,6 +3,8 @@
 //! This module includes utilities for inspecting and managing lockfiles across
 //! different package managers.
 
+use std::path::PathBuf;
+
 use crate::package::{Error, PackageKind};
 use crate::repository::Repository;
 
@@ -51,7 +53,7 @@ impl Lockfile {
     /// Discovers project lockfiles.
     pub(crate) fn discover_lockfiles(
         repository: &Repository,
-    ) -> Result<Vec<Self>, crate::project::Error> {
+    ) -> Result<Vec<(PathBuf, Self)>, crate::project::Error> {
         let mut lockfiles = Vec::new();
 
         for kind in PackageKind::variants() {
@@ -59,7 +61,7 @@ impl Lockfile {
                 if let Ok(bytes) = repository.get_file_contents(lockfile_name) {
                     let lockfile = Lockfile::from_bytes(*kind, &bytes)?;
 
-                    lockfiles.push(lockfile);
+                    lockfiles.push((lockfile_name.to_owned(), lockfile));
                 }
             }
         }

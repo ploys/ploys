@@ -1,7 +1,5 @@
 mod fileset;
 
-use std::path::Path;
-
 use crate::package::{Lockfile, Package};
 
 pub use self::fileset::Fileset;
@@ -14,14 +12,6 @@ pub enum File {
 }
 
 impl File {
-    /// Gets the file path.
-    pub fn path(&self) -> &Path {
-        match self {
-            Self::Package(package) => package.path(),
-            Self::Lockfile(lockfile) => lockfile.kind().lockfile_name().expect("path"),
-        }
-    }
-
     /// Gets the file as a package.
     pub fn as_package(&self) -> Option<&Package> {
         match self {

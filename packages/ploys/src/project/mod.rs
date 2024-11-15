@@ -218,13 +218,13 @@ impl Project {
     }
 
     /// Gets the project packages.
-    pub fn packages(&self) -> impl Iterator<Item = &Package> {
-        self.files.files().filter_map(|file| file.as_package())
+    pub fn packages(&self) -> impl Iterator<Item = (&Path, &Package)> {
+        self.files.packages()
     }
 
     // Gets the project lockfiles.
-    pub fn lockfiles(&self) -> impl Iterator<Item = &Lockfile> {
-        self.files.files().filter_map(|file| file.as_lockfile())
+    pub fn lockfiles(&self) -> impl Iterator<Item = (&Path, &Lockfile)> {
+        self.files.lockfiles()
     }
 
     /// Queries the project files.
@@ -252,7 +252,7 @@ impl Project {
         S: AsRef<str>,
     {
         match self.files.get_package_by_name_mut(package.as_ref()) {
-            Some(pkg) => {
+            Some((_, pkg)) => {
                 pkg.set_version(version.clone());
 
                 let pkg = pkg.clone();
@@ -261,7 +261,7 @@ impl Project {
                     lockfile.set_package_version(pkg.name(), pkg.version());
                 }
 
-                for pkg in self.files.packages_mut() {
+                for (_, pkg) in self.files.packages_mut() {
                     if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.to_string());
                         pkg.set_changed(true);
@@ -290,7 +290,7 @@ impl Project {
         S: AsRef<str>,
     {
         match self.files.get_package_by_name_mut(package.as_ref()) {
-            Some(pkg) => {
+            Some((_, pkg)) => {
                 pkg.bump(bump)?;
 
                 let pkg = pkg.clone();
@@ -301,7 +301,7 @@ impl Project {
 
                 let version = pkg.version().to_owned();
 
-                for pkg in self.files.packages_mut() {
+                for (_, pkg) in self.files.packages_mut() {
                     if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
                         dependency.set_version(version.clone());
                         pkg.set_changed(true);
@@ -328,8 +328,8 @@ impl Project {
     pub fn get_changed_files(&self) -> impl Iterator<Item = (PathBuf, String)> + '_ {
         self.files
             .files()
-            .filter(|file| file.is_changed())
-            .map(|file| (file.path().to_owned(), file.get_contents()))
+            .filter(|(_, file)| file.is_changed())
+            .map(|(path, file)| (path.to_owned(), file.get_contents()))
     }
 }
 
