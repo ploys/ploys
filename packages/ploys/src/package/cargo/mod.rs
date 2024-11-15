@@ -15,7 +15,7 @@ use self::manifest::Manifest;
 use super::{Bump, BumpError};
 
 /// A `Cargo.toml` package for Rust.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct Cargo {
     manifest: Manifest,
     path: PathBuf,
@@ -153,3 +153,11 @@ impl Cargo {
         self.changed = changed;
     }
 }
+
+impl PartialEq for Cargo {
+    fn eq(&self, other: &Self) -> bool {
+        self.manifest == other.manifest && self.path == other.path
+    }
+}
+
+impl Eq for Cargo {}
