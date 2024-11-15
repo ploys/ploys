@@ -15,7 +15,7 @@ use self::manifest::Manifest;
 use super::{Bump, BumpError};
 
 /// A `Cargo.toml` package for Rust.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cargo {
     manifest: Manifest,
     path: PathBuf,

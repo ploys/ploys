@@ -51,6 +51,14 @@ impl CargoLockfile {
     }
 }
 
+impl PartialEq for CargoLockfile {
+    fn eq(&self, other: &Self) -> bool {
+        self.manifest.to_string() == other.manifest.to_string()
+    }
+}
+
+impl Eq for CargoLockfile {}
+
 /// The mutable packages table.
 struct PackagesMut<'a>(Option<&'a mut ArrayOfTables>);
 

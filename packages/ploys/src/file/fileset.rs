@@ -8,7 +8,7 @@ use crate::package::{Lockfile, Package, PackageKind};
 use super::File;
 
 /// A collection of files.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Fileset {
     /// The internal file map.
     ///
