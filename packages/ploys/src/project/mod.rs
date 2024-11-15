@@ -326,19 +326,10 @@ impl Project {
 
     /// Gets the changed files.
     pub fn get_changed_files(&self) -> impl Iterator<Item = (PathBuf, String)> + '_ {
-        self.packages()
-            .filter(|package| package.is_changed())
-            .map(|package| (package.path().to_owned(), package.get_contents()))
-            .chain(
-                self.lockfiles()
-                    .filter(|lockfile| lockfile.is_changed())
-                    .filter_map(|lockfile| {
-                        lockfile
-                            .kind()
-                            .lockfile_name()
-                            .map(|name| (name.to_owned(), lockfile.get_contents()))
-                    }),
-            )
+        self.files
+            .files()
+            .filter(|file| file.is_changed())
+            .map(|file| (file.path().to_owned(), file.get_contents()))
     }
 }
 
