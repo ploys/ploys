@@ -53,6 +53,22 @@ impl File {
             _ => None,
         }
     }
+
+    /// Gets the contents of the file.
+    pub(crate) fn get_contents(&self) -> String {
+        match self {
+            Self::Package(package) => package.get_contents(),
+            Self::Lockfile(lockfile) => lockfile.get_contents(),
+        }
+    }
+
+    /// Checks if the file has been changed.
+    pub(crate) fn is_changed(&self) -> bool {
+        match self {
+            Self::Package(package) => package.is_changed(),
+            Self::Lockfile(lockfile) => lockfile.is_changed(),
+        }
+    }
 }
 
 impl From<Package> for File {
