@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::path::PathBuf;
 
 use globset::{Glob, GlobSetBuilder};
@@ -130,6 +131,12 @@ impl Manifest {
             true => Some(Cargo::new(self)),
             false => None,
         }
+    }
+}
+
+impl Display for Manifest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
     }
 }
 

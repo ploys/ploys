@@ -309,7 +309,7 @@ impl Project {
         self.files
             .files()
             .filter(|(_, file)| file.is_changed())
-            .map(|(path, file)| (path.to_owned(), file.get_contents()))
+            .map(|(path, file)| (path.to_owned(), file.to_string()))
     }
 }
 
