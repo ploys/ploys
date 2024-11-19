@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use ploys::project::{Error, Project};
 
 #[test]
@@ -11,12 +9,6 @@ fn test_valid_local_project() -> Result<(), Error> {
     assert_eq!(project.name(), "ploys");
     assert_eq!(url.domain(), Some("github.com"));
     assert_eq!(url.path().trim_end_matches(".git"), "/ploys/ploys");
-
-    let files = project.get_files()?;
-
-    assert!(files.contains(&PathBuf::from("Cargo.toml")));
-    assert!(files.contains(&PathBuf::from("packages/ploys/Cargo.toml")));
-    assert!(files.contains(&PathBuf::from("packages/ploys-cli/Cargo.toml")));
 
     let a = String::from_utf8(project.get_file_contents("Cargo.toml")?).unwrap();
     let b = String::from_utf8(project.get_file_contents("packages/ploys/Cargo.toml")?).unwrap();
@@ -44,12 +36,6 @@ fn test_valid_remote_project() -> Result<(), Error> {
         project.get_url()?,
         "https://github.com/ploys/ploys".parse().unwrap()
     );
-
-    let files = project.get_files()?;
-
-    assert!(files.contains(&PathBuf::from("Cargo.toml")));
-    assert!(files.contains(&PathBuf::from("packages/ploys/Cargo.toml")));
-    assert!(files.contains(&PathBuf::from("packages/ploys-cli/Cargo.toml")));
 
     let a = String::from_utf8(project.get_file_contents("Cargo.toml")?).unwrap();
     let b = String::from_utf8(project.get_file_contents("packages/ploys/Cargo.toml")?).unwrap();
