@@ -215,14 +215,6 @@ impl Project {
         self.files.lockfiles()
     }
 
-    /// Queries the project files.
-    ///
-    /// This method may perform file system operations or network requests to
-    /// query the latest project information.
-    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
-        Ok(self.repository.get_files()?)
-    }
-
     /// Queries the contents of a project file.
     ///
     /// This method may perform file system operations or network requests to
