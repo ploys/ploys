@@ -7,11 +7,12 @@ mod bump;
 pub mod cargo;
 mod dependency;
 mod error;
+mod kind;
 mod lockfile;
 mod manifest;
 mod members;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use semver::Version;
 
@@ -21,6 +22,7 @@ pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 use self::cargo::Cargo;
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
+pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 use self::manifest::Manifest;
 
@@ -205,33 +207,5 @@ impl Package {
 impl From<Cargo> for Package {
     fn from(value: Cargo) -> Self {
         Self::Cargo(value)
-    }
-}
-
-/// The package kind.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum PackageKind {
-    /// The cargo package kind.
-    Cargo,
-}
-
-impl PackageKind {
-    /// Gets the package variants.
-    pub(super) fn variants() -> &'static [Self] {
-        &[Self::Cargo]
-    }
-
-    /// Gets the package file name.
-    pub fn file_name(&self) -> &'static Path {
-        match self {
-            Self::Cargo => Path::new("Cargo.toml"),
-        }
-    }
-
-    /// Gets the lockfile name.
-    pub(super) fn lockfile_name(&self) -> Option<&'static Path> {
-        match self {
-            Self::Cargo => Some(Path::new("Cargo.lock")),
-        }
     }
 }
