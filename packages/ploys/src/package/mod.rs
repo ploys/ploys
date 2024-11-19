@@ -12,6 +12,7 @@ mod lockfile;
 mod manifest;
 mod members;
 
+use std::fmt::{self, Display};
 use std::path::PathBuf;
 
 use semver::Version;
@@ -162,13 +163,6 @@ impl Package {
         }
     }
 
-    /// Gets the package contents.
-    pub fn get_contents(&self) -> String {
-        match self {
-            Self::Cargo(cargo) => cargo.get_contents(),
-        }
-    }
-
     /// Checks if the package has been changed.
     pub fn is_changed(&self) -> bool {
         match self {
@@ -201,6 +195,14 @@ impl Package {
         }
 
         Ok(packages)
+    }
+}
+
+impl Display for Package {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cargo(cargo) => Display::fmt(cargo, f),
+        }
     }
 }
 

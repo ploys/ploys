@@ -5,6 +5,8 @@ mod error;
 mod lockfile;
 pub(super) mod manifest;
 
+use std::fmt::{self, Display};
+
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 pub use self::lockfile::CargoLockfile;
@@ -129,11 +131,6 @@ impl Cargo {
         self.manifest.build_dependencies_mut()
     }
 
-    /// Gets the package contents.
-    pub fn get_contents(&self) -> String {
-        self.manifest.0.to_string()
-    }
-
     /// Checks if the package has been changed.
     pub fn is_changed(&self) -> bool {
         self.changed
@@ -142,6 +139,12 @@ impl Cargo {
     /// Sets the package as changed.
     pub(crate) fn set_changed(&mut self, changed: bool) {
         self.changed = changed;
+    }
+}
+
+impl Display for Cargo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.manifest, f)
     }
 }
 

@@ -3,6 +3,7 @@
 //! This module includes utilities for inspecting and managing lockfiles across
 //! different package managers.
 
+use std::fmt::{self, Display};
 use std::path::PathBuf;
 
 use crate::package::{Error, PackageKind};
@@ -36,13 +37,6 @@ impl Lockfile {
         }
     }
 
-    /// Gets the contents of the lockfile.
-    pub fn get_contents(&self) -> String {
-        match self {
-            Self::Cargo(cargo) => cargo.get_contents(),
-        }
-    }
-
     /// Checks if the lockfile has been changed.
     pub fn is_changed(&self) -> bool {
         match self {
@@ -73,6 +67,14 @@ impl Lockfile {
     fn from_bytes(kind: PackageKind, bytes: &[u8]) -> Result<Self, Error> {
         match kind {
             PackageKind::Cargo => Ok(Self::Cargo(CargoLockfile::from_bytes(bytes)?)),
+        }
+    }
+}
+
+impl Display for Lockfile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cargo(cargo) => Display::fmt(cargo, f),
         }
     }
 }

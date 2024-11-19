@@ -1,5 +1,7 @@
 //! The `Cargo.lock` lockfile for Rust.
 
+use std::fmt::{self, Display};
+
 use toml_edit::{ArrayOfTables, DocumentMut, Item, TableLike, Value};
 
 use crate::package::cargo::Error;
@@ -24,11 +26,6 @@ impl CargoLockfile {
         }
     }
 
-    /// Gets the contents of the lockfile.
-    pub fn get_contents(&self) -> String {
-        self.manifest.to_string()
-    }
-
     /// Checks if the lockfile has been changed.
     pub fn is_changed(&self) -> bool {
         self.changed
@@ -48,6 +45,12 @@ impl CargoLockfile {
                 .get_mut("package")
                 .and_then(Item::as_array_of_tables_mut),
         )
+    }
+}
+
+impl Display for CargoLockfile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.manifest, f)
     }
 }
 
