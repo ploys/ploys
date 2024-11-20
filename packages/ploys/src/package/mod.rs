@@ -41,7 +41,7 @@ impl<'a> PackageRef<'a> {
     }
 
     /// Gets the package description.
-    pub fn description(&self) -> Option<&str> {
+    pub fn description(&self) -> Option<&'a str> {
         self.package.description()
     }
 
