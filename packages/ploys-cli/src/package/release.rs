@@ -41,7 +41,7 @@ impl Release {
             self.token,
         )?;
 
-        project.initiate_package_release(self.package, self.version)?;
+        project.request_package_release(self.package, self.version)?;
 
         Ok(())
     }
