@@ -352,12 +352,12 @@ impl Project {
         Err(Error::Unsupported)
     }
 
-    /// Initiates the release of the specified package version.
+    /// Requests the release of the specified package version.
     ///
     /// It does not yet support parallel release or hotfix branches and expects
     /// all development to be on the default branch in the repository settings.
     #[allow(unused_variables)]
-    pub fn initiate_package_release(
+    pub fn request_package_release(
         &self,
         package: impl AsRef<str>,
         version: impl Into<crate::package::BumpOrVersion>,
@@ -365,7 +365,7 @@ impl Project {
         #[cfg(feature = "github")]
         #[allow(irrefutable_let_patterns)]
         if let Repository::GitHub(github) = &self.repository {
-            github.initiate_package_release(package.as_ref(), version.into())?;
+            github.request_package_release(package.as_ref(), version.into())?;
 
             return Ok(());
         }

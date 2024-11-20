@@ -239,8 +239,8 @@ impl GitHub {
         Ok(commit_sha)
     }
 
-    /// Initiates the release of the specified package version.
-    pub(crate) fn initiate_package_release(
+    /// Requests the release of the specified package version.
+    pub(crate) fn request_package_release(
         &self,
         package: &str,
         version: BumpOrVersion,
@@ -255,7 +255,7 @@ impl GitHub {
             .post("dispatches", self.token.as_deref())
             .set("X-GitHub-Api-Version", "2022-11-28")
             .send_json(RepositoryDispatchEvent {
-                event_type: String::from("ploys-package-release-initiate"),
+                event_type: String::from("ploys-package-release-request"),
                 client_payload: ClientPayload {
                     package: package.to_owned(),
                     version: version.to_string(),

@@ -62,8 +62,8 @@ pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Err
             _ => Ok(()),
         },
         Payload::RepositoryDispatch(payload) => match &*payload.action {
-            "ploys-package-release-initiate" => {
-                initiate_release(payload, &state).await?;
+            "ploys-package-release-request" => {
+                request_release(payload, &state).await?;
 
                 Ok(())
             }
@@ -274,11 +274,11 @@ async fn create_release(
     Ok(())
 }
 
-/// Initiates the release process.
+/// Requests the package release.
 ///
 /// This does not yet support parallel release branches so simply ensures that
 /// all new versions are greater than the previous.
-async fn initiate_release(
+async fn request_release(
     payload: RepositoryDispatchPayload,
     state: &AppState,
 ) -> Result<(), Error> {
