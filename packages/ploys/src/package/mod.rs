@@ -13,7 +13,8 @@ mod manifest;
 mod members;
 
 use std::fmt::{self, Display};
-use std::path::PathBuf;
+use std::ops::Deref;
+use std::path::{Path, PathBuf};
 
 use semver::Version;
 
@@ -26,6 +27,42 @@ pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 use self::manifest::Manifest;
+
+/// An immutable package reference.
+pub struct PackageRef<'a> {
+    pub(crate) package: &'a Package,
+    pub(crate) path: &'a Path,
+}
+
+impl<'a> PackageRef<'a> {
+    /// Gets the package name.
+    pub fn name(&self) -> &'a str {
+        self.package.name()
+    }
+
+    /// Gets the package description.
+    pub fn description(&self) -> Option<&str> {
+        self.package.description()
+    }
+
+    /// Gets the package version.
+    pub fn version(&self) -> Version {
+        self.package.version().parse().expect("version")
+    }
+
+    /// Gets the package path.
+    pub fn path(&self) -> &'a Path {
+        self.path
+    }
+}
+
+impl<'a> Deref for PackageRef<'a> {
+    type Target = Package;
+
+    fn deref(&self) -> &Self::Target {
+        self.package
+    }
+}
 
 /// A package in one of several supported formats.
 #[derive(Clone, Debug, PartialEq, Eq)]
