@@ -21,7 +21,6 @@ use super::secret::WebhookSecret;
 
 /// The GitHub event payload.
 pub enum Payload {
-    Create(CreatePayload),
     PullRequest(PullRequestPayload),
     RepositoryDispatch(RepositoryDispatchPayload),
     Other(String, Value),
@@ -64,22 +63,11 @@ where
         let event = event.0.into_inner();
 
         Ok(match event.as_str() {
-            "create" => Self::Create(serde_json::from_slice(&bytes)?),
             "pull_request" => Self::PullRequest(serde_json::from_slice(&bytes)?),
             "repository_dispatch" => Self::RepositoryDispatch(serde_json::from_slice(&bytes)?),
             _ => Self::Other(event, serde_json::from_slice(&bytes)?),
         })
     }
-}
-
-/// The `create` webhook payload.
-#[derive(Debug, Deserialize)]
-pub struct CreatePayload {
-    pub r#ref: String,
-    pub ref_type: RefType,
-    pub master_branch: String,
-    pub repository: Repository,
-    pub installation: Installation,
 }
 
 /// The `pull_request` webhook payload.

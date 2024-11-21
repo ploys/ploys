@@ -18,29 +18,11 @@ use crate::state::AppState;
 
 use self::auth::get_installation_access_token;
 use self::error::Error;
-use self::payload::{Payload, RefType, RepositoryDispatchPayload};
+use self::payload::{Payload, RepositoryDispatchPayload};
 
 /// Receives the GitHub webhook event payload.
 pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Error> {
     match payload {
-        Payload::Create(payload) => match payload.ref_type {
-            RefType::Branch => {
-                if payload.r#ref.starts_with("release/") {
-                    create_release_pull_request(
-                        &payload.r#ref[8..],
-                        &payload.master_branch,
-                        payload.installation.id,
-                        payload.repository.id,
-                        &payload.repository.full_name,
-                        &state,
-                    )
-                    .await?;
-                }
-
-                Ok(())
-            }
-            RefType::Tag => Ok(()),
-        },
         Payload::PullRequest(payload) => match &*payload.action {
             "closed" if payload.pull_request.merged => {
                 if payload.pull_request.head.r#ref.starts_with("release/") {
@@ -359,6 +341,27 @@ async fn request_release(
         })
         .send()
         .await?;
+
+    let release = match package == project.name() {
+        true => format!("{version}"),
+        false => format!("{package}-{version}"),
+    };
+
+    let state = state.clone();
+
+    // Avoid timeout.
+    tokio::task::spawn(async move {
+        create_release_pull_request(
+            &release,
+            &payload.branch,
+            payload.installation.id,
+            payload.repository.id,
+            &payload.repository.full_name,
+            &state,
+        )
+        .await
+        .ok();
+    });
 
     Ok(())
 }
