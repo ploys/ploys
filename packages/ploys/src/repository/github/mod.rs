@@ -21,6 +21,7 @@ pub use self::error::Error;
 pub use self::repo::Repository;
 
 use super::revision::{Reference, Revision};
+use super::Remote;
 
 /// The remote GitHub repository.
 #[derive(Clone, Debug)]
@@ -45,16 +46,6 @@ impl GitHub {
 }
 
 impl GitHub {
-    /// Gets the revision.
-    pub fn revision(&self) -> &Revision {
-        &self.revision
-    }
-
-    /// Sets the revision.
-    pub fn set_revision(&mut self, revision: impl Into<Revision>) {
-        self.revision = revision.into();
-    }
-
     /// Builds the repository with the given revision.
     pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
         self.revision = revision.into();
@@ -122,164 +113,6 @@ impl GitHub {
             }
         }
     }
-
-    /// Commits the changes to the repository.
-    pub(crate) fn commit(
-        &self,
-        message: impl AsRef<str>,
-        files: impl Iterator<Item = (PathBuf, String)>,
-    ) -> Result<String, Error> {
-        #[derive(Serialize)]
-        struct CreateBlob {
-            content: String,
-            encoding: String,
-        }
-
-        #[derive(Deserialize)]
-        struct NewBlob {
-            sha: String,
-        }
-
-        #[derive(Serialize)]
-        struct CreateTree {
-            tree: Vec<TreeObject>,
-            base_tree: String,
-        }
-
-        #[derive(Serialize)]
-        struct TreeObject {
-            path: String,
-            mode: String,
-            r#type: String,
-            sha: String,
-        }
-
-        #[derive(Deserialize)]
-        struct NewTree {
-            sha: String,
-        }
-
-        #[derive(Serialize)]
-        struct CreateCommit {
-            message: String,
-            tree: String,
-            parents: Vec<String>,
-        }
-
-        #[derive(Deserialize)]
-        struct NewCommit {
-            sha: String,
-        }
-
-        #[derive(Serialize)]
-        struct UpdateRef {
-            sha: String,
-        }
-
-        let base_sha = self.sha()?;
-
-        let mut tree = CreateTree {
-            tree: Vec::new(),
-            base_tree: base_sha.clone(),
-        };
-
-        for (path, content) in files {
-            let sha = self
-                .repository
-                .post("git/blobs", self.token.as_deref())
-                .set("Accept", "application/vnd.github+json")
-                .set("X-GitHub-Api-Version", "2022-11-28")
-                .send_json(CreateBlob {
-                    content,
-                    encoding: String::from("utf-8"),
-                })?
-                .into_json::<NewBlob>()?
-                .sha;
-
-            tree.tree.push(TreeObject {
-                path: path.to_string_lossy().into(),
-                mode: String::from("100644"),
-                r#type: String::from("blob"),
-                sha,
-            });
-        }
-
-        let tree_sha = self
-            .repository
-            .post("git/trees", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(tree)?
-            .into_json::<NewTree>()?
-            .sha;
-
-        let commit_sha = self
-            .repository
-            .post("git/commits", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(CreateCommit {
-                message: message.as_ref().to_owned(),
-                tree: tree_sha,
-                parents: vec![base_sha],
-            })?
-            .into_json::<NewCommit>()?
-            .sha;
-
-        if let Revision::Reference(Reference::Branch(branch)) = &self.revision {
-            self.repository
-                .patch(format!("git/refs/heads/{branch}"), self.token.as_deref())
-                .set("Accept", "application/vnd.github+json")
-                .set("X-GitHub-Api-Version", "2022-11-28")
-                .send_json(UpdateRef {
-                    sha: commit_sha.clone(),
-                })?;
-        }
-
-        Ok(commit_sha)
-    }
-
-    /// Requests the release of the specified package version.
-    pub(crate) fn request_package_release(
-        &self,
-        package: &str,
-        version: BumpOrVersion,
-    ) -> Result<(), Error> {
-        #[derive(Serialize)]
-        struct ClientPayload {
-            package: String,
-            version: String,
-        }
-
-        self.repository
-            .post("dispatches", self.token.as_deref())
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(RepositoryDispatchEvent {
-                event_type: String::from("ploys-package-release-request"),
-                client_payload: ClientPayload {
-                    package: package.to_owned(),
-                    version: version.to_string(),
-                },
-            })?;
-
-        Ok(())
-    }
-
-    /// Gets the changelog release for the given package version.
-    pub(crate) fn get_changelog_release(
-        &self,
-        package: &str,
-        version: Version,
-        is_primary: bool,
-    ) -> Result<Release, Error> {
-        self::changelog::get_release(
-            &self.repository,
-            package,
-            &version,
-            is_primary,
-            self.token.as_deref(),
-        )
-    }
 }
 
 impl GitHub {
@@ -343,6 +176,175 @@ impl GitHub {
             }
             _ => Err(io::Error::from(io::ErrorKind::NotFound))?,
         }
+    }
+}
+
+impl Remote for GitHub {
+    fn revision(&self) -> &Revision {
+        &self.revision
+    }
+
+    fn set_revision(&mut self, revision: Revision) {
+        self.revision = revision;
+    }
+
+    fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, super::Error> {
+        #[derive(Serialize)]
+        struct CreateBlob {
+            content: String,
+            encoding: String,
+        }
+
+        #[derive(Deserialize)]
+        struct NewBlob {
+            sha: String,
+        }
+
+        #[derive(Serialize)]
+        struct CreateTree {
+            tree: Vec<TreeObject>,
+            base_tree: String,
+        }
+
+        #[derive(Serialize)]
+        struct TreeObject {
+            path: String,
+            mode: String,
+            r#type: String,
+            sha: String,
+        }
+
+        #[derive(Deserialize)]
+        struct NewTree {
+            sha: String,
+        }
+
+        #[derive(Serialize)]
+        struct CreateCommit {
+            message: String,
+            tree: String,
+            parents: Vec<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct NewCommit {
+            sha: String,
+        }
+
+        #[derive(Serialize)]
+        struct UpdateRef {
+            sha: String,
+        }
+
+        let base_sha = self.sha()?;
+
+        let mut tree = CreateTree {
+            tree: Vec::new(),
+            base_tree: base_sha.clone(),
+        };
+
+        for (path, content) in files {
+            let sha = self
+                .repository
+                .post("git/blobs", self.token.as_deref())
+                .set("Accept", "application/vnd.github+json")
+                .set("X-GitHub-Api-Version", "2022-11-28")
+                .send_json(CreateBlob {
+                    content,
+                    encoding: String::from("utf-8"),
+                })
+                .map_err(Error::from)?
+                .into_json::<NewBlob>()
+                .map_err(Error::from)?
+                .sha;
+
+            tree.tree.push(TreeObject {
+                path: path.to_string_lossy().into(),
+                mode: String::from("100644"),
+                r#type: String::from("blob"),
+                sha,
+            });
+        }
+
+        let tree_sha = self
+            .repository
+            .post("git/trees", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(tree)
+            .map_err(Error::from)?
+            .into_json::<NewTree>()
+            .map_err(Error::from)?
+            .sha;
+
+        let commit_sha = self
+            .repository
+            .post("git/commits", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(CreateCommit {
+                message: message.to_owned(),
+                tree: tree_sha,
+                parents: vec![base_sha],
+            })
+            .map_err(Error::from)?
+            .into_json::<NewCommit>()
+            .map_err(Error::from)?
+            .sha;
+
+        if let Revision::Reference(Reference::Branch(branch)) = &self.revision {
+            self.repository
+                .patch(format!("git/refs/heads/{branch}"), self.token.as_deref())
+                .set("Accept", "application/vnd.github+json")
+                .set("X-GitHub-Api-Version", "2022-11-28")
+                .send_json(UpdateRef {
+                    sha: commit_sha.clone(),
+                })
+                .map_err(Error::from)?;
+        }
+
+        Ok(commit_sha)
+    }
+
+    fn request_package_release(
+        &self,
+        package: &str,
+        version: BumpOrVersion,
+    ) -> Result<(), super::Error> {
+        #[derive(Serialize)]
+        struct ClientPayload {
+            package: String,
+            version: String,
+        }
+
+        self.repository
+            .post("dispatches", self.token.as_deref())
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(RepositoryDispatchEvent {
+                event_type: String::from("ploys-package-release-request"),
+                client_payload: ClientPayload {
+                    package: package.to_owned(),
+                    version: version.to_string(),
+                },
+            })
+            .map_err(Error::from)?;
+
+        Ok(())
+    }
+
+    fn get_changelog_release(
+        &self,
+        package: &str,
+        version: Version,
+        is_primary: bool,
+    ) -> Result<Release, super::Error> {
+        Ok(self::changelog::get_release(
+            &self.repository,
+            package,
+            &version,
+            is_primary,
+            self.token.as_deref(),
+        )?)
     }
 }
 

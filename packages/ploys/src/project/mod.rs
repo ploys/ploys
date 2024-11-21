@@ -43,7 +43,8 @@ use url::Url;
 
 use crate::file::Fileset;
 use crate::package::{Bump, Lockfile, PackageRef};
-use crate::repository::Repository;
+use crate::repository::revision::{Reference, Revision};
+use crate::repository::{Remote, Repository};
 
 pub use self::error::Error;
 
@@ -327,50 +328,36 @@ impl Project {
     ///
     /// This method takes a message and collection of files to include with the
     /// commit.
-    #[allow(unused_variables)]
     pub fn commit(
         &mut self,
         message: impl AsRef<str>,
-        files: impl IntoIterator<Item = (std::path::PathBuf, String)>,
+        files: impl IntoIterator<Item = (PathBuf, String)>,
     ) -> Result<String, Error> {
         let files = self.get_changed_files().chain(files).collect::<Vec<_>>();
+        let remote = self.get_remote_mut().ok_or(Error::Unsupported)?;
+        let sha = remote.commit(message.as_ref(), files)?;
 
-        #[cfg(feature = "github")]
-        #[allow(irrefutable_let_patterns)]
-        if let Repository::GitHub(github) = &mut self.repository {
-            use crate::repository::revision::{Reference, Revision};
-
-            let sha = github.commit(message, files.into_iter())?;
-
-            if !matches!(github.revision(), Revision::Reference(Reference::Branch(_))) {
-                github.set_revision(Revision::sha(sha.clone()));
-            }
-
-            return Ok(sha);
+        if !matches!(remote.revision(), Revision::Reference(Reference::Branch(_))) {
+            remote.set_revision(Revision::sha(sha.clone()));
         }
 
-        Err(Error::Unsupported)
+        Ok(sha)
     }
 
     /// Requests the release of the specified package version.
     ///
     /// It does not yet support parallel release or hotfix branches and expects
     /// all development to be on the default branch in the repository settings.
-    #[allow(unused_variables)]
     pub fn request_package_release(
         &self,
         package: impl AsRef<str>,
         version: impl Into<crate::package::BumpOrVersion>,
     ) -> Result<(), Error> {
-        #[cfg(feature = "github")]
-        #[allow(irrefutable_let_patterns)]
-        if let Repository::GitHub(github) = &self.repository {
-            github.request_package_release(package.as_ref(), version.into())?;
+        self.get_remote()
+            .ok_or(Error::Unsupported)?
+            .request_package_release(package.as_ref(), version.into())?;
 
-            return Ok(());
-        }
-
-        Err(Error::Unsupported)
+        Ok(())
     }
 
     /// Gets the changelog release for the given package version.
@@ -381,25 +368,47 @@ impl Project {
     ///
     /// It does not yet support parallel release or hotfix branches and expects
     /// all development to be on the default branch in the repository settings.
-    #[allow(unused_variables)]
     pub fn get_changelog_release(
         &self,
         package: impl AsRef<str>,
         version: impl AsRef<str>,
     ) -> Result<crate::changelog::Release, Error> {
-        #[cfg(feature = "github")]
-        #[allow(irrefutable_let_patterns)]
-        if let Repository::GitHub(github) = &self.repository {
-            return Ok(github.get_changelog_release(
+        let release = self
+            .get_remote()
+            .ok_or(Error::Unsupported)?
+            .get_changelog_release(
                 package.as_ref(),
                 version
                     .as_ref()
                     .parse::<Version>()
                     .map_err(super::package::BumpError::Semver)?,
                 package.as_ref() == self.name(),
-            )?);
+            )?;
+
+        Ok(release)
+    }
+}
+
+impl Project {
+    /// Gets the remote repository.
+    pub(crate) fn get_remote(&self) -> Option<&dyn Remote> {
+        #[cfg(feature = "github")]
+        #[allow(irrefutable_let_patterns)]
+        if let Repository::GitHub(github) = &self.repository {
+            return Some(github);
         }
 
-        Err(Error::Unsupported)
+        None
+    }
+
+    /// Gets the mutable remote repository.
+    pub(crate) fn get_remote_mut(&mut self) -> Option<&mut dyn Remote> {
+        #[cfg(feature = "github")]
+        #[allow(irrefutable_let_patterns)]
+        if let Repository::GitHub(github) = &mut self.repository {
+            return Some(github);
+        }
+
+        None
     }
 }
