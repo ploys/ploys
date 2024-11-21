@@ -4,6 +4,7 @@
 //! located on the local file system or in a remote version control system.
 
 mod error;
+mod remote;
 
 #[cfg(feature = "git")]
 pub mod git;
@@ -11,7 +12,6 @@ pub mod git;
 #[cfg(feature = "github")]
 pub mod github;
 
-#[cfg(any(feature = "git", feature = "github"))]
 pub mod revision;
 
 use std::path::{Path, PathBuf};
@@ -22,6 +22,7 @@ use crate::file::Fileset;
 use crate::package::{Lockfile, Package};
 
 pub use self::error::Error;
+pub(crate) use self::remote::Remote;
 
 /// A source code repository.
 pub enum Repository {
