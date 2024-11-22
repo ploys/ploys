@@ -331,6 +331,48 @@ impl Remote for GitHub {
         )?)
     }
 
+    fn get_default_branch(&self) -> Result<String, super::Error> {
+        #[derive(Deserialize)]
+        struct RepoResponse {
+            default_branch: String,
+        }
+
+        let default_branch = self
+            .repository
+            .get("", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .call()
+            .map_err(Error::from)?
+            .into_json::<RepoResponse>()
+            .map_err(Error::from)?
+            .default_branch;
+
+        Ok(default_branch)
+    }
+
+    fn create_branch(&self, name: &str) -> Result<(), super::Error> {
+        #[derive(Serialize)]
+        struct NewBranch {
+            r#ref: String,
+            sha: String,
+        }
+
+        let sha = self.sha()?;
+
+        self.repository
+            .post("git/refs", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(NewBranch {
+                r#ref: format!("refs/heads/{}", name.trim_start_matches('/')),
+                sha,
+            })
+            .map_err(Error::from)?;
+
+        Ok(())
+    }
+
     fn update_branch(&self, name: &str, sha: &str) -> Result<(), super::Error> {
         #[derive(Serialize)]
         struct UpdateRef {
@@ -347,6 +389,45 @@ impl Remote for GitHub {
             .map_err(Error::from)?;
 
         Ok(())
+    }
+
+    fn create_pull_request(
+        &self,
+        head: &str,
+        base: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<u64, super::Error> {
+        #[derive(Serialize)]
+        struct NewPullRequest {
+            title: String,
+            head: String,
+            base: String,
+            body: String,
+        }
+
+        #[derive(Deserialize)]
+        struct PullRequestResponse {
+            number: u64,
+        }
+
+        let number = self
+            .repository
+            .post("pulls", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(NewPullRequest {
+                title: title.to_owned(),
+                head: head.to_owned(),
+                base: base.to_owned(),
+                body: body.to_owned(),
+            })
+            .map_err(Error::from)?
+            .into_json::<PullRequestResponse>()
+            .map_err(Error::from)?
+            .number;
+
+        Ok(number)
     }
 }
 

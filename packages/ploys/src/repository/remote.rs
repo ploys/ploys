@@ -33,6 +33,21 @@ pub trait Remote {
         is_primary: bool,
     ) -> Result<Release, Error>;
 
+    /// Gets the default branch.
+    fn get_default_branch(&self) -> Result<String, Error>;
+
+    /// Creates a new branch.
+    fn create_branch(&self, name: &str) -> Result<(), Error>;
+
     /// Updates the branch to point to the given SHA.
     fn update_branch(&self, name: &str, sha: &str) -> Result<(), Error>;
+
+    /// Creates a pull request.
+    fn create_pull_request(
+        &self,
+        head: &str,
+        base: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<u64, Error>;
 }
