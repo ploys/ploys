@@ -20,7 +20,7 @@ use crate::package::BumpOrVersion;
 pub use self::error::Error;
 pub use self::repo::Repository;
 
-use super::revision::{Reference, Revision};
+use super::revision::Revision;
 use super::Remote;
 
 /// The remote GitHub repository.
@@ -231,11 +231,6 @@ impl Remote for GitHub {
             sha: String,
         }
 
-        #[derive(Serialize)]
-        struct UpdateRef {
-            sha: String,
-        }
-
         let base_sha = self.sha()?;
 
         let mut tree = CreateTree {
@@ -292,17 +287,6 @@ impl Remote for GitHub {
             .map_err(Error::from)?
             .sha;
 
-        if let Revision::Reference(Reference::Branch(branch)) = &self.revision {
-            self.repository
-                .patch(format!("git/refs/heads/{branch}"), self.token.as_deref())
-                .set("Accept", "application/vnd.github+json")
-                .set("X-GitHub-Api-Version", "2022-11-28")
-                .send_json(UpdateRef {
-                    sha: commit_sha.clone(),
-                })
-                .map_err(Error::from)?;
-        }
-
         Ok(commit_sha)
     }
 
@@ -345,6 +329,24 @@ impl Remote for GitHub {
             is_primary,
             self.token.as_deref(),
         )?)
+    }
+
+    fn update_branch(&self, name: &str, sha: &str) -> Result<(), super::Error> {
+        #[derive(Serialize)]
+        struct UpdateRef {
+            sha: String,
+        }
+
+        self.repository
+            .patch(format!("git/refs/heads/{name}"), self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(UpdateRef {
+                sha: sha.to_owned(),
+            })
+            .map_err(Error::from)?;
+
+        Ok(())
     }
 }
 

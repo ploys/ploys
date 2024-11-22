@@ -337,8 +337,13 @@ impl Project {
         let remote = self.get_remote_mut().ok_or(Error::Unsupported)?;
         let sha = remote.commit(message.as_ref(), files)?;
 
-        if !matches!(remote.revision(), Revision::Reference(Reference::Branch(_))) {
-            remote.set_revision(Revision::sha(sha.clone()));
+        match remote.revision() {
+            Revision::Reference(Reference::Branch(branch)) => {
+                remote.update_branch(branch, &sha)?;
+            }
+            _ => {
+                remote.set_revision(Revision::sha(sha.clone()));
+            }
         }
 
         Ok(sha)

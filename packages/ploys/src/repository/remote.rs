@@ -32,4 +32,7 @@ pub trait Remote {
         version: Version,
         is_primary: bool,
     ) -> Result<Release, Error>;
+
+    /// Updates the branch to point to the given SHA.
+    fn update_branch(&self, name: &str, sha: &str) -> Result<(), Error>;
 }
