@@ -135,11 +135,6 @@ impl Cargo {
     pub fn is_changed(&self) -> bool {
         self.changed
     }
-
-    /// Sets the package as changed.
-    pub(crate) fn set_changed(&mut self, changed: bool) {
-        self.changed = changed;
-    }
 }
 
 impl Display for Cargo {

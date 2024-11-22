@@ -42,7 +42,7 @@ use semver::Version;
 use url::Url;
 
 use crate::file::Fileset;
-use crate::package::{Bump, Lockfile, PackageRef};
+use crate::package::{Lockfile, PackageRef};
 use crate::repository::{Remote, Repository};
 
 pub use self::error::Error;
@@ -239,84 +239,6 @@ impl Project {
         P: AsRef<Path>,
     {
         Ok(self.repository.get_file_contents(path)?)
-    }
-
-    /// Sets the version of the target package.
-    pub fn set_package_version<S>(&mut self, package: S, version: Version) -> Result<(), Error>
-    where
-        S: AsRef<str>,
-    {
-        match self.files.get_package_by_name_mut(package.as_ref()) {
-            Some((_, pkg)) => {
-                pkg.set_version(version.clone());
-
-                let pkg = pkg.clone();
-
-                if let Some(lockfile) = self.files.get_lockfile_by_kind_mut(pkg.kind()) {
-                    lockfile.set_package_version(pkg.name(), pkg.version());
-                }
-
-                for (_, pkg) in self.files.packages_mut() {
-                    if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
-                        dependency.set_version(version.to_string());
-                        pkg.set_changed(true);
-                    }
-
-                    if let Some(mut dependency) = pkg.get_dev_dependency_mut(package.as_ref()) {
-                        dependency.set_version(version.to_string());
-                        pkg.set_changed(true);
-                    }
-
-                    if let Some(mut dependency) = pkg.get_build_dependency_mut(package.as_ref()) {
-                        dependency.set_version(version.to_string());
-                        pkg.set_changed(true);
-                    }
-                }
-
-                Ok(())
-            }
-            None => Err(Error::PackageNotFound(package.as_ref().to_owned())),
-        }
-    }
-
-    /// Bumps the version of the target package.
-    pub fn bump_package_version<S>(&mut self, package: S, bump: Bump) -> Result<(), Error>
-    where
-        S: AsRef<str>,
-    {
-        match self.files.get_package_by_name_mut(package.as_ref()) {
-            Some((_, pkg)) => {
-                pkg.bump(bump)?;
-
-                let pkg = pkg.clone();
-
-                if let Some(lockfile) = self.files.get_lockfile_by_kind_mut(pkg.kind()) {
-                    lockfile.set_package_version(pkg.name(), pkg.version());
-                }
-
-                let version = pkg.version().to_owned();
-
-                for (_, pkg) in self.files.packages_mut() {
-                    if let Some(mut dependency) = pkg.get_dependency_mut(package.as_ref()) {
-                        dependency.set_version(version.clone());
-                        pkg.set_changed(true);
-                    }
-
-                    if let Some(mut dependency) = pkg.get_dev_dependency_mut(package.as_ref()) {
-                        dependency.set_version(version.clone());
-                        pkg.set_changed(true);
-                    }
-
-                    if let Some(mut dependency) = pkg.get_build_dependency_mut(package.as_ref()) {
-                        dependency.set_version(version.clone());
-                        pkg.set_changed(true);
-                    }
-                }
-
-                Ok(())
-            }
-            None => Err(Error::PackageNotFound(package.as_ref().to_owned())),
-        }
     }
 
     /// Gets the changed files.
