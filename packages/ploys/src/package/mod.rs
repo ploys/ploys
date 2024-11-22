@@ -29,7 +29,7 @@ pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 use self::manifest::Manifest;
-pub use self::release::ReleaseRequestBuilder;
+pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
 
 /// An immutable package reference.
 #[derive(Clone, Copy)]
