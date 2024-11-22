@@ -11,6 +11,7 @@ mod kind;
 mod lockfile;
 mod manifest;
 mod members;
+mod release;
 
 use std::fmt::{self, Display};
 use std::ops::Deref;
@@ -18,6 +19,7 @@ use std::path::{Path, PathBuf};
 
 use semver::Version;
 
+use crate::project::Project;
 use crate::repository::Repository;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
@@ -27,11 +29,14 @@ pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 use self::manifest::Manifest;
+pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
 
 /// An immutable package reference.
+#[derive(Clone, Copy)]
 pub struct PackageRef<'a> {
     pub(crate) package: &'a Package,
     pub(crate) path: &'a Path,
+    pub(crate) project: &'a Project,
 }
 
 impl<'a> PackageRef<'a> {
@@ -53,6 +58,24 @@ impl<'a> PackageRef<'a> {
     /// Gets the package path.
     pub fn path(&self) -> &'a Path {
         self.path
+    }
+
+    /// Checks if this is the primary package.
+    ///
+    /// A primary package shares the same name as the project and all releases
+    /// are tagged under the version number without the package name prefix.
+    pub fn is_primary(&self) -> bool {
+        self.package.name() == self.project.name()
+    }
+}
+
+impl<'a> PackageRef<'a> {
+    /// Constructs a new release request builder.
+    pub fn create_release_request(
+        self,
+        version: impl Into<BumpOrVersion>,
+    ) -> ReleaseRequestBuilder<'a> {
+        ReleaseRequestBuilder::new(self, version.into())
     }
 }
 

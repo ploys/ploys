@@ -60,101 +60,6 @@ pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Err
     }
 }
 
-/// Creates a Pull Request for the given release.
-pub async fn create_release_pull_request(
-    release: &str,
-    target_branch: &str,
-    installation_id: u64,
-    repository_id: u64,
-    repository_name: &str,
-    state: &AppState,
-) -> Result<(), Error> {
-    let token = get_installation_access_token(installation_id, repository_id, state).await?;
-    let revision = Revision::branch(format!("release/{release}"));
-    let mut project =
-        Project::github_with_revision_and_authentication_token(repository_name, revision, &token)?;
-    let package = project.packages().find(|package| {
-        release.starts_with(package.name())
-            && release.as_bytes().get(package.name().len()) == Some(&b'-')
-            && release[package.name().len() + 1..]
-                .parse::<Version>()
-                .is_ok()
-    });
-
-    let (package, path, version) = match package {
-        Some(package) => (
-            package.name().to_owned(),
-            package.path(),
-            release[package.name().len() + 1..]
-                .parse::<Version>()
-                .map_err(|_| Error::Payload)?,
-        ),
-        None => {
-            let version = release.parse::<Version>().map_err(|_| Error::Payload)?;
-            let package = project
-                .packages()
-                .find(|package| package.name() == project.name())
-                .ok_or_else(|| ploys::project::Error::PackageNotFound(project.name().to_owned()))?;
-
-            (package.name().to_owned(), package.path(), version)
-        }
-    };
-
-    let client = Client::new();
-    let message = match package == project.name() {
-        true => format!("Release `{version}`"),
-        false => format!("Release `{package}@{version}`"),
-    };
-
-    let changelog_path = path.parent().expect("parent").join("CHANGELOG.md");
-
-    let mut files = Vec::new();
-    let mut changelog = match project.get_file_contents(&changelog_path).ok() {
-        Some(bytes) => String::from_utf8(bytes)?
-            .parse::<Changelog>()
-            .expect("changelog"),
-        None => Changelog::new(),
-    };
-
-    let mut changelog_release = project.get_changelog_release(&package, version.to_string())?;
-
-    changelog.add_release(changelog_release.clone());
-    files.push((changelog_path, changelog.to_string()));
-    project.set_package_version(&package, version.clone())?;
-    project.commit(&message, files)?;
-    changelog_release.set_description(format!(
-        "Releasing package `{package}` version `{version}`."
-    ));
-
-    if let Some(url) = changelog_release.url() {
-        changelog_release.add_reference(version.to_string(), url.to_string());
-    }
-
-    let issue_number = client
-        .post(format!(
-            "https://api.github.com/repos/{repository_name}/pulls"
-        ))
-        .header("Accept", "application/vnd.github+json")
-        .header("Authorization", format!("Bearer {token}"))
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("User-Agent", "ploys/ploys")
-        .json(&CreatePullRequest {
-            title: message,
-            head: format!("release/{release}"),
-            base: target_branch.to_owned(),
-            body: changelog_release.to_string(),
-        })
-        .send()
-        .await?
-        .json::<PullRequestResponse>()
-        .await?
-        .id;
-
-    println!("Created pull request {issue_number}.");
-
-    Ok(())
-}
-
 /// Creates a new release.
 async fn create_release(
     release: &str,
@@ -264,104 +169,40 @@ async fn request_release(
     payload: RepositoryDispatchPayload,
     state: &AppState,
 ) -> Result<(), Error> {
-    let ClientPayload { package, version } = serde_json::from_value(payload.client_payload)?;
-
     let token =
         get_installation_access_token(payload.installation.id, payload.repository.id, state)
             .await?;
 
-    let mut project = Project::github_with_revision_and_authentication_token(
+    tokio::task::spawn_blocking(move || {
+        if let Err(err) = create_release_request(token, payload) {
+            println!("Error creating release request: {err}");
+        }
+    });
+
+    Ok(())
+}
+
+/// Creates the release request.
+///
+/// The `Project` is currently using blocking requests so this should be spawned
+/// using `tokio::task::spawn_blocking`. This also avoids any timeout issues for
+/// completing the webhook event request.
+fn create_release_request(token: String, payload: RepositoryDispatchPayload) -> Result<(), Error> {
+    let ClientPayload { package, version } = serde_json::from_value(payload.client_payload)?;
+
+    let project = Project::github_with_revision_and_authentication_token(
         &payload.repository.full_name,
         Revision::branch(&payload.branch),
         &token,
     )?;
 
-    let version = match version {
-        BumpOrVersion::Bump(bump) => {
-            project.bump_package_version(&package, bump)?;
-            project
-                .packages()
-                .find(|pkg| pkg.name() == package)
-                .ok_or_else(|| ploys::project::Error::PackageNotFound(package.clone()))?
-                .version()
-        }
-        BumpOrVersion::Version(version) => {
-            let current_version = project
-                .packages()
-                .find(|pkg| pkg.name() == package)
-                .ok_or_else(|| ploys::project::Error::PackageNotFound(package.clone()))?
-                .version();
+    let release_request = project
+        .get_package(&package)
+        .ok_or_else(|| ploys::project::Error::PackageNotFound(package))?
+        .create_release_request(version)
+        .finish()?;
 
-            if version <= current_version {
-                return Err(
-                    ploys::project::Error::Bump(ploys::package::BumpError::Invalid(
-                        version.to_string(),
-                    ))
-                    .into(),
-                );
-            }
-
-            version
-        }
-    };
-
-    let client = Client::new();
-
-    let sha = client
-        .get(format!(
-            "https://api.github.com/repos/{}/git/ref/heads/{}",
-            payload.repository.full_name, payload.branch,
-        ))
-        .header("Accept", "application/vnd.github+json")
-        .header("Authorization", format!("Bearer {token}"))
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("User-Agent", "ploys/ploys")
-        .send()
-        .await?
-        .json::<RefResponse>()
-        .await?
-        .object
-        .sha;
-
-    client
-        .post(format!(
-            "https://api.github.com/repos/{}/git/refs",
-            payload.repository.full_name,
-        ))
-        .header("Accept", "application/vnd.github+json")
-        .header("Authorization", format!("Bearer {token}"))
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("User-Agent", "ploys/ploys")
-        .json(&NewBranch {
-            r#ref: match package == project.name() {
-                true => format!("refs/heads/release/{version}"),
-                false => format!("refs/heads/release/{package}-{version}"),
-            },
-            sha,
-        })
-        .send()
-        .await?;
-
-    let release = match package == project.name() {
-        true => format!("{version}"),
-        false => format!("{package}-{version}"),
-    };
-
-    let state = state.clone();
-
-    // Avoid timeout.
-    tokio::task::spawn(async move {
-        create_release_pull_request(
-            &release,
-            &payload.branch,
-            payload.installation.id,
-            payload.repository.id,
-            &payload.repository.full_name,
-            &state,
-        )
-        .await
-        .ok();
-    });
+    println!("Created release request {}.", release_request.id());
 
     Ok(())
 }
@@ -372,19 +213,6 @@ struct ClientPayload {
     package: String,
     #[serde_as(as = "DisplayFromStr")]
     version: BumpOrVersion,
-}
-
-#[derive(Serialize)]
-struct CreatePullRequest {
-    title: String,
-    head: String,
-    base: String,
-    body: String,
-}
-
-#[derive(Deserialize)]
-struct PullRequestResponse {
-    id: u64,
 }
 
 #[derive(Serialize)]
@@ -418,22 +246,6 @@ impl From<bool> for MakeLatest {
 #[derive(Deserialize)]
 struct ReleaseResponse {
     id: u64,
-}
-
-#[derive(Deserialize)]
-struct RefResponse {
-    object: Object,
-}
-
-#[derive(Deserialize)]
-struct Object {
-    sha: String,
-}
-
-#[derive(Serialize)]
-struct NewBranch {
-    r#ref: String,
-    sha: String,
 }
 
 #[cfg(test)]

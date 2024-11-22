@@ -210,14 +210,20 @@ impl Project {
     pub fn get_package(&self, name: impl AsRef<str>) -> Option<PackageRef<'_>> {
         self.files
             .get_package_by_name(name)
-            .map(|(path, package)| PackageRef { package, path })
+            .map(|(path, package)| PackageRef {
+                package,
+                path,
+                project: self,
+            })
     }
 
     /// Gets the project packages.
     pub fn packages(&self) -> impl Iterator<Item = PackageRef<'_>> {
-        self.files
-            .packages()
-            .map(|(path, package)| PackageRef { package, path })
+        self.files.packages().map(|(path, package)| PackageRef {
+            package,
+            path,
+            project: self,
+        })
     }
 
     // Gets the project lockfiles.
