@@ -37,13 +37,6 @@ impl Lockfile {
         }
     }
 
-    /// Checks if the lockfile has been changed.
-    pub fn is_changed(&self) -> bool {
-        match self {
-            Self::Cargo(cargo) => cargo.is_changed(),
-        }
-    }
-
     /// Discovers project lockfiles.
     pub(crate) fn discover_lockfiles(
         repository: &Repository,

@@ -45,14 +45,6 @@ impl File {
             _ => None,
         }
     }
-
-    /// Checks if the file has been changed.
-    pub(crate) fn is_changed(&self) -> bool {
-        match self {
-            Self::Package(package) => package.is_changed(),
-            Self::Lockfile(lockfile) => lockfile.is_changed(),
-        }
-    }
 }
 
 impl Display for File {

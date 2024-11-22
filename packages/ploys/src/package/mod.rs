@@ -222,13 +222,6 @@ impl Package {
             Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.build_dependencies_mut()),
         }
     }
-
-    /// Checks if the package has been changed.
-    pub fn is_changed(&self) -> bool {
-        match self {
-            Self::Cargo(cargo) => cargo.is_changed(),
-        }
-    }
 }
 
 impl Package {
