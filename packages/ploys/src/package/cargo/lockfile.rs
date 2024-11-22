@@ -10,7 +10,6 @@ use crate::package::cargo::Error;
 #[derive(Clone, Debug)]
 pub struct CargoLockfile {
     manifest: DocumentMut,
-    changed: bool,
 }
 
 impl CargoLockfile {
@@ -22,20 +21,13 @@ impl CargoLockfile {
     {
         if let Some(mut package) = self.packages_mut().get_mut(package.as_ref()) {
             package.set_version(version);
-            self.changed = true;
         }
-    }
-
-    /// Checks if the lockfile has been changed.
-    pub fn is_changed(&self) -> bool {
-        self.changed
     }
 
     /// Creates a manifest from the given bytes.
     pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(Self {
             manifest: std::str::from_utf8(bytes)?.parse()?,
-            changed: false,
         })
     }
 

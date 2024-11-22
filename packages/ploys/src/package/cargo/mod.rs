@@ -15,19 +15,15 @@ use self::manifest::Manifest;
 use super::{Bump, BumpError};
 
 /// A `Cargo.toml` package for Rust.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cargo {
     manifest: Manifest,
-    changed: bool,
 }
 
 impl Cargo {
     /// Creates a new cargo package.
     fn new(manifest: Manifest) -> Self {
-        Self {
-            manifest,
-            changed: false,
-        }
+        Self { manifest }
     }
 
     /// Gets the package name.
@@ -54,7 +50,6 @@ impl Cargo {
             .package_mut()
             .expect("package")
             .set_version(version);
-        self.changed = true;
         self
     }
 
@@ -130,11 +125,6 @@ impl Cargo {
     pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
         self.manifest.build_dependencies_mut()
     }
-
-    /// Checks if the package has been changed.
-    pub fn is_changed(&self) -> bool {
-        self.changed
-    }
 }
 
 impl Display for Cargo {
@@ -142,11 +132,3 @@ impl Display for Cargo {
         Display::fmt(&self.manifest, f)
     }
 }
-
-impl PartialEq for Cargo {
-    fn eq(&self, other: &Self) -> bool {
-        self.manifest == other.manifest
-    }
-}
-
-impl Eq for Cargo {}

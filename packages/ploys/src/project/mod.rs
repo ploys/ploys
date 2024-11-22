@@ -36,7 +36,7 @@
 
 mod error;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use semver::Version;
 use url::Url;
@@ -239,14 +239,6 @@ impl Project {
         P: AsRef<Path>,
     {
         Ok(self.repository.get_file_contents(path)?)
-    }
-
-    /// Gets the changed files.
-    pub fn get_changed_files(&self) -> impl Iterator<Item = (PathBuf, String)> + '_ {
-        self.files
-            .files()
-            .filter(|(_, file)| file.is_changed())
-            .map(|(path, file)| (path.to_owned(), file.to_string()))
     }
 }
 
