@@ -180,14 +180,6 @@ impl GitHub {
 }
 
 impl Remote for GitHub {
-    fn revision(&self) -> &Revision {
-        &self.revision
-    }
-
-    fn set_revision(&mut self, revision: Revision) {
-        self.revision = revision;
-    }
-
     fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, super::Error> {
         #[derive(Serialize)]
         struct CreateBlob {

@@ -43,7 +43,6 @@ use url::Url;
 
 use crate::file::Fileset;
 use crate::package::{Bump, Lockfile, PackageRef};
-use crate::repository::revision::{Reference, Revision};
 use crate::repository::{Remote, Repository};
 
 pub use self::error::Error;
@@ -330,31 +329,6 @@ impl Project {
 }
 
 impl Project {
-    /// Commits the changes to the repository.
-    ///
-    /// This method takes a message and collection of files to include with the
-    /// commit.
-    pub fn commit(
-        &mut self,
-        message: impl AsRef<str>,
-        files: impl IntoIterator<Item = (PathBuf, String)>,
-    ) -> Result<String, Error> {
-        let files = self.get_changed_files().chain(files).collect::<Vec<_>>();
-        let remote = self.get_remote_mut().ok_or(Error::Unsupported)?;
-        let sha = remote.commit(message.as_ref(), files)?;
-
-        match remote.revision() {
-            Revision::Reference(Reference::Branch(branch)) => {
-                remote.update_branch(branch, &sha)?;
-            }
-            _ => {
-                remote.set_revision(Revision::sha(sha.clone()));
-            }
-        }
-
-        Ok(sha)
-    }
-
     /// Requests the release of the specified package version.
     ///
     /// It does not yet support parallel release or hotfix branches and expects
@@ -406,17 +380,6 @@ impl Project {
         #[cfg(feature = "github")]
         #[allow(irrefutable_let_patterns)]
         if let Repository::GitHub(github) = &self.repository {
-            return Some(github);
-        }
-
-        None
-    }
-
-    /// Gets the mutable remote repository.
-    pub(crate) fn get_remote_mut(&mut self) -> Option<&mut dyn Remote> {
-        #[cfg(feature = "github")]
-        #[allow(irrefutable_let_patterns)]
-        if let Repository::GitHub(github) = &mut self.repository {
             return Some(github);
         }
 
