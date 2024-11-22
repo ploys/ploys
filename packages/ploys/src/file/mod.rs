@@ -2,6 +2,7 @@ mod fileset;
 
 use std::fmt::{self, Display};
 
+use crate::changelog::Changelog;
 use crate::package::{Lockfile, Package};
 
 pub use self::fileset::Fileset;
@@ -11,6 +12,7 @@ pub use self::fileset::Fileset;
 pub enum File {
     Package(Package),
     Lockfile(Lockfile),
+    Changelog(Changelog),
 }
 
 impl File {
@@ -45,6 +47,22 @@ impl File {
             _ => None,
         }
     }
+
+    /// Gets the file as a changelog.
+    pub fn as_changelog(&self) -> Option<&Changelog> {
+        match self {
+            Self::Changelog(changelog) => Some(changelog),
+            _ => None,
+        }
+    }
+
+    /// Gets the file as a mutable changelog.
+    pub fn as_changelog_mut(&mut self) -> Option<&mut Changelog> {
+        match self {
+            Self::Changelog(changelog) => Some(changelog),
+            _ => None,
+        }
+    }
 }
 
 impl Display for File {
@@ -52,6 +70,7 @@ impl Display for File {
         match self {
             Self::Package(package) => Display::fmt(package, f),
             Self::Lockfile(lockfile) => Display::fmt(lockfile, f),
+            Self::Changelog(changelog) => Display::fmt(changelog, f),
         }
     }
 }
@@ -65,5 +84,11 @@ impl From<Package> for File {
 impl From<Lockfile> for File {
     fn from(value: Lockfile) -> Self {
         Self::Lockfile(value)
+    }
+}
+
+impl From<Changelog> for File {
+    fn from(value: Changelog) -> Self {
+        Self::Changelog(value)
     }
 }
