@@ -5,7 +5,6 @@ use semver::Version;
 use crate::changelog::Release;
 use crate::package::BumpOrVersion;
 
-use super::revision::Revision;
 use super::Error;
 
 /// A remote repository.
@@ -13,12 +12,6 @@ use super::Error;
 /// This defines the shared API of a remote repository to simplify feature flag
 /// handling.
 pub trait Remote {
-    /// Gets the revision.
-    fn revision(&self) -> &Revision;
-
-    /// Sets the revision.
-    fn set_revision(&mut self, revision: Revision);
-
     /// Commits the changes to the repository.
     fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, Error>;
 
