@@ -18,6 +18,7 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 use semver::Version;
+use strum::IntoEnumIterator;
 
 use crate::project::Project;
 use crate::repository::Repository;
@@ -232,9 +233,9 @@ impl Package {
         let files = repository.get_files()?;
         let mut packages = Vec::new();
 
-        for kind in PackageKind::variants() {
+        for kind in PackageKind::iter() {
             if let Ok(bytes) = repository.get_file_contents(kind.file_name()) {
-                let manifest = Manifest::from_bytes(*kind, &bytes)?;
+                let manifest = Manifest::from_bytes(kind, &bytes)?;
 
                 packages.extend(manifest.discover_packages(&files, repository)?);
             }
