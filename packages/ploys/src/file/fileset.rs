@@ -55,21 +55,6 @@ impl Fileset {
         self.files.get_mut(path.as_ref())?.as_mut()
     }
 
-    /// Gets a package with the given name.
-    pub fn get_package_by_name(&self, name: impl AsRef<str>) -> Option<(&Path, &Package)> {
-        self.packages()
-            .find(|(_, package)| package.name() == name.as_ref())
-    }
-
-    /// Gets a mutable package with the given name.
-    pub fn get_package_by_name_mut(
-        &mut self,
-        name: impl AsRef<str>,
-    ) -> Option<(&Path, &mut Package)> {
-        self.packages_mut()
-            .find(|(_, package)| package.name() == name.as_ref())
-    }
-
     /// Gets a lockfile with the given kind.
     pub fn get_lockfile_by_kind(&self, kind: PackageKind) -> Option<&Lockfile> {
         self.get_file(kind.lockfile_name()?)?.as_lockfile()

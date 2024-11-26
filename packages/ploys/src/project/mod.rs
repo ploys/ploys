@@ -207,13 +207,8 @@ impl Project {
 
     /// Gets a package with the given name.
     pub fn get_package(&self, name: impl AsRef<str>) -> Option<PackageRef<'_>> {
-        self.files
-            .get_package_by_name(name)
-            .map(|(path, package)| PackageRef {
-                package,
-                path,
-                project: self,
-            })
+        self.packages()
+            .find(|package| package.name() == name.as_ref())
     }
 
     /// Gets the project packages.
