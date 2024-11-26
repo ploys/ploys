@@ -1,14 +1,17 @@
+use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
+
+use strum::{EnumIs, EnumTryAs};
 
 use crate::repository::Repository;
 
-use super::cargo::manifest::Manifest as CargoManifest;
+use super::cargo::CargoManifest;
 use super::error::Error;
 use super::members::Members;
 use super::{Package, PackageKind};
 
 /// The package manifest.
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]
 pub enum Manifest {
     /// A cargo package manifest.
     Cargo(CargoManifest),
@@ -23,7 +26,7 @@ impl Manifest {
     }
 
     /// Gets the file name for the manifest.
-    pub fn file_name(&self) -> &'static Path {
+    pub(crate) fn file_name(&self) -> &'static Path {
         self.package_kind().file_name()
     }
 
@@ -43,7 +46,7 @@ impl Manifest {
     }
 
     /// Finds member packages using the closure to query individual paths.
-    pub fn discover_packages(
+    pub(crate) fn discover_packages(
         self,
         files: &[PathBuf],
         repository: &Repository,
@@ -88,5 +91,13 @@ impl Manifest {
         Some(match self {
             Self::Cargo(manifest) => Package::Cargo(manifest.into_package()?),
         })
+    }
+}
+
+impl Display for Manifest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cargo(cargo) => Display::fmt(cargo, f),
+        }
     }
 }

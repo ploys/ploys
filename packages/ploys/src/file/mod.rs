@@ -3,7 +3,7 @@ mod fileset;
 use std::fmt::{self, Display};
 
 use crate::changelog::Changelog;
-use crate::package::{Lockfile, Package};
+use crate::package::{Lockfile, Manifest, Package};
 
 pub use self::fileset::Fileset;
 
@@ -11,6 +11,7 @@ pub use self::fileset::Fileset;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum File {
     Package(Package),
+    Manifest(Manifest),
     Lockfile(Lockfile),
     Changelog(Changelog),
 }
@@ -28,6 +29,22 @@ impl File {
     pub fn as_package_mut(&mut self) -> Option<&mut Package> {
         match self {
             Self::Package(package) => Some(package),
+            _ => None,
+        }
+    }
+
+    /// Gets the file as a package manifest.
+    pub fn as_manifest(&self) -> Option<&Manifest> {
+        match self {
+            Self::Manifest(manifest) => Some(manifest),
+            _ => None,
+        }
+    }
+
+    /// Gets the file as a mutable package manifest.
+    pub fn as_manifest_mut(&mut self) -> Option<&mut Manifest> {
+        match self {
+            Self::Manifest(manifest) => Some(manifest),
             _ => None,
         }
     }
@@ -69,6 +86,7 @@ impl Display for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Package(package) => Display::fmt(package, f),
+            Self::Manifest(manifest) => Display::fmt(manifest, f),
             Self::Lockfile(lockfile) => Display::fmt(lockfile, f),
             Self::Changelog(changelog) => Display::fmt(changelog, f),
         }
@@ -78,6 +96,12 @@ impl Display for File {
 impl From<Package> for File {
     fn from(value: Package) -> Self {
         Self::Package(value)
+    }
+}
+
+impl From<Manifest> for File {
+    fn from(value: Manifest) -> Self {
+        Self::Manifest(value)
     }
 }
 

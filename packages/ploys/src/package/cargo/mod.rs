@@ -3,26 +3,26 @@
 mod dependency;
 mod error;
 mod lockfile;
-pub(super) mod manifest;
+mod manifest;
 
 use std::fmt::{self, Display};
 
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 pub use self::lockfile::CargoLockfile;
-use self::manifest::Manifest;
+pub use self::manifest::CargoManifest;
 
 use super::{Bump, BumpError};
 
 /// A `Cargo.toml` package for Rust.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cargo {
-    manifest: Manifest,
+    manifest: CargoManifest,
 }
 
 impl Cargo {
     /// Creates a new cargo package.
-    fn new(manifest: Manifest) -> Self {
+    fn new(manifest: CargoManifest) -> Self {
         Self { manifest }
     }
 
