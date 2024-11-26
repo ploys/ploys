@@ -12,9 +12,9 @@ use super::Cargo;
 
 /// The cargo package manifest.
 #[derive(Clone, Debug)]
-pub struct Manifest(pub(super) DocumentMut);
+pub struct CargoManifest(DocumentMut);
 
-impl Manifest {
+impl CargoManifest {
     /// Gets the workspace table.
     pub fn workspace(&self) -> Option<Workspace<'_>> {
         match self.0.get("workspace") {
@@ -134,19 +134,19 @@ impl Manifest {
     }
 }
 
-impl Display for Manifest {
+impl Display for CargoManifest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, f)
     }
 }
 
-impl PartialEq for Manifest {
+impl PartialEq for CargoManifest {
     fn eq(&self, other: &Self) -> bool {
         self.0.to_string() == other.0.to_string()
     }
 }
 
-impl Eq for Manifest {}
+impl Eq for CargoManifest {}
 
 /// The workspace table.
 pub struct Workspace<'a>(&'a dyn TableLike);
