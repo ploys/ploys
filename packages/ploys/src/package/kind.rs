@@ -1,18 +1,15 @@
 use std::path::Path;
 
+use strum::EnumIter;
+
 /// The package kind.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, EnumIter)]
 pub enum PackageKind {
     /// The cargo package kind.
     Cargo,
 }
 
 impl PackageKind {
-    /// Gets the package variants.
-    pub(super) fn variants() -> &'static [Self] {
-        &[Self::Cargo]
-    }
-
     /// Gets the package file name.
     pub fn file_name(&self) -> &'static Path {
         match self {

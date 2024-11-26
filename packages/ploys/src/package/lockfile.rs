@@ -6,6 +6,8 @@
 use std::fmt::{self, Display};
 use std::path::PathBuf;
 
+use strum::IntoEnumIterator;
+
 use crate::package::{Error, PackageKind};
 use crate::repository::Repository;
 
@@ -43,10 +45,10 @@ impl Lockfile {
     ) -> Result<Vec<(PathBuf, Self)>, crate::project::Error> {
         let mut lockfiles = Vec::new();
 
-        for kind in PackageKind::variants() {
+        for kind in PackageKind::iter() {
             if let Some(lockfile_name) = kind.lockfile_name() {
                 if let Ok(bytes) = repository.get_file_contents(lockfile_name) {
-                    let lockfile = Lockfile::from_bytes(*kind, &bytes)?;
+                    let lockfile = Lockfile::from_bytes(kind, &bytes)?;
 
                     lockfiles.push((lockfile_name.to_owned(), lockfile));
                 }
