@@ -57,12 +57,13 @@ impl Fileset {
 
     /// Gets a lockfile with the given kind.
     pub fn get_lockfile_by_kind(&self, kind: PackageKind) -> Option<&Lockfile> {
-        self.get_file(kind.lockfile_name()?)?.as_lockfile()
+        self.get_file(kind.lockfile_name()?)?.try_as_lockfile_ref()
     }
 
     /// Gets a mutable lockfile with the given kind.
     pub fn get_lockfile_by_kind_mut(&mut self, kind: PackageKind) -> Option<&mut Lockfile> {
-        self.get_file_mut(kind.lockfile_name()?)?.as_lockfile_mut()
+        self.get_file_mut(kind.lockfile_name()?)?
+            .try_as_lockfile_mut()
     }
 
     /// Gets an iterator over the files.
@@ -82,25 +83,25 @@ impl Fileset {
     /// Gets an iterator over the packages.
     pub fn packages(&self) -> impl Iterator<Item = (&Path, &Package)> {
         self.files()
-            .filter_map(|(path, file)| Some((path, file.as_package()?)))
+            .filter_map(|(path, file)| Some((path, file.try_as_package_ref()?)))
     }
 
     /// Gets an iterator over the mutable packages.
     pub fn packages_mut(&mut self) -> impl Iterator<Item = (&Path, &mut Package)> {
         self.files_mut()
-            .filter_map(|(path, file)| Some((path, file.as_package_mut()?)))
+            .filter_map(|(path, file)| Some((path, file.try_as_package_mut()?)))
     }
 
     /// Gets an iterator over the lockfiles.
     pub fn lockfiles(&self) -> impl Iterator<Item = (&Path, &Lockfile)> {
         self.files()
-            .filter_map(|(path, file)| Some((path, file.as_lockfile()?)))
+            .filter_map(|(path, file)| Some((path, file.try_as_lockfile_ref()?)))
     }
 
     /// Gets an iterator over the mutable lockfiles.
     pub fn lockfiles_mut(&mut self) -> impl Iterator<Item = (&Path, &mut Lockfile)> {
         self.files_mut()
-            .filter_map(|(path, file)| Some((path, file.as_lockfile_mut()?)))
+            .filter_map(|(path, file)| Some((path, file.try_as_lockfile_mut()?)))
     }
 
     /// Gets the number of files in the fileset.
