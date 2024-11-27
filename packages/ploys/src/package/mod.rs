@@ -53,7 +53,7 @@ impl<'a> PackageRef<'a> {
 
     /// Gets the package version.
     pub fn version(&self) -> Version {
-        self.package.version().parse().expect("version")
+        self.package.version()
     }
 
     /// Gets the package path.
@@ -111,7 +111,7 @@ impl Package {
     }
 
     /// Gets the package version.
-    pub fn version(&self) -> &str {
+    pub fn version(&self) -> Version {
         match self {
             Self::Cargo(cargo) => cargo.version(),
         }
@@ -125,9 +125,9 @@ impl Package {
     }
 
     /// Sets the package version.
-    pub fn set_version(&mut self, version: Version) {
+    pub fn set_version(&mut self, version: impl Into<Version>) {
         match self {
-            Self::Cargo(cargo) => cargo.set_version(version.to_string()),
+            Self::Cargo(cargo) => cargo.set_version(version),
         };
     }
 

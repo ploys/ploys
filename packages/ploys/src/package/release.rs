@@ -92,7 +92,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
         let version = match self.version {
             BumpOrVersion::Bump(bump) => {
                 package.bump(bump).expect("bump");
-                package.version().parse().expect("version")
+                package.version()
             }
             BumpOrVersion::Version(version) => {
                 package.set_version(version.clone());
@@ -143,7 +143,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
             {
                 let mut lockfile = lockfile.clone();
 
-                lockfile.set_package_version(self.package.name(), version.to_string());
+                lockfile.set_package_version(self.package.name(), version.clone());
                 files.push((path.to_owned(), lockfile.to_string()));
             }
         }
@@ -151,7 +151,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
         let mut release = self
             .package
             .project
-            .get_changelog_release(self.package.name(), version.to_string())?;
+            .get_changelog_release(self.package.name(), version.clone())?;
 
         if self.options.update_changelog {
             let path = self

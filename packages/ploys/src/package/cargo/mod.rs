@@ -7,6 +7,8 @@ mod manifest;
 
 use std::fmt::{self, Display};
 
+use semver::Version;
+
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 pub use self::lockfile::CargoLockfile;
@@ -37,15 +39,12 @@ impl Cargo {
     }
 
     /// Gets the package version.
-    pub fn version(&self) -> &str {
+    pub fn version(&self) -> Version {
         self.manifest.package().expect("package").version()
     }
 
     /// Sets the package version.
-    pub fn set_version<V>(&mut self, version: V) -> &mut Self
-    where
-        V: Into<String>,
-    {
+    pub fn set_version(&mut self, version: impl Into<Version>) -> &mut Self {
         self.manifest
             .package_mut()
             .expect("package")
@@ -55,7 +54,10 @@ impl Cargo {
 
     /// Bumps the package version.
     pub fn bump(&mut self, bump: Bump) -> Result<(), BumpError> {
-        self.set_version(bump.bump_str(self.version())?.to_string());
+        let mut version = self.version();
+
+        bump.bump(&mut version)?;
+        self.set_version(version);
 
         Ok(())
     }

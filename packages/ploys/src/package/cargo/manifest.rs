@@ -2,6 +2,7 @@ use std::fmt::{self, Display};
 use std::path::PathBuf;
 
 use globset::{Glob, GlobSetBuilder};
+use semver::Version;
 use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
 
 use crate::package::members::Members;
@@ -217,12 +218,18 @@ impl<'a> Package<'a> {
     }
 
     /// Gets the package version.
-    pub fn version(&self) -> &'a str {
+    ///
+    /// This adheres to the [manifest format reference][1] and defaults to
+    /// `0.0.0` if the `version` field has not been set.
+    ///
+    /// [1]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-version-field
+    pub fn version(&self) -> Version {
         self.0
             .get("version")
-            .expect("version")
-            .as_str()
-            .expect("version")
+            .and_then(Item::as_str)
+            .unwrap_or("0.0.0")
+            .parse()
+            .expect("version should be valid semver")
     }
 }
 
@@ -231,11 +238,44 @@ pub struct PackageMut<'a>(&'a mut dyn TableLike);
 
 impl<'a> PackageMut<'a> {
     /// Sets the package version.
-    pub fn set_version<V>(&mut self, version: V) -> &mut Self
-    where
-        V: Into<String>,
-    {
-        *self.0.get_mut("version").expect("version") = Item::Value(Value::from(version.into()));
+    pub fn set_version(&mut self, version: impl Into<Version>) -> &mut Self {
+        let item = self.0.entry("version").or_insert_with(Item::default);
+
+        *item = Item::Value(Value::from(version.into().to_string()));
+
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use semver::Version;
+    use toml_edit::{value, DocumentMut};
+
+    use super::CargoManifest;
+
+    #[test]
+    fn test_package_version() {
+        let mut document = DocumentMut::new();
+
+        document["package"]["name"] = value("example");
+
+        let mut manifest = CargoManifest(document);
+
+        assert_eq!(manifest.package().unwrap().version(), Version::new(0, 0, 0));
+
+        manifest
+            .package_mut()
+            .unwrap()
+            .set_version(Version::new(0, 1, 0));
+
+        assert_eq!(manifest.package().unwrap().version(), Version::new(0, 1, 0));
+
+        manifest
+            .package_mut()
+            .unwrap()
+            .set_version(Version::new(0, 2, 0));
+
+        assert_eq!(manifest.package().unwrap().version(), Version::new(0, 2, 0));
     }
 }

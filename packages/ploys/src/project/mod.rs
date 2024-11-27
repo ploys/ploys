@@ -265,17 +265,14 @@ impl Project {
     pub fn get_changelog_release(
         &self,
         package: impl AsRef<str>,
-        version: impl AsRef<str>,
+        version: impl Into<Version>,
     ) -> Result<crate::changelog::Release, Error> {
         let release = self
             .get_remote()
             .ok_or(Error::Unsupported)?
             .get_changelog_release(
                 package.as_ref(),
-                version
-                    .as_ref()
-                    .parse::<Version>()
-                    .map_err(super::package::BumpError::Semver)?,
+                version.into(),
                 package.as_ref() == self.name(),
             )?;
 
