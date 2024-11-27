@@ -6,7 +6,7 @@
 use std::fmt::{self, Display};
 use std::path::PathBuf;
 
-use strum::IntoEnumIterator;
+use strum::{EnumIs, EnumTryAs, IntoEnumIterator};
 
 use crate::package::{Error, PackageKind};
 use crate::repository::Repository;
@@ -14,7 +14,7 @@ use crate::repository::Repository;
 use super::cargo::CargoLockfile;
 
 /// A lockfile in one of several supported formats.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]
 pub enum Lockfile {
     /// A `Cargo.lock` lockfile for Rust.
     Cargo(CargoLockfile),
