@@ -114,17 +114,17 @@ impl<'a> ReleaseRequestBuilder<'a> {
                 let mut changed = false;
 
                 if let Some(mut dependency) = pkg.get_dependency_mut(self.package.name()) {
-                    dependency.set_version(version.to_string());
+                    dependency.set_version(version.clone());
                     changed = true;
                 }
 
                 if let Some(mut dependency) = pkg.get_dev_dependency_mut(self.package.name()) {
-                    dependency.set_version(version.to_string());
+                    dependency.set_version(version.clone());
                     changed = true;
                 }
 
                 if let Some(mut dependency) = pkg.get_build_dependency_mut(self.package.name()) {
-                    dependency.set_version(version.to_string());
+                    dependency.set_version(version.clone());
                     changed = true;
                 }
 

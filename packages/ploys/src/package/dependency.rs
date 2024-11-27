@@ -1,3 +1,5 @@
+use semver::Version;
+
 use super::cargo::{
     Dependencies as CargoDependencies, DependenciesMut as CargoDependenciesMut,
     Dependency as CargoDependency, DependencyMut as CargoDependencyMut,
@@ -75,14 +77,14 @@ impl<'a> DependencyMut<'a> {
     }
 
     /// Gets the dependency version if it has been set.
-    pub fn version(&self) -> Option<&str> {
+    pub fn version(&self) -> Option<Version> {
         match self {
             Self::Cargo(dependency) => dependency.version(),
         }
     }
 
     /// Sets the dependency version.
-    pub fn set_version(&mut self, version: impl Into<String>) {
+    pub fn set_version(&mut self, version: impl Into<Version>) {
         match self {
             Self::Cargo(dependency) => dependency.set_version(version),
         }
