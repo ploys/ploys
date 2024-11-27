@@ -13,10 +13,10 @@ use crate::repository::Repository;
 
 use super::cargo::CargoLockfile;
 
-/// A lockfile in one of several supported formats.
+/// The package lockfile.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]
 pub enum Lockfile {
-    /// A `Cargo.lock` lockfile for Rust.
+    /// A cargo package lockfile.
     Cargo(CargoLockfile),
 }
 

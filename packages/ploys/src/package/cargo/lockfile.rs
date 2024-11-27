@@ -6,11 +6,9 @@ use toml_edit::{ArrayOfTables, DocumentMut, Item, TableLike, Value};
 
 use crate::package::cargo::Error;
 
-/// A `Cargo.lock` lockfile for Rust.
+/// The cargo package lockfile.
 #[derive(Clone, Debug)]
-pub struct CargoLockfile {
-    manifest: DocumentMut,
-}
+pub struct CargoLockfile(DocumentMut);
 
 impl CargoLockfile {
     /// Sets the package version.
@@ -26,14 +24,12 @@ impl CargoLockfile {
 
     /// Creates a manifest from the given bytes.
     pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        Ok(Self {
-            manifest: std::str::from_utf8(bytes)?.parse()?,
-        })
+        Ok(Self(std::str::from_utf8(bytes)?.parse()?))
     }
 
     fn packages_mut(&mut self) -> PackagesMut<'_> {
         PackagesMut(
-            self.manifest
+            self.0
                 .get_mut("package")
                 .and_then(Item::as_array_of_tables_mut),
         )
@@ -42,13 +38,13 @@ impl CargoLockfile {
 
 impl Display for CargoLockfile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.manifest, f)
+        Display::fmt(&self.0, f)
     }
 }
 
 impl PartialEq for CargoLockfile {
     fn eq(&self, other: &Self) -> bool {
-        self.manifest.to_string() == other.manifest.to_string()
+        self.0.to_string() == other.0.to_string()
     }
 }
 
