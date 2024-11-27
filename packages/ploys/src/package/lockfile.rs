@@ -6,6 +6,7 @@
 use std::fmt::{self, Display};
 use std::path::PathBuf;
 
+use semver::Version;
 use strum::{EnumIs, EnumTryAs, IntoEnumIterator};
 
 use crate::package::{Error, PackageKind};
@@ -29,11 +30,7 @@ impl Lockfile {
     }
 
     /// Sets the package version.
-    pub fn set_package_version<P, V>(&mut self, package: P, version: V)
-    where
-        P: AsRef<str>,
-        V: Into<String>,
-    {
+    pub fn set_package_version(&mut self, package: impl AsRef<str>, version: impl Into<Version>) {
         match self {
             Self::Cargo(cargo) => cargo.set_package_version(package, version),
         }

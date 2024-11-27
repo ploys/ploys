@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
-use toml_edit::{Item, KeyMut, TableLike};
+use semver::Version;
+use toml_edit::{Item, KeyMut, TableLike, Value};
 
 /// The cargo package dependency.
 #[derive(Clone)]
@@ -116,34 +117,24 @@ impl<'a> DependencyMut<'a> {
     }
 
     /// Gets the dependency version if it has been set.
-    pub fn version(&self) -> Option<&str> {
+    pub fn version(&self) -> Option<Version> {
         match self.item.as_str() {
-            Some(version) => Some(version),
+            Some(version) => version.parse().ok(),
             None => match self.item.as_table()?.get("version") {
-                Some(version) => version.as_str(),
+                Some(version) => version.as_str()?.parse().ok(),
                 None => None,
             },
         }
     }
 
     /// Sets the dependency version.
-    pub fn set_version(&mut self, version: impl Into<String>) {
+    pub fn set_version(&mut self, version: impl Into<Version>) {
         if let Some(table) = self.item.as_table_like_mut() {
-            if let Some(item) = table.get_mut("version") {
-                if let Some(value) = item.as_value_mut() {
-                    *value = version.into().into();
+            let item = table.entry("version").or_insert_with(Item::default);
 
-                    return;
-                }
-            }
-
-            table.insert("version", Item::Value(version.into().into()));
-
-            return;
-        }
-
-        if let Some(value) = self.item.as_value_mut() {
-            *value = version.into().into();
+            *item = Item::Value(Value::from(version.into().to_string()));
+        } else if let Some(value) = self.item.as_value_mut() {
+            *value = Value::from(version.into().to_string());
         }
     }
 

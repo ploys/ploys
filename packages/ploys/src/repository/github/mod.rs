@@ -311,13 +311,13 @@ impl Remote for GitHub {
     fn get_changelog_release(
         &self,
         package: &str,
-        version: Version,
+        version: &Version,
         is_primary: bool,
     ) -> Result<Release, super::Error> {
         Ok(self::changelog::get_release(
             &self.repository,
             package,
-            &version,
+            version,
             is_primary,
             self.token.as_deref(),
         )?)
