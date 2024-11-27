@@ -151,7 +151,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
         let mut release = self
             .package
             .project
-            .get_changelog_release(self.package.name(), version.clone())?;
+            .get_changelog_release(self.package.name(), &version)?;
 
         if self.options.update_changelog {
             let path = self

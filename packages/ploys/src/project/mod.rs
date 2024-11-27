@@ -36,6 +36,7 @@
 
 mod error;
 
+use std::borrow::Borrow;
 use std::path::Path;
 
 use semver::Version;
@@ -265,14 +266,14 @@ impl Project {
     pub fn get_changelog_release(
         &self,
         package: impl AsRef<str>,
-        version: impl Into<Version>,
+        version: impl Borrow<Version>,
     ) -> Result<crate::changelog::Release, Error> {
         let release = self
             .get_remote()
             .ok_or(Error::Unsupported)?
             .get_changelog_release(
                 package.as_ref(),
-                version.into(),
+                version.borrow(),
                 package.as_ref() == self.name(),
             )?;
 

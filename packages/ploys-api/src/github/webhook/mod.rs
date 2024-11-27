@@ -121,7 +121,7 @@ async fn create_release(
     let body = match changelog.get_release(version.to_string()) {
         Some(release) => format!("{release:#}"),
         None => {
-            let release = project.get_changelog_release(&package, version.clone())?;
+            let release = project.get_changelog_release(&package, &version)?;
 
             format!("{release:#}")
         }
