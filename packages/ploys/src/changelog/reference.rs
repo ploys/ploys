@@ -7,7 +7,7 @@ pub struct ReferenceRef<'a> {
     definition: &'a Definition,
 }
 
-impl<'a> ReferenceRef<'a> {
+impl ReferenceRef<'_> {
     /// Gets the reference ID.
     pub fn id(&self) -> &str {
         &self.definition.identifier
@@ -26,7 +26,7 @@ impl<'a> ReferenceRef<'a> {
     }
 }
 
-impl<'a> Display for ReferenceRef<'a> {
+impl Display for ReferenceRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

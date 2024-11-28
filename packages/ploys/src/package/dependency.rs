@@ -68,7 +68,7 @@ pub enum DependencyMut<'a> {
     Cargo(CargoDependencyMut<'a>),
 }
 
-impl<'a> DependencyMut<'a> {
+impl DependencyMut<'_> {
     /// Gets the dependency name.
     pub fn name(&self) -> &str {
         match self {
@@ -104,7 +104,7 @@ pub enum DependenciesMut<'a> {
     Cargo(CargoDependenciesMut<'a>),
 }
 
-impl<'a> DependenciesMut<'a> {
+impl DependenciesMut<'_> {
     /// Gets the mutable dependency with the given name.
     pub fn get_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
         match self {

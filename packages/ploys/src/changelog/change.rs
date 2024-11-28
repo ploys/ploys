@@ -109,7 +109,7 @@ pub struct ChangeRef<'a> {
     text: Text<'a>,
 }
 
-impl<'a> ChangeRef<'a> {
+impl ChangeRef<'_> {
     /// Gets the change message.
     pub fn message(&self) -> String {
         format!("{:#}", self.text)
@@ -137,7 +137,7 @@ impl<'a> ChangeRef<'a> {
     }
 }
 
-impl<'a> Display for ChangeRef<'a> {
+impl Display for ChangeRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if f.alternate() {
             write!(f, "- {:#}", self.text)

@@ -14,7 +14,7 @@ pub struct ReleaseRequest<'a> {
     version: Version,
 }
 
-impl<'a> ReleaseRequest<'a> {
+impl ReleaseRequest<'_> {
     /// Gets the release request id.
     pub fn id(&self) -> u64 {
         self.id

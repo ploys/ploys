@@ -80,7 +80,7 @@ impl<'a> PackageRef<'a> {
     }
 }
 
-impl<'a> Deref for PackageRef<'a> {
+impl Deref for PackageRef<'_> {
     type Target = Package;
 
     fn deref(&self) -> &Self::Target {

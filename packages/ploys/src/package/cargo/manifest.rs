@@ -236,7 +236,7 @@ impl<'a> Package<'a> {
 /// The mutable package table.
 pub struct PackageMut<'a>(&'a mut dyn TableLike);
 
-impl<'a> PackageMut<'a> {
+impl PackageMut<'_> {
     /// Sets the package version.
     pub fn set_version(&mut self, version: impl Into<Version>) -> &mut Self {
         let item = self.0.entry("version").or_insert_with(Item::default);
