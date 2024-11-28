@@ -330,7 +330,7 @@ impl<'a> ReleaseRef<'a> {
     }
 }
 
-impl<'a> Display for ReleaseRef<'a> {
+impl Display for ReleaseRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.date {
             Some(date) => write!(f, "## [{}] - {date}", self.version)?,

@@ -43,7 +43,7 @@ impl<'a> Dependency<'a> {
     }
 }
 
-impl<'a> Debug for Dependency<'a> {
+impl Debug for Dependency<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Dependency")
             .field("name", &self.name())
@@ -90,7 +90,7 @@ impl<'a> IntoIterator for Dependencies<'a> {
     }
 }
 
-impl<'a> Debug for Dependencies<'a> {
+impl Debug for Dependencies<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.clone()).finish()
     }
@@ -110,7 +110,7 @@ pub struct DependencyMut<'a> {
     item: &'a mut Item,
 }
 
-impl<'a> DependencyMut<'a> {
+impl DependencyMut<'_> {
     /// Gets the dependency name.
     pub fn name(&self) -> &str {
         self.name.get()
@@ -147,7 +147,7 @@ impl<'a> DependencyMut<'a> {
     }
 }
 
-impl<'a> Debug for DependencyMut<'a> {
+impl Debug for DependencyMut<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DependencyMut")
             .field("name", &self.name())
@@ -169,7 +169,7 @@ pub struct DependenciesMut<'a> {
     pub(super) table: Option<&'a mut dyn TableLike>,
 }
 
-impl<'a> DependenciesMut<'a> {
+impl DependenciesMut<'_> {
     /// Gets the mutable dependency with the given name.
     pub fn get_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
         self.table
@@ -192,7 +192,7 @@ impl<'a> IntoIterator for DependenciesMut<'a> {
     }
 }
 
-impl<'a> Debug for DependenciesMut<'a> {
+impl Debug for DependenciesMut<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.table {
             Some(table) => f

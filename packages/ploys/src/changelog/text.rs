@@ -15,7 +15,7 @@ impl<'a> Text<'a> {
     }
 }
 
-impl<'a> Display for Text<'a> {
+impl Display for Text<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for node in self.nodes {
             write_node(f, node)?;
@@ -44,7 +44,7 @@ impl<'a> MultilineText<'a> {
     }
 }
 
-impl<'a> Display for MultilineText<'a> {
+impl Display for MultilineText<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut nodes = self.nodes.iter().peekable();
 
