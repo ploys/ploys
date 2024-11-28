@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use gix::remote::Direction;
 use gix::traverse::tree::Recorder;
-use gix::Repository;
+use gix::ThreadSafeRepository;
 use url::Url;
 
 pub use self::error::Error;
@@ -18,7 +18,7 @@ use super::revision::Revision;
 
 /// The local Git repository.
 pub struct Git {
-    repository: Repository,
+    repository: ThreadSafeRepository,
     revision: Revision,
 }
 
@@ -29,7 +29,7 @@ impl Git {
         P: AsRef<Path>,
     {
         Ok(Self {
-            repository: gix::open(path.as_ref())?,
+            repository: ThreadSafeRepository::open(path.as_ref())?,
             revision: Revision::Head,
         })
     }
@@ -68,11 +68,9 @@ impl Git {
     }
 
     pub fn get_url(&self) -> Result<Url, Error> {
-        match self
-            .repository
-            .find_default_remote(Direction::Push)
-            .transpose()?
-        {
+        let repo = self.repository.to_thread_local();
+
+        match repo.find_default_remote(Direction::Push).transpose()? {
             Some(remote) => match remote.url(Direction::Push) {
                 Some(url) => Ok(url
                     .to_bstring()
@@ -87,11 +85,8 @@ impl Git {
 
     pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
         let spec = self.revision.to_string();
-        let tree = self
-            .repository
-            .rev_parse_single(&*spec)?
-            .object()?
-            .peel_to_tree()?;
+        let repo = self.repository.to_thread_local();
+        let tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
 
         let mut recorder = Recorder::default();
 
@@ -114,11 +109,8 @@ impl Git {
         P: AsRef<Path>,
     {
         let spec = self.revision.to_string();
-        let mut tree = self
-            .repository
-            .rev_parse_single(&*spec)?
-            .object()?
-            .peel_to_tree()?;
+        let repo = self.repository.to_thread_local();
+        let mut tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
 
         let entry = tree
             .peel_to_entry_by_path(path)?
