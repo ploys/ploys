@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::iter::Flatten;
 use std::path::{Path, PathBuf};
 
-use crate::package::{Lockfile, Package, PackageKind};
+use crate::package::{Lockfile, Manifest, PackageKind};
 
 use super::File;
 
@@ -80,16 +80,16 @@ impl Fileset {
             .filter_map(|(path, file)| Some((path.as_path(), file.as_mut()?)))
     }
 
-    /// Gets an iterator over the packages.
-    pub fn packages(&self) -> impl Iterator<Item = (&Path, &Package)> {
+    /// Gets an iterator over the package manifests.
+    pub fn manifests(&self) -> impl Iterator<Item = (&Path, &Manifest)> {
         self.files()
-            .filter_map(|(path, file)| Some((path, file.try_as_package_ref()?)))
+            .filter_map(|(path, file)| Some((path, file.try_as_manifest_ref()?)))
     }
 
-    /// Gets an iterator over the mutable packages.
-    pub fn packages_mut(&mut self) -> impl Iterator<Item = (&Path, &mut Package)> {
+    /// Gets an iterator over the mutable package manifests.
+    pub fn manifests_mut(&mut self) -> impl Iterator<Item = (&Path, &mut Manifest)> {
         self.files_mut()
-            .filter_map(|(path, file)| Some((path, file.try_as_package_mut()?)))
+            .filter_map(|(path, file)| Some((path, file.try_as_manifest_mut()?)))
     }
 
     /// Gets an iterator over the lockfiles.

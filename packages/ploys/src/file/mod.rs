@@ -5,14 +5,13 @@ use std::fmt::{self, Display};
 use strum::{EnumIs, EnumTryAs};
 
 use crate::changelog::Changelog;
-use crate::package::{Lockfile, Manifest, Package};
+use crate::package::{Lockfile, Manifest};
 
 pub use self::fileset::Fileset;
 
 /// A file in one of a number of formats.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]
 pub enum File {
-    Package(Package),
     Manifest(Manifest),
     Lockfile(Lockfile),
     Changelog(Changelog),
@@ -21,17 +20,10 @@ pub enum File {
 impl Display for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Package(package) => Display::fmt(package, f),
             Self::Manifest(manifest) => Display::fmt(manifest, f),
             Self::Lockfile(lockfile) => Display::fmt(lockfile, f),
             Self::Changelog(changelog) => Display::fmt(changelog, f),
         }
-    }
-}
-
-impl From<Package> for File {
-    fn from(value: Package) -> Self {
-        Self::Package(value)
     }
 }
 

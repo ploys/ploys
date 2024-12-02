@@ -169,11 +169,19 @@ pub struct DependenciesMut<'a> {
     pub(super) table: Option<&'a mut dyn TableLike>,
 }
 
-impl DependenciesMut<'_> {
+impl<'a> DependenciesMut<'a> {
     /// Gets the mutable dependency with the given name.
     pub fn get_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
         self.table
             .as_mut()?
+            .iter_mut()
+            .map(Into::<DependencyMut>::into)
+            .find(|dependency| dependency.name() == name.as_ref())
+    }
+
+    /// Gets the mutable dependency with the given name.
+    pub fn into_get_mut(self, name: impl AsRef<str>) -> Option<DependencyMut<'a>> {
+        self.table?
             .iter_mut()
             .map(Into::<DependencyMut>::into)
             .find(|dependency| dependency.name() == name.as_ref())
