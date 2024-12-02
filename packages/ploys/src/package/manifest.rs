@@ -1,9 +1,6 @@
 use std::fmt::{self, Display};
-use std::path::{Path, PathBuf};
 
-use strum::{EnumIs, EnumTryAs, IntoEnumIterator};
-
-use crate::repository::Repository;
+use strum::{EnumIs, EnumTryAs};
 
 use super::cargo::CargoManifest;
 use super::error::Error;
@@ -25,68 +22,11 @@ impl Manifest {
         }
     }
 
-    /// Gets the file name for the manifest.
-    pub(crate) fn file_name(&self) -> &'static Path {
-        self.package_kind().file_name()
-    }
-
     /// Gets the workspace members.
     pub fn members(&self) -> Result<Members, Error> {
         match self {
             Self::Cargo(cargo) => Ok(cargo.members()?),
         }
-    }
-
-    /// Produces an iterator of paths to treat as package directories.
-    pub(crate) fn directories<'a>(
-        &'a self,
-        files: &'a [PathBuf],
-    ) -> impl Iterator<Item = &'a Path> {
-        files
-            .iter()
-            .filter(|path| path.file_name() == Some(self.file_name().as_os_str()))
-            .flat_map(|path| path.parent())
-    }
-
-    /// Discovers project manifests.
-    pub(crate) fn discover_manifests(
-        repository: &Repository,
-    ) -> Result<Vec<(PathBuf, Self)>, crate::project::Error> {
-        let files = repository.get_files()?;
-        let mut manifests = Vec::new();
-
-        for kind in PackageKind::iter() {
-            let file_name = kind.file_name();
-
-            let Ok(bytes) = repository.get_file_contents(file_name) else {
-                continue;
-            };
-
-            let manifest = Manifest::from_bytes(kind, &bytes)?;
-            let members = manifest.members()?;
-
-            if !members.is_empty() {
-                for directory in manifest.directories(&files) {
-                    if members.includes(directory) {
-                        let path = directory.join(file_name);
-
-                        let Ok(bytes) = repository.get_file_contents(&path) else {
-                            continue;
-                        };
-
-                        let manifest = Self::from_bytes(kind, &bytes)?;
-
-                        manifests.push((path, manifest));
-                    }
-                }
-            }
-
-            manifests.push((file_name.to_owned(), manifest));
-        }
-
-        manifests.sort_by_key(|(path, _)| path.to_owned());
-
-        Ok(manifests)
     }
 
     /// Creates a manifest from the given bytes.

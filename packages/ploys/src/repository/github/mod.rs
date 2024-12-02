@@ -7,6 +7,7 @@ mod changelog;
 mod error;
 mod repo;
 
+use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -15,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::changelog::Release;
+use crate::file::{File, FileCache};
 use crate::package::BumpOrVersion;
 
 pub use self::error::Error;
@@ -29,6 +31,7 @@ pub struct GitHub {
     repository: Repository,
     revision: Revision,
     token: Option<String>,
+    file_cache: FileCache,
 }
 
 impl GitHub {
@@ -41,6 +44,7 @@ impl GitHub {
             repository: repository.as_ref().parse::<Repository>()?,
             revision: Revision::head(),
             token: None,
+            file_cache: FileCache::new(),
         })
     }
 }
@@ -126,7 +130,25 @@ impl GitHub {
             .unwrap())
     }
 
-    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
+    /// Gets the file at the given path.
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
+        self.file_cache
+            .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
+                Ok(bytes) => Ok(Some(bytes)),
+                Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
+                Err(err) => Err(err),
+            })
+            .inspect_err(|err| println!("Error loading file `{}`: {err}", path.as_ref().display()))
+            .ok()
+            .flatten()
+    }
+
+    /// Gets the file index.
+    pub fn get_file_index(&self) -> &BTreeSet<PathBuf> {
+        self.file_cache.get_or_try_index_with(|| self.get_files())
+    }
+
+    pub(crate) fn get_files(&self) -> Result<BTreeSet<PathBuf>, Error> {
         let request = self
             .repository
             .get(
@@ -137,16 +159,14 @@ impl GitHub {
             .set("X-GitHub-Api-Version", "2022-11-28")
             .query("recursive", "true");
 
-        let mut entries = request
+        let entries = request
             .call()?
             .into_json::<TreeResponse>()?
             .tree
             .into_iter()
             .filter(|entry| entry.r#type == "blob")
             .map(|entry| PathBuf::from(entry.path))
-            .collect::<Vec<_>>();
-
-        entries.sort();
+            .collect::<BTreeSet<_>>();
 
         Ok(entries)
     }

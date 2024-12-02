@@ -35,24 +35,26 @@
 //! ```
 
 mod error;
+mod packages;
 
 use std::borrow::Borrow;
-use std::path::Path;
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
 
 use semver::Version;
 use url::Url;
 
-use crate::file::Fileset;
-use crate::package::{Lockfile, Package};
+use crate::file::File;
+use crate::package::Package;
 use crate::repository::{Remote, Repository};
 
 pub use self::error::Error;
+pub use self::packages::Packages;
 
 /// A project from one of several supported repositories.
 pub struct Project {
     repository: Repository,
     name: String,
-    files: Fileset,
 }
 
 #[cfg(feature = "git")]
@@ -66,13 +68,8 @@ impl Project {
 
         let repository = Repository::Git(Git::new(path)?);
         let name = repository.get_name()?;
-        let files = repository.get_fileset()?;
 
-        Ok(Self {
-            repository,
-            name,
-            files,
-        })
+        Ok(Self { repository, name })
     }
 
     /// Opens a project with the Git repository and revision.
@@ -85,13 +82,8 @@ impl Project {
 
         let repository = Repository::Git(Git::new(path)?.with_revision(revision));
         let name = repository.get_name()?;
-        let files = repository.get_fileset()?;
 
-        Ok(Self {
-            repository,
-            name,
-            files,
-        })
+        Ok(Self { repository, name })
     }
 }
 
@@ -106,13 +98,8 @@ impl Project {
 
         let repository = Repository::GitHub(GitHub::new(repository)?.validated()?);
         let name = repository.get_name()?;
-        let files = repository.get_fileset()?;
 
-        Ok(Self {
-            repository,
-            name,
-            files,
-        })
+        Ok(Self { repository, name })
     }
 
     /// Opens a project with the GitHub repository and revision.
@@ -129,13 +116,8 @@ impl Project {
                 .validated()?,
         );
         let name = repository.get_name()?;
-        let files = repository.get_fileset()?;
 
-        Ok(Self {
-            repository,
-            name,
-            files,
-        })
+        Ok(Self { repository, name })
     }
 
     /// Opens a project with the GitHub repository and authentication token.
@@ -152,13 +134,8 @@ impl Project {
                 .validated()?,
         );
         let name = repository.get_name()?;
-        let files = repository.get_fileset()?;
 
-        Ok(Self {
-            repository,
-            name,
-            files,
-        })
+        Ok(Self { repository, name })
     }
 
     /// Opens a project with the GitHub repository, revision, and authentication
@@ -182,13 +159,8 @@ impl Project {
                 .validated()?,
         );
         let name = repository.get_name()?;
-        let files = repository.get_fileset()?;
 
-        Ok(Self {
-            repository,
-            name,
-            files,
-        })
+        Ok(Self { repository, name })
     }
 }
 
@@ -212,16 +184,9 @@ impl Project {
             .find(|package| package.name() == name.as_ref())
     }
 
-    /// Gets the project packages.
-    pub fn packages(&self) -> impl Iterator<Item = Package<'_>> {
-        self.files
-            .manifests()
-            .filter_map(|(path, manifest)| Package::from_manifest(self, path, manifest))
-    }
-
-    // Gets the project lockfiles.
-    pub fn lockfiles(&self) -> impl Iterator<Item = (&Path, &Lockfile)> {
-        self.files.lockfiles()
+    /// Gets an iterator over the project packages.
+    pub fn packages(&self) -> Packages<'_> {
+        Packages::new(self)
     }
 
     /// Queries the contents of a project file.
@@ -289,5 +254,15 @@ impl Project {
         }
 
         None
+    }
+
+    /// Gets a file at the given path.
+    pub(crate) fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
+        self.repository.get_file(path)
+    }
+
+    /// Gets the file index.
+    pub(crate) fn get_file_index(&self) -> &BTreeSet<PathBuf> {
+        self.repository.get_file_index()
     }
 }

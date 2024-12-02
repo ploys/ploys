@@ -14,12 +14,12 @@ pub mod github;
 
 pub mod revision;
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use url::Url;
 
-use crate::file::Fileset;
-use crate::package::{Lockfile, Manifest};
+use crate::file::File;
 
 pub use self::error::Error;
 pub(crate) use self::remote::Remote;
@@ -53,13 +53,23 @@ impl Repository {
         }
     }
 
-    /// Queries the project files.
-    pub fn get_files(&self) -> Result<Vec<PathBuf>, Error> {
+    /// Gets a file at the given path.
+    pub(crate) fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
         match self {
             #[cfg(feature = "git")]
-            Self::Git(git) => Ok(git.get_files()?),
+            Repository::Git(git) => git.get_file(path),
             #[cfg(feature = "github")]
-            Self::GitHub(github) => Ok(github.get_files()?),
+            Repository::GitHub(github) => github.get_file(path),
+        }
+    }
+
+    /// Gets the file index.
+    pub(crate) fn get_file_index(&self) -> &BTreeSet<PathBuf> {
+        match self {
+            #[cfg(feature = "git")]
+            Repository::Git(git) => git.get_file_index(),
+            #[cfg(feature = "github")]
+            Repository::GitHub(github) => github.get_file_index(),
         }
     }
 
@@ -74,12 +84,5 @@ impl Repository {
             #[cfg(feature = "github")]
             Self::GitHub(github) => Ok(github.get_file_contents(path)?),
         }
-    }
-
-    /// Gets the repository fileset.
-    pub(crate) fn get_fileset(&self) -> Result<Fileset, crate::project::Error> {
-        Ok(Fileset::new()
-            .with_files(Manifest::discover_manifests(self)?)
-            .with_files(Lockfile::discover_lockfiles(self)?))
     }
 }

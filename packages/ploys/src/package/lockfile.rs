@@ -4,13 +4,11 @@
 //! different package managers.
 
 use std::fmt::{self, Display};
-use std::path::PathBuf;
 
 use semver::Version;
-use strum::{EnumIs, EnumTryAs, IntoEnumIterator};
+use strum::{EnumIs, EnumTryAs};
 
 use crate::package::{Error, PackageKind};
-use crate::repository::Repository;
 
 use super::cargo::CargoLockfile;
 
@@ -35,28 +33,11 @@ impl Lockfile {
             Self::Cargo(cargo) => cargo.set_package_version(package, version),
         }
     }
+}
 
-    /// Discovers project lockfiles.
-    pub(crate) fn discover_lockfiles(
-        repository: &Repository,
-    ) -> Result<Vec<(PathBuf, Self)>, crate::project::Error> {
-        let mut lockfiles = Vec::new();
-
-        for kind in PackageKind::iter() {
-            if let Some(lockfile_name) = kind.lockfile_name() {
-                if let Ok(bytes) = repository.get_file_contents(lockfile_name) {
-                    let lockfile = Lockfile::from_bytes(kind, &bytes)?;
-
-                    lockfiles.push((lockfile_name.to_owned(), lockfile));
-                }
-            }
-        }
-
-        Ok(lockfiles)
-    }
-
-    /// Creates a lockfile from the given bytes.
-    fn from_bytes(kind: PackageKind, bytes: &[u8]) -> Result<Self, Error> {
+impl Lockfile {
+    /// Constructs a lockfile from the given bytes.
+    pub(crate) fn from_bytes(kind: PackageKind, bytes: &[u8]) -> Result<Self, Error> {
         match kind {
             PackageKind::Cargo => Ok(Self::Cargo(CargoLockfile::from_bytes(bytes)?)),
         }

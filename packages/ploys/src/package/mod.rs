@@ -16,7 +16,7 @@ mod release;
 use std::borrow::Cow;
 use std::fmt::{self, Display};
 use std::ops::{Deref, DerefMut};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use semver::Version;
 
@@ -28,17 +28,18 @@ pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 pub use self::manifest::Manifest;
+pub use self::members::Members;
 pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
 
 /// A project package.
 #[derive(Clone)]
 pub struct Package<'a> {
     manifest: Cow<'a, Manifest>,
-    path: &'a Path,
+    path: PathBuf,
     project: &'a Project,
 }
 
-impl<'a> Package<'a> {
+impl Package<'_> {
     /// Gets the package name.
     pub fn name(&self) -> &str {
         match &*self.manifest {
@@ -80,8 +81,8 @@ impl<'a> Package<'a> {
     }
 
     /// Gets the package path.
-    pub fn path(&self) -> &'a Path {
-        self.path
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 
     /// Gets the package kind.
@@ -178,7 +179,7 @@ impl<'a> Package<'a> {
     /// Constructs a package from a manifest.
     pub(super) fn from_manifest(
         project: &'a Project,
-        path: &'a Path,
+        path: impl Into<PathBuf>,
         manifest: &'a Manifest,
     ) -> Option<Self> {
         match manifest.package_kind() {
@@ -189,7 +190,7 @@ impl<'a> Package<'a> {
 
         Some(Self {
             manifest: Cow::Borrowed(manifest),
-            path,
+            path: path.into(),
             project,
         })
     }
