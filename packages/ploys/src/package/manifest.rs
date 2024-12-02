@@ -1,14 +1,14 @@
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
-use strum::{EnumIs, EnumTryAs};
+use strum::{EnumIs, EnumTryAs, IntoEnumIterator};
 
 use crate::repository::Repository;
 
 use super::cargo::CargoManifest;
 use super::error::Error;
 use super::members::Members;
-use super::{Package, PackageKind};
+use super::{Dependencies, DependenciesMut, Dependency, DependencyMut, PackageKind};
 
 /// The package manifest.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]
@@ -38,45 +38,55 @@ impl Manifest {
     }
 
     /// Produces an iterator of paths to treat as package directories.
-    pub fn directories<'a>(&'a self, files: &'a [PathBuf]) -> impl Iterator<Item = &'a Path> {
+    pub(crate) fn directories<'a>(
+        &'a self,
+        files: &'a [PathBuf],
+    ) -> impl Iterator<Item = &'a Path> {
         files
             .iter()
             .filter(|path| path.file_name() == Some(self.file_name().as_os_str()))
             .flat_map(|path| path.parent())
     }
 
-    /// Finds member packages using the closure to query individual paths.
-    pub(crate) fn discover_packages(
-        self,
-        files: &[PathBuf],
+    /// Discovers project manifests.
+    pub(crate) fn discover_manifests(
         repository: &Repository,
-    ) -> Result<Vec<(PathBuf, Package)>, crate::project::Error> {
-        let members = self.members()?;
-        let file_name = self.file_name();
+    ) -> Result<Vec<(PathBuf, Self)>, crate::project::Error> {
+        let files = repository.get_files()?;
+        let mut manifests = Vec::new();
 
-        let mut packages = Vec::new();
+        for kind in PackageKind::iter() {
+            let file_name = kind.file_name();
 
-        if !members.is_empty() {
-            for directory in self.directories(files) {
-                if members.includes(directory) {
-                    let path = directory.join(file_name);
-                    let bytes = repository.get_file_contents(&path)?;
-                    let package = Self::from_bytes(self.package_kind(), &bytes)?.into_package();
+            let Ok(bytes) = repository.get_file_contents(file_name) else {
+                continue;
+            };
 
-                    if let Some(package) = package {
-                        packages.push((path, package));
+            let manifest = Manifest::from_bytes(kind, &bytes)?;
+            let members = manifest.members()?;
+
+            if !members.is_empty() {
+                for directory in manifest.directories(&files) {
+                    if members.includes(directory) {
+                        let path = directory.join(file_name);
+
+                        let Ok(bytes) = repository.get_file_contents(&path) else {
+                            continue;
+                        };
+
+                        let manifest = Self::from_bytes(kind, &bytes)?;
+
+                        manifests.push((path, manifest));
                     }
                 }
             }
+
+            manifests.push((file_name.to_owned(), manifest));
         }
 
-        if let Some(package) = self.into_package() {
-            packages.push((file_name.to_owned(), package));
-        }
+        manifests.sort_by_key(|(path, _)| path.to_owned());
 
-        packages.sort_by_key(|(_, package)| package.name().to_owned());
-
-        Ok(packages)
+        Ok(manifests)
     }
 
     /// Creates a manifest from the given bytes.
@@ -85,12 +95,97 @@ impl Manifest {
             PackageKind::Cargo => Ok(Self::Cargo(CargoManifest::from_bytes(bytes)?)),
         }
     }
+}
 
-    /// Converts this manifest into a package with the given path.
-    pub fn into_package(self) -> Option<Package> {
-        Some(match self {
-            Self::Cargo(manifest) => Package::Cargo(manifest.into_package()?),
-        })
+impl Manifest {
+    /// Gets the dependency with the given name.
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the mutable dependency with the given name.
+    pub fn get_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dependency_mut(name).map(DependencyMut::Cargo),
+        }
+    }
+
+    /// Gets the dependencies.
+    pub fn dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.dependencies()),
+        }
+    }
+
+    /// Gets the mutable dependencies.
+    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.dependencies_mut()),
+        }
+    }
+}
+
+impl Manifest {
+    /// Gets the dev dependency with the given name.
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dev_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the mutable dev dependency with the given name.
+    pub fn get_dev_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_dev_dependency_mut(name).map(DependencyMut::Cargo),
+        }
+    }
+
+    /// Gets the dev dependencies.
+    pub fn dev_dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.dev_dependencies()),
+        }
+    }
+
+    /// Gets the mutable dev dependencies.
+    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.dev_dependencies_mut()),
+        }
+    }
+}
+
+impl Manifest {
+    /// Gets the build dependency with the given name.
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo.get_build_dependency(name).map(Dependency::Cargo),
+        }
+    }
+
+    /// Gets the mutable build dependency with the given name.
+    pub fn get_build_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        match self {
+            Self::Cargo(cargo) => cargo
+                .get_build_dependency_mut(name)
+                .map(DependencyMut::Cargo),
+        }
+    }
+
+    /// Gets the build dependencies.
+    pub fn build_dependencies(&self) -> Dependencies<'_> {
+        match self {
+            Self::Cargo(cargo) => Dependencies::Cargo(cargo.build_dependencies()),
+        }
+    }
+
+    /// Gets the mutable build dependencies.
+    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        match self {
+            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.build_dependencies_mut()),
+        }
     }
 }
 

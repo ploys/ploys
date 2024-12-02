@@ -43,7 +43,7 @@ use semver::Version;
 use url::Url;
 
 use crate::file::Fileset;
-use crate::package::{Lockfile, PackageRef};
+use crate::package::{Lockfile, Package};
 use crate::repository::{Remote, Repository};
 
 pub use self::error::Error;
@@ -207,18 +207,16 @@ impl Project {
     }
 
     /// Gets a package with the given name.
-    pub fn get_package(&self, name: impl AsRef<str>) -> Option<PackageRef<'_>> {
+    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<'_>> {
         self.packages()
             .find(|package| package.name() == name.as_ref())
     }
 
     /// Gets the project packages.
-    pub fn packages(&self) -> impl Iterator<Item = PackageRef<'_>> {
-        self.files.packages().map(|(path, package)| PackageRef {
-            package,
-            path,
-            project: self,
-        })
+    pub fn packages(&self) -> impl Iterator<Item = Package<'_>> {
+        self.files
+            .manifests()
+            .filter_map(|(path, manifest)| Package::from_manifest(self, path, manifest))
     }
 
     // Gets the project lockfiles.

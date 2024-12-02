@@ -9,7 +9,7 @@ use crate::package::members::Members;
 
 use super::dependency::{Dependencies, DependenciesMut};
 use super::error::Error;
-use super::Cargo;
+use super::{Dependency, DependencyMut};
 
 /// The cargo package manifest.
 #[derive(Clone, Debug)]
@@ -38,54 +38,6 @@ impl CargoManifest {
             Some(item) => item.as_table_like_mut().map(PackageMut),
             None => None,
         }
-    }
-
-    /// Gets the dependencies table.
-    pub fn dependencies(&self) -> Dependencies<'_> {
-        self.0
-            .get("dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
-    }
-
-    /// Gets the mutable dependencies table.
-    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        self.0
-            .get_mut("dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
-    }
-
-    /// Gets the dev dependencies table.
-    pub fn dev_dependencies(&self) -> Dependencies<'_> {
-        self.0
-            .get("dev-dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
-    }
-
-    /// Gets the mutable dev dependencies table.
-    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        self.0
-            .get_mut("dev-dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
-    }
-
-    /// Gets the build dependencies table.
-    pub fn build_dependencies(&self) -> Dependencies<'_> {
-        self.0
-            .get("build-dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
-    }
-
-    /// Gets the mutable build dependencies table.
-    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        self.0
-            .get_mut("build-dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
     }
 
     /// Gets the workspace members.
@@ -125,13 +77,89 @@ impl CargoManifest {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(Self(std::str::from_utf8(bytes)?.parse()?))
     }
+}
 
-    /// Converts this manifest into a package with the given path.
-    pub fn into_package(self) -> Option<Cargo> {
-        match self.package().is_some() {
-            true => Some(Cargo::new(self)),
-            false => None,
-        }
+impl CargoManifest {
+    /// Gets the dependency with the given name.
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.dependencies().get(name)
+    }
+
+    /// Gets the mutable dependency with the given name.
+    pub fn get_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.dependencies_mut().into_get_mut(name)
+    }
+
+    /// Gets the dependencies table.
+    pub fn dependencies(&self) -> Dependencies<'_> {
+        self.0
+            .get("dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+
+    /// Gets the mutable dependencies table.
+    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.0
+            .get_mut("dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+}
+
+impl CargoManifest {
+    /// Gets the dev dependency with the given name.
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.dev_dependencies().get(name)
+    }
+
+    /// Gets the mutable dev dependency with the given name.
+    pub fn get_dev_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.dev_dependencies_mut().into_get_mut(name)
+    }
+
+    /// Gets the dev dependencies table.
+    pub fn dev_dependencies(&self) -> Dependencies<'_> {
+        self.0
+            .get("dev-dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+
+    /// Gets the mutable dev dependencies table.
+    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.0
+            .get_mut("dev-dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+}
+
+impl CargoManifest {
+    /// Gets the build dependency with the given name.
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.build_dependencies().get(name)
+    }
+
+    /// Gets the mutable build dependency with the given name.
+    pub fn get_build_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.build_dependencies_mut().into_get_mut(name)
+    }
+
+    /// Gets the build dependencies table.
+    pub fn build_dependencies(&self) -> Dependencies<'_> {
+        self.0
+            .get("build-dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
+    }
+
+    /// Gets the mutable build dependencies table.
+    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.0
+            .get_mut("build-dependencies")
+            .map(Into::into)
+            .unwrap_or_default()
     }
 }
 

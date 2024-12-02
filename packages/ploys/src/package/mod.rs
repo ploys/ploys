@@ -13,18 +13,16 @@ mod manifest;
 mod members;
 mod release;
 
+use std::borrow::Cow;
 use std::fmt::{self, Display};
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
+use std::ops::{Deref, DerefMut};
+use std::path::Path;
 
 use semver::Version;
-use strum::IntoEnumIterator;
 
 use crate::project::Project;
-use crate::repository::Repository;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
-use self::cargo::Cargo;
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 pub use self::kind::PackageKind;
@@ -32,28 +30,53 @@ pub use self::lockfile::Lockfile;
 pub use self::manifest::Manifest;
 pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
 
-/// An immutable package reference.
-#[derive(Clone, Copy)]
-pub struct PackageRef<'a> {
-    pub(crate) package: &'a Package,
-    pub(crate) path: &'a Path,
-    pub(crate) project: &'a Project,
+/// A project package.
+#[derive(Clone)]
+pub struct Package<'a> {
+    manifest: Cow<'a, Manifest>,
+    path: &'a Path,
+    project: &'a Project,
 }
 
-impl<'a> PackageRef<'a> {
+impl<'a> Package<'a> {
     /// Gets the package name.
-    pub fn name(&self) -> &'a str {
-        self.package.name()
+    pub fn name(&self) -> &str {
+        match &*self.manifest {
+            Manifest::Cargo(cargo) => cargo.package().expect("package").name(),
+        }
     }
 
     /// Gets the package description.
-    pub fn description(&self) -> Option<&'a str> {
-        self.package.description()
+    pub fn description(&self) -> Option<&str> {
+        match &*self.manifest {
+            Manifest::Cargo(cargo) => cargo.package().expect("package").description(),
+        }
     }
 
     /// Gets the package version.
     pub fn version(&self) -> Version {
-        self.package.version()
+        match &*self.manifest {
+            Manifest::Cargo(cargo) => cargo.package().expect("package").version(),
+        }
+    }
+
+    /// Sets the package version.
+    pub fn set_version(&mut self, version: impl Into<Version>) -> &mut Self {
+        match self.manifest.to_mut() {
+            Manifest::Cargo(cargo) => cargo.package_mut().expect("package").set_version(version),
+        };
+
+        self
+    }
+
+    /// Bumps the package version.
+    pub fn bump_version(&mut self, bump: impl Into<Bump>) -> Result<&mut Self, BumpError> {
+        let mut version = self.version();
+
+        bump.into().bump(&mut version)?;
+        self.set_version(version);
+
+        Ok(self)
     }
 
     /// Gets the package path.
@@ -61,16 +84,87 @@ impl<'a> PackageRef<'a> {
         self.path
     }
 
+    /// Gets the package kind.
+    pub fn kind(&self) -> PackageKind {
+        self.manifest.package_kind()
+    }
+
     /// Checks if this is the primary package.
     ///
     /// A primary package shares the same name as the project and all releases
     /// are tagged under the version number without the package name prefix.
     pub fn is_primary(&self) -> bool {
-        self.package.name() == self.project.name()
+        self.name() == self.project.name()
     }
 }
 
-impl<'a> PackageRef<'a> {
+impl Package<'_> {
+    /// Gets the dependency with the given name.
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.manifest.get_dependency(name)
+    }
+
+    /// Gets the mutable dependency with the given name.
+    pub fn get_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.manifest.to_mut().get_dependency_mut(name)
+    }
+
+    /// Gets the dependencies.
+    pub fn dependencies(&self) -> Dependencies<'_> {
+        self.manifest.dependencies()
+    }
+
+    /// Gets the mutable dependencies.
+    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.manifest.to_mut().dependencies_mut()
+    }
+}
+
+impl Package<'_> {
+    /// Gets the dev dependency with the given name.
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.manifest.get_dev_dependency(name)
+    }
+
+    /// Gets the mutable dev dependency with the given name.
+    pub fn get_dev_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.manifest.to_mut().get_dev_dependency_mut(name)
+    }
+
+    /// Gets the dev dependencies.
+    pub fn dev_dependencies(&self) -> Dependencies<'_> {
+        self.manifest.dev_dependencies()
+    }
+
+    /// Gets the mutable dev dependencies.
+    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.manifest.to_mut().dev_dependencies_mut()
+    }
+}
+
+impl Package<'_> {
+    /// Gets the build dependency with the given name.
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+        self.manifest.get_build_dependency(name)
+    }
+
+    /// Gets the mutable build dependency with the given name.
+    pub fn get_build_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
+        self.manifest.to_mut().get_build_dependency_mut(name)
+    }
+
+    /// Gets the build dependencies.
+    pub fn build_dependencies(&self) -> Dependencies<'_> {
+        self.manifest.build_dependencies()
+    }
+
+    /// Gets the mutable build dependencies.
+    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
+        self.manifest.to_mut().build_dependencies_mut()
+    }
+}
+
+impl<'a> Package<'a> {
     /// Constructs a new release request builder.
     pub fn create_release_request(
         self,
@@ -80,181 +174,43 @@ impl<'a> PackageRef<'a> {
     }
 }
 
-impl Deref for PackageRef<'_> {
-    type Target = Package;
-
-    fn deref(&self) -> &Self::Target {
-        self.package
-    }
-}
-
-/// A package in one of several supported formats.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Package {
-    /// A `Cargo.toml` package for Rust.
-    Cargo(Cargo),
-}
-
-impl Package {
-    /// Gets the package name.
-    pub fn name(&self) -> &str {
-        match self {
-            Self::Cargo(cargo) => cargo.name(),
-        }
-    }
-
-    /// Gets the package description, if it exists.
-    pub fn description(&self) -> Option<&str> {
-        match self {
-            Self::Cargo(cargo) => cargo.description(),
-        }
-    }
-
-    /// Gets the package version.
-    pub fn version(&self) -> Version {
-        match self {
-            Self::Cargo(cargo) => cargo.version(),
-        }
-    }
-
-    /// Gets the package kind.
-    pub fn kind(&self) -> PackageKind {
-        match self {
-            Self::Cargo(_) => PackageKind::Cargo,
-        }
-    }
-
-    /// Sets the package version.
-    pub fn set_version(&mut self, version: impl Into<Version>) {
-        match self {
-            Self::Cargo(cargo) => cargo.set_version(version),
-        };
-    }
-
-    /// Bumps the package version.
-    pub fn bump(&mut self, bump: Bump) -> Result<(), BumpError> {
-        match self {
-            Self::Cargo(cargo) => Ok(cargo.bump(bump)?),
-        }
-    }
-
-    /// Gets the dependency with the given name.
-    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
-        match self {
-            Self::Cargo(cargo) => cargo.get_dependency(name).map(Dependency::Cargo),
-        }
-    }
-
-    /// Gets the mutable dependency with the given name.
-    pub fn get_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
-        match self {
-            Self::Cargo(cargo) => cargo.get_dependency_mut(name).map(DependencyMut::Cargo),
-        }
-    }
-
-    /// Gets the dependencies.
-    pub fn dependencies(&self) -> Dependencies<'_> {
-        match self {
-            Self::Cargo(cargo) => Dependencies::Cargo(cargo.dependencies()),
-        }
-    }
-
-    /// Gets the mutable dependencies.
-    pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        match self {
-            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.dependencies_mut()),
-        }
-    }
-
-    /// Gets the dev dependency with the given name.
-    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
-        match self {
-            Self::Cargo(cargo) => cargo.get_dev_dependency(name).map(Dependency::Cargo),
-        }
-    }
-
-    /// Gets the mutable dev dependency with the given name.
-    pub fn get_dev_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
-        match self {
-            Self::Cargo(cargo) => cargo.get_dev_dependency_mut(name).map(DependencyMut::Cargo),
-        }
-    }
-
-    /// Gets the dev dependencies.
-    pub fn dev_dependencies(&self) -> Dependencies<'_> {
-        match self {
-            Self::Cargo(cargo) => Dependencies::Cargo(cargo.dev_dependencies()),
-        }
-    }
-
-    /// Gets the mutable dev dependencies.
-    pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        match self {
-            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.dev_dependencies_mut()),
-        }
-    }
-
-    /// Gets the build dependency with the given name.
-    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
-        match self {
-            Self::Cargo(cargo) => cargo.get_build_dependency(name).map(Dependency::Cargo),
-        }
-    }
-
-    /// Gets the mutable build dependency with the given name.
-    pub fn get_build_dependency_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
-        match self {
-            Self::Cargo(cargo) => cargo
-                .get_build_dependency_mut(name)
-                .map(DependencyMut::Cargo),
-        }
-    }
-
-    /// Gets the build dependencies.
-    pub fn build_dependencies(&self) -> Dependencies<'_> {
-        match self {
-            Self::Cargo(cargo) => Dependencies::Cargo(cargo.build_dependencies()),
-        }
-    }
-
-    /// Gets the mutable build dependencies.
-    pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        match self {
-            Self::Cargo(cargo) => DependenciesMut::Cargo(cargo.build_dependencies_mut()),
-        }
-    }
-}
-
-impl Package {
-    /// Discovers project packages.
-    pub(super) fn discover_packages(
-        repository: &Repository,
-    ) -> Result<Vec<(PathBuf, Package)>, crate::project::Error> {
-        let files = repository.get_files()?;
-        let mut packages = Vec::new();
-
-        for kind in PackageKind::iter() {
-            if let Ok(bytes) = repository.get_file_contents(kind.file_name()) {
-                let manifest = Manifest::from_bytes(kind, &bytes)?;
-
-                packages.extend(manifest.discover_packages(&files, repository)?);
+impl<'a> Package<'a> {
+    /// Constructs a package from a manifest.
+    pub(super) fn from_manifest(
+        project: &'a Project,
+        path: &'a Path,
+        manifest: &'a Manifest,
+    ) -> Option<Self> {
+        match manifest.package_kind() {
+            PackageKind::Cargo => {
+                manifest.try_as_cargo_ref()?.package()?;
             }
         }
 
-        Ok(packages)
+        Some(Self {
+            manifest: Cow::Borrowed(manifest),
+            path,
+            project,
+        })
     }
 }
 
-impl Display for Package {
+impl Deref for Package<'_> {
+    type Target = Manifest;
+
+    fn deref(&self) -> &Self::Target {
+        &self.manifest
+    }
+}
+
+impl DerefMut for Package<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.manifest.to_mut()
+    }
+}
+
+impl Display for Package<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Cargo(cargo) => Display::fmt(cargo, f),
-        }
-    }
-}
-
-impl From<Cargo> for Package {
-    fn from(value: Cargo) -> Self {
-        Self::Cargo(value)
+        Display::fmt(&self.manifest, f)
     }
 }

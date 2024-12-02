@@ -2,12 +2,12 @@ use semver::Version;
 
 use crate::changelog::{Changelog, Release};
 
-use super::{BumpOrVersion, PackageRef};
+use super::{BumpOrVersion, Package};
 
 /// The release request.
 pub struct ReleaseRequest<'a> {
     #[allow(dead_code)]
-    package: PackageRef<'a>,
+    package: Package<'a>,
     id: u64,
     title: String,
     notes: Release,
@@ -41,14 +41,14 @@ impl ReleaseRequest<'_> {
 /// This configures the release request that will be generated on the remote
 /// repository.
 pub struct ReleaseRequestBuilder<'a> {
-    package: PackageRef<'a>,
+    package: Package<'a>,
     version: BumpOrVersion,
     options: Options,
 }
 
 impl<'a> ReleaseRequestBuilder<'a> {
     /// Constructs a new release request builder.
-    pub(super) fn new(package: PackageRef<'a>, version: BumpOrVersion) -> Self {
+    pub(super) fn new(package: Package<'a>, version: BumpOrVersion) -> Self {
         Self {
             package,
             version,
@@ -81,55 +81,54 @@ impl<'a> ReleaseRequestBuilder<'a> {
     }
 
     /// Finishes the release request.
-    pub fn finish(self) -> Result<ReleaseRequest<'a>, crate::project::Error> {
+    pub fn finish(mut self) -> Result<ReleaseRequest<'a>, crate::project::Error> {
         let Some(remote) = self.package.project.get_remote() else {
             return Err(crate::project::Error::Unsupported);
         };
 
         let mut files = Vec::new();
-        let mut package = self.package.package.clone();
 
         let version = match self.version {
             BumpOrVersion::Bump(bump) => {
-                package.bump(bump).expect("bump");
-                package.version()
+                self.package.bump_version(bump)?;
+                self.package.version()
             }
             BumpOrVersion::Version(version) => {
-                package.set_version(version.clone());
+                self.package.set_version(version.clone());
                 version
             }
         };
 
         if self.options.update_package_manifest {
-            files.push((self.package.path().to_owned(), package.to_string()));
+            files.push((self.package.path().to_owned(), self.package.to_string()));
         }
 
         if self.options.update_dependent_package_manifests {
-            for package in self.package.project.packages() {
+            for mut package in self.package.project.packages() {
                 if package.name() == self.package.name() {
                     continue;
                 }
 
-                let mut pkg = package.package.clone();
                 let mut changed = false;
 
-                if let Some(mut dependency) = pkg.get_dependency_mut(self.package.name()) {
+                if let Some(mut dependency) = package.get_dependency_mut(self.package.name()) {
                     dependency.set_version(version.clone());
                     changed = true;
                 }
 
-                if let Some(mut dependency) = pkg.get_dev_dependency_mut(self.package.name()) {
+                if let Some(mut dependency) = package.get_dev_dependency_mut(self.package.name()) {
                     dependency.set_version(version.clone());
                     changed = true;
                 }
 
-                if let Some(mut dependency) = pkg.get_build_dependency_mut(self.package.name()) {
+                if let Some(mut dependency) = package.get_build_dependency_mut(self.package.name())
+                {
                     dependency.set_version(version.clone());
                     changed = true;
                 }
 
                 if changed {
-                    files.push((package.path().to_owned(), pkg.to_string()));
+                    files.push((package.path().to_owned(), package.to_string()));
                 }
             }
         }

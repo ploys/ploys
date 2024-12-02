@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use url::Url;
 
 use crate::file::Fileset;
-use crate::package::{Lockfile, Package};
+use crate::package::{Lockfile, Manifest};
 
 pub use self::error::Error;
 pub(crate) use self::remote::Remote;
@@ -79,7 +79,7 @@ impl Repository {
     /// Gets the repository fileset.
     pub(crate) fn get_fileset(&self) -> Result<Fileset, crate::project::Error> {
         Ok(Fileset::new()
-            .with_files(Package::discover_packages(self)?)
+            .with_files(Manifest::discover_manifests(self)?)
             .with_files(Lockfile::discover_lockfiles(self)?))
     }
 }
