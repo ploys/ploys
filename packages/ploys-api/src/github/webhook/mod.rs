@@ -84,7 +84,7 @@ async fn create_release(
     let (package, path, version) = match package {
         Some(package) => (
             package.name().to_owned(),
-            package.path(),
+            package.path().to_owned(),
             release[package.name().len() + 1..]
                 .parse::<Version>()
                 .map_err(|_| Error::Payload)?,
@@ -96,7 +96,11 @@ async fn create_release(
                 .find(|package| package.name() == project.name())
                 .ok_or_else(|| ploys::project::Error::PackageNotFound(project.name().to_owned()))?;
 
-            (package.name().to_owned(), package.path(), version)
+            (
+                package.name().to_owned(),
+                package.path().to_owned(),
+                version,
+            )
         }
     };
 

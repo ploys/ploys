@@ -1,6 +1,7 @@
 use semver::Version;
 
 use crate::changelog::{Changelog, Release};
+use crate::file::File;
 
 use super::{BumpOrVersion, Package};
 
@@ -134,16 +135,13 @@ impl<'a> ReleaseRequestBuilder<'a> {
         }
 
         if self.options.update_lockfile {
-            if let Some((path, lockfile)) = self
-                .package
-                .project
-                .lockfiles()
-                .find(|(_, lockfile)| lockfile.kind() == self.package.kind())
-            {
-                let mut lockfile = lockfile.clone();
+            if let Some(path) = self.package.kind().lockfile_name() {
+                if let Some(File::Lockfile(lockfile)) = self.package.project.get_file(path) {
+                    let mut lockfile = lockfile.clone();
 
-                lockfile.set_package_version(self.package.name(), version.clone());
-                files.push((path.to_owned(), lockfile.to_string()));
+                    lockfile.set_package_version(self.package.name(), version.clone());
+                    files.push((path.to_owned(), lockfile.to_string()));
+                }
             }
         }
 

@@ -70,18 +70,20 @@ impl Info {
 
         println!("\n{}:\n", style("Packages").underlined().bold());
 
-        let max_name_len = project
-            .packages()
+        let packages = project.packages().collect::<Vec<_>>();
+
+        let max_name_len = packages
+            .iter()
             .map(|pkg| pkg.name().len())
             .max()
             .unwrap_or_default();
-        let max_version_len = project
-            .packages()
+        let max_version_len = packages
+            .iter()
             .map(|pkg| pkg.version().to_string().len())
             .max()
             .unwrap_or_default();
 
-        for package in project.packages() {
+        for package in packages.iter() {
             println!(
                 "{:<max_name_len$}  {:>max_version_len$}  {}",
                 package.name(),
