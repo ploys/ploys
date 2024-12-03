@@ -1,6 +1,6 @@
 use semver::Version;
 
-use crate::changelog::{Changelog, Release};
+use crate::changelog::Release;
 use crate::file::File;
 
 use super::{BumpOrVersion, Package};
@@ -158,13 +158,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
                 .expect("parent")
                 .join("CHANGELOG.md");
 
-            let mut changelog = match self.package.project.get_file_contents(&path).ok() {
-                Some(bytes) => match String::from_utf8(bytes).ok() {
-                    Some(string) => string.parse::<Changelog>().expect("changelog"),
-                    None => Changelog::new(),
-                },
-                None => Changelog::new(),
-            };
+            let mut changelog = self.package.changelog().cloned().unwrap_or_default();
 
             changelog.add_release(release.clone());
             files.push((path, changelog.to_string()));

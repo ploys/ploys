@@ -20,6 +20,8 @@ use std::path::{Path, PathBuf};
 
 use semver::Version;
 
+use crate::changelog::Changelog;
+use crate::file::File;
 use crate::project::Project;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
@@ -96,6 +98,15 @@ impl Package<'_> {
     /// are tagged under the version number without the package name prefix.
     pub fn is_primary(&self) -> bool {
         self.name() == self.project.name()
+    }
+}
+
+impl<'a> Package<'a> {
+    /// Gets the package changelog.
+    pub fn changelog(&self) -> Option<&'a Changelog> {
+        self.project
+            .get_file(self.path().parent()?.join("CHANGELOG.md"))
+            .and_then(File::try_as_changelog_ref)
     }
 }
 
