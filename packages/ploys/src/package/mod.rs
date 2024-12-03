@@ -7,7 +7,7 @@ mod bump;
 mod error;
 mod kind;
 pub mod lockfile;
-mod manifest;
+pub mod manifest;
 mod release;
 
 use std::borrow::Cow;
