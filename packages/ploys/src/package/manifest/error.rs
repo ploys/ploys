@@ -1,14 +1,14 @@
 use std::fmt::{self, Display};
 
+use crate::file::ParseError;
+
 /// A package manifest error.
 #[derive(Debug)]
 pub enum Error {
     /// A glob error.
     Glob(globset::Error),
     /// A parse error.
-    Parse(toml_edit::TomlError),
-    /// A UTF-8 error.
-    Utf8(std::str::Utf8Error),
+    Parse(ParseError),
 }
 
 impl Display for Error {
@@ -16,7 +16,6 @@ impl Display for Error {
         match self {
             Self::Glob(err) => Display::fmt(err, f),
             Self::Parse(err) => Display::fmt(err, f),
-            Self::Utf8(err) => Display::fmt(err, f),
         }
     }
 }
@@ -26,7 +25,6 @@ impl std::error::Error for Error {
         match self {
             Self::Glob(err) => Some(err),
             Self::Parse(err) => Some(err),
-            Self::Utf8(err) => Some(err),
         }
     }
 }
@@ -37,14 +35,20 @@ impl From<globset::Error> for Error {
     }
 }
 
+impl From<ParseError> for Error {
+    fn from(err: ParseError) -> Self {
+        Self::Parse(err)
+    }
+}
+
 impl From<toml_edit::TomlError> for Error {
     fn from(err: toml_edit::TomlError) -> Self {
-        Self::Parse(err)
+        Self::Parse(err.into())
     }
 }
 
 impl From<std::str::Utf8Error> for Error {
     fn from(err: std::str::Utf8Error) -> Self {
-        Self::Utf8(err)
+        Self::Parse(err.into())
     }
 }
