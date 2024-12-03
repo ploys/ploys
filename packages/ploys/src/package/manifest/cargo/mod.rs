@@ -7,10 +7,11 @@ use globset::{Glob, GlobSetBuilder};
 use semver::Version;
 use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
 
-use crate::package::cargo::Error;
 use crate::package::manifest::Members;
 
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
+
+use super::Error;
 
 /// The cargo package manifest.
 #[derive(Clone, Debug)]

@@ -4,7 +4,6 @@
 //! on the local file system or in a remote version control system.
 
 mod bump;
-pub mod cargo;
 mod error;
 mod kind;
 pub mod lockfile;

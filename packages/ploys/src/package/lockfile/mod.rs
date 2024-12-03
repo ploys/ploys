@@ -4,15 +4,17 @@
 //! different package managers.
 
 pub mod cargo;
+mod error;
 
 use std::fmt::{self, Display};
 
 use semver::Version;
 use strum::{EnumIs, EnumTryAs};
 
-use crate::package::{Error, PackageKind};
+use crate::package::PackageKind;
 
 pub use self::cargo::CargoLockfile;
+pub use self::error::Error;
 
 /// The package lockfile.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]

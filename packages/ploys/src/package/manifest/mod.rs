@@ -1,5 +1,6 @@
 pub mod cargo;
 mod dependency;
+mod error;
 mod members;
 
 use std::fmt::{self, Display};
@@ -8,9 +9,9 @@ use strum::{EnumIs, EnumTryAs};
 
 pub use self::cargo::CargoManifest;
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
+pub use self::error::Error;
 pub use self::members::Members;
 
-use super::error::Error;
 use super::PackageKind;
 
 /// The package manifest.

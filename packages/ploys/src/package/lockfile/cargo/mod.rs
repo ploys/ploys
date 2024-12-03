@@ -7,9 +7,9 @@ use std::fmt::{self, Display};
 use semver::Version;
 use toml_edit::{DocumentMut, Item};
 
-use crate::package::cargo::Error;
-
 pub use self::package::{Packages, PackagesMut};
+
+use super::Error;
 
 /// The cargo package lockfile.
 #[derive(Clone, Debug)]
