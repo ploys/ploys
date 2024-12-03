@@ -4,7 +4,8 @@ use std::path::PathBuf;
 use strum::IntoEnumIterator;
 
 use crate::file::File;
-use crate::package::{Manifest, Members, Package, PackageKind};
+use crate::package::manifest::Members;
+use crate::package::{Manifest, Package, PackageKind};
 
 use super::Project;
 

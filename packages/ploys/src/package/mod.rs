@@ -25,8 +25,8 @@ pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
+pub use self::manifest::Manifest;
 use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
-pub use self::manifest::{Manifest, Members};
 pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
 
 /// A project package.
