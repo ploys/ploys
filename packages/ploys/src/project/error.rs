@@ -8,10 +8,6 @@ pub enum Error {
     Repository(crate::repository::Error),
     /// The package error.
     Package(crate::package::Error),
-    /// The package bump error.
-    Bump(crate::package::BumpError),
-    /// The package not found error.
-    PackageNotFound(String),
     /// The action is not supported.
     Unsupported,
 }
@@ -21,8 +17,6 @@ impl Display for Error {
         match self {
             Self::Repository(err) => Display::fmt(err, f),
             Self::Package(err) => Display::fmt(err, f),
-            Self::Bump(err) => Display::fmt(err, f),
-            Self::PackageNotFound(name) => write!(f, "Package not found: `{name}`."),
             Self::Unsupported => write!(f, "Action not supported"),
         }
     }
@@ -44,7 +38,7 @@ impl From<crate::package::Error> for Error {
 
 impl From<crate::package::BumpError> for Error {
     fn from(err: crate::package::BumpError) -> Self {
-        Self::Bump(err)
+        Self::Package(err.into())
     }
 }
 
