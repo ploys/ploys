@@ -8,7 +8,7 @@ pub mod cargo;
 mod dependency;
 mod error;
 mod kind;
-mod lockfile;
+pub mod lockfile;
 mod manifest;
 mod release;
 

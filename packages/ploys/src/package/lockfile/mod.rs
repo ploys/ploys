@@ -3,6 +3,8 @@
 //! This module includes utilities for inspecting and managing lockfiles across
 //! different package managers.
 
+mod cargo;
+
 use std::fmt::{self, Display};
 
 use semver::Version;
@@ -10,7 +12,7 @@ use strum::{EnumIs, EnumTryAs};
 
 use crate::package::{Error, PackageKind};
 
-use super::cargo::CargoLockfile;
+pub use self::cargo::CargoLockfile;
 
 /// The package lockfile.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]
