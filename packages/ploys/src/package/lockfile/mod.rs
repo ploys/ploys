@@ -3,7 +3,7 @@
 //! This module includes utilities for inspecting and managing lockfiles across
 //! different package managers.
 
-mod cargo;
+pub mod cargo;
 
 use std::fmt::{self, Display};
 

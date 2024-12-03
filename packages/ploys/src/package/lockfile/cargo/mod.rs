@@ -9,7 +9,7 @@ use toml_edit::{DocumentMut, Item};
 
 use crate::package::cargo::Error;
 
-use self::package::{Packages, PackagesMut};
+pub use self::package::{Packages, PackagesMut};
 
 /// The cargo package lockfile.
 #[derive(Clone, Debug)]
@@ -28,21 +28,25 @@ impl CargoLockfile {
         }
     }
 
-    /// Creates a manifest from the given bytes.
-    pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        Ok(Self(std::str::from_utf8(bytes)?.parse()?))
-    }
-
-    fn packages(&self) -> Packages<'_> {
+    /// Gets the packages section.
+    pub fn packages(&self) -> Packages<'_> {
         Packages(self.0.get("package").and_then(Item::as_array_of_tables))
     }
 
-    fn packages_mut(&mut self) -> PackagesMut<'_> {
+    /// Gets the mutable packages section.
+    pub fn packages_mut(&mut self) -> PackagesMut<'_> {
         PackagesMut(
             self.0
                 .get_mut("package")
                 .and_then(Item::as_array_of_tables_mut),
         )
+    }
+}
+
+impl CargoLockfile {
+    /// Creates a manifest from the given bytes.
+    pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        Ok(Self(std::str::from_utf8(bytes)?.parse()?))
     }
 }
 
