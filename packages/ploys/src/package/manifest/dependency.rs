@@ -1,6 +1,6 @@
 use semver::Version;
 
-use super::cargo::{
+use super::super::cargo::{
     Dependencies as CargoDependencies, DependenciesMut as CargoDependenciesMut,
     Dependency as CargoDependency, DependencyMut as CargoDependencyMut,
 };

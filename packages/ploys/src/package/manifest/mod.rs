@@ -1,14 +1,16 @@
+mod dependency;
 mod members;
 
 use std::fmt::{self, Display};
 
 use strum::{EnumIs, EnumTryAs};
 
+pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::members::Members;
 
 use super::cargo::CargoManifest;
 use super::error::Error;
-use super::{Dependencies, DependenciesMut, Dependency, DependencyMut, PackageKind};
+use super::PackageKind;
 
 /// The package manifest.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]

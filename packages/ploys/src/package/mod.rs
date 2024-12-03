@@ -5,7 +5,6 @@
 
 mod bump;
 pub mod cargo;
-mod dependency;
 mod error;
 mod kind;
 pub mod lockfile;
@@ -24,10 +23,10 @@ use crate::file::File;
 use crate::project::Project;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
-pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
+use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::manifest::{Manifest, Members};
 pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
 
