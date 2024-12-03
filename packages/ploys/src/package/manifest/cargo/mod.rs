@@ -1,15 +1,18 @@
 mod dependency;
+mod package;
+mod workspace;
 
 use std::fmt::{self, Display};
 use std::path::PathBuf;
 
 use globset::{Glob, GlobSetBuilder};
-use semver::Version;
-use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
+use toml_edit::DocumentMut;
 
 use crate::package::manifest::Members;
 
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
+pub use self::package::{Package, PackageMut};
+pub use self::workspace::{Workspace, WorkspaceExclude, WorkspaceMembers};
 
 use super::Error;
 
@@ -178,104 +181,6 @@ impl PartialEq for CargoManifest {
 }
 
 impl Eq for CargoManifest {}
-
-/// The workspace table.
-pub struct Workspace<'a>(&'a dyn TableLike);
-
-impl<'a> Workspace<'a> {
-    /// Gets the workspace members.
-    pub fn members(&self) -> WorkspaceMembers<'a> {
-        match self.0.get("members") {
-            Some(item) => WorkspaceMembers(item.as_array()),
-            None => WorkspaceMembers(None),
-        }
-    }
-
-    /// Gets the workspace excludes.
-    pub fn exclude(&self) -> WorkspaceExclude<'a> {
-        match self.0.get("exclude") {
-            Some(item) => WorkspaceExclude(item.as_array()),
-            None => WorkspaceExclude(None),
-        }
-    }
-}
-
-/// The workspace members array.
-pub struct WorkspaceMembers<'a>(Option<&'a Array>);
-
-impl<'a> IntoIterator for WorkspaceMembers<'a> {
-    type Item = &'a str;
-    type IntoIter = Box<dyn Iterator<Item = &'a str> + 'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        match self.0 {
-            Some(arr) => Box::new(arr.into_iter().flat_map(Value::as_str)),
-            None => Box::new(std::iter::empty()),
-        }
-    }
-}
-
-/// The workspace excludes array.
-pub struct WorkspaceExclude<'a>(Option<&'a Array>);
-
-impl<'a> IntoIterator for WorkspaceExclude<'a> {
-    type Item = &'a str;
-    type IntoIter = Box<dyn Iterator<Item = &'a str> + 'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        match self.0 {
-            Some(arr) => Box::new(arr.into_iter().flat_map(Value::as_str)),
-            None => Box::new(std::iter::empty()),
-        }
-    }
-}
-
-/// The package table.
-pub struct Package<'a>(&'a dyn TableLike);
-
-impl<'a> Package<'a> {
-    /// Gets the package name.
-    pub fn name(&self) -> &'a str {
-        self.0.get("name").expect("name").as_str().expect("name")
-    }
-
-    /// Gets the package description.
-    pub fn description(&self) -> Option<&'a str> {
-        match self.0.get("description") {
-            Some(description) => Some(description.as_str().expect("description")),
-            None => None,
-        }
-    }
-
-    /// Gets the package version.
-    ///
-    /// This adheres to the [manifest format reference][1] and defaults to
-    /// `0.0.0` if the `version` field has not been set.
-    ///
-    /// [1]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-version-field
-    pub fn version(&self) -> Version {
-        self.0
-            .get("version")
-            .and_then(Item::as_str)
-            .unwrap_or("0.0.0")
-            .parse()
-            .expect("version should be valid semver")
-    }
-}
-
-/// The mutable package table.
-pub struct PackageMut<'a>(&'a mut dyn TableLike);
-
-impl PackageMut<'_> {
-    /// Sets the package version.
-    pub fn set_version(&mut self, version: impl Into<Version>) -> &mut Self {
-        let item = self.0.entry("version").or_insert_with(Item::default);
-
-        *item = Item::Value(Value::from(version.into().to_string()));
-
-        self
-    }
-}
 
 #[cfg(test)]
 mod tests {
