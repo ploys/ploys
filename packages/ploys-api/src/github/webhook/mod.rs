@@ -94,7 +94,8 @@ async fn create_release(
             let package = project
                 .packages()
                 .find(|package| package.name() == project.name())
-                .ok_or_else(|| ploys::project::Error::PackageNotFound(project.name().to_owned()))?;
+                .ok_or_else(|| ploys::package::Error::NotFound(project.name().to_owned()))
+                .map_err(ploys::project::Error::Package)?;
 
             (
                 package.name().to_owned(),
@@ -202,7 +203,8 @@ fn create_release_request(token: String, payload: RepositoryDispatchPayload) -> 
 
     let release_request = project
         .get_package(&package)
-        .ok_or_else(|| ploys::project::Error::PackageNotFound(package))?
+        .ok_or(ploys::package::Error::NotFound(package))
+        .map_err(ploys::project::Error::Package)?
         .create_release_request(version)
         .finish()?;
 

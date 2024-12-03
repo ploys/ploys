@@ -7,6 +7,10 @@ pub enum Error {
     Manifest(super::manifest::Error),
     /// A package lockfile error.
     Lockfile(super::lockfile::Error),
+    /// A package bump error.
+    Bump(super::bump::Error),
+    /// A package not found error.
+    NotFound(String),
 }
 
 impl Display for Error {
@@ -14,6 +18,8 @@ impl Display for Error {
         match self {
             Self::Manifest(err) => Display::fmt(err, f),
             Self::Lockfile(err) => Display::fmt(err, f),
+            Self::Bump(err) => Display::fmt(err, f),
+            Self::NotFound(name) => write!(f, "Package not found: `{name}`."),
         }
     }
 }
@@ -23,6 +29,8 @@ impl std::error::Error for Error {
         match self {
             Self::Manifest(err) => Some(err),
             Self::Lockfile(err) => Some(err),
+            Self::Bump(err) => Some(err),
+            Self::NotFound(_) => None,
         }
     }
 }
@@ -36,5 +44,11 @@ impl From<super::manifest::Error> for Error {
 impl From<super::lockfile::Error> for Error {
     fn from(err: super::lockfile::Error) -> Self {
         Self::Lockfile(err)
+    }
+}
+
+impl From<super::bump::Error> for Error {
+    fn from(err: super::bump::Error) -> Self {
+        Self::Bump(err)
     }
 }
