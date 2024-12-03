@@ -1,11 +1,15 @@
 //! The `Cargo.lock` lockfile for Rust.
 
+mod package;
+
 use std::fmt::{self, Display};
 
 use semver::Version;
-use toml_edit::{ArrayOfTables, DocumentMut, Item, TableLike, Value};
+use toml_edit::{DocumentMut, Item};
 
 use crate::package::cargo::Error;
+
+use self::package::{Packages, PackagesMut};
 
 /// The cargo package lockfile.
 #[derive(Clone, Debug)]
@@ -55,65 +59,6 @@ impl PartialEq for CargoLockfile {
 }
 
 impl Eq for CargoLockfile {}
-
-/// The packages table.
-struct Packages<'a>(Option<&'a ArrayOfTables>);
-
-impl<'a> Packages<'a> {
-    fn get(&'a self, package: &'a str) -> Option<Package<'a>> {
-        match &self.0 {
-            Some(arr) => arr
-                .iter()
-                .find(|table| table.get("name").and_then(Item::as_str) == Some(package))
-                .map(|table| Package(table)),
-            None => None,
-        }
-    }
-}
-
-/// The package table.
-struct Package<'a>(&'a dyn TableLike);
-
-impl Package<'_> {
-    /// Gets the package version.
-    pub fn version(&self) -> Version {
-        self.0
-            .get("version")
-            .and_then(Item::as_str)
-            .unwrap_or("0.0.0")
-            .parse()
-            .expect("version should be valid semver")
-    }
-}
-
-/// The mutable packages table.
-struct PackagesMut<'a>(Option<&'a mut ArrayOfTables>);
-
-impl<'a> PackagesMut<'a> {
-    fn get_mut(&'a mut self, package: &'a str) -> Option<PackageMut<'a>> {
-        match &mut self.0 {
-            Some(arr) => arr
-                .iter_mut()
-                .find(|table| table.get("name").and_then(Item::as_str) == Some(package))
-                .map(|table| PackageMut(table)),
-            None => None,
-        }
-    }
-}
-
-/// The mutable package table.
-struct PackageMut<'a>(&'a mut dyn TableLike);
-
-impl PackageMut<'_> {
-    /// Sets the package version.
-    pub fn set_version(&mut self, version: impl Into<Version>) -> &mut Self {
-        let item = self.0.entry("version").or_insert_with(Item::default);
-
-        *item = Item::Value(Value::from(version.into().to_string()));
-
-        self
-    }
-}
 
 #[cfg(test)]
 mod tests {
