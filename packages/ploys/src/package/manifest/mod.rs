@@ -1,3 +1,8 @@
+//! Manifest inspection and management utilities
+//!
+//! This module includes utilities for inspecting and managing package manifests
+//! across different package managers.
+
 pub mod cargo;
 mod dependency;
 mod error;

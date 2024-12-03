@@ -1,3 +1,5 @@
+//! The `Cargo.toml` package manifest for Rust.
+
 mod dependency;
 mod package;
 mod workspace;

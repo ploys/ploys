@@ -1,4 +1,4 @@
-//! The `Cargo.lock` lockfile for Rust.
+//! The `Cargo.lock` package lockfile for Rust.
 
 mod package;
 
