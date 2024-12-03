@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-/// A cargo package lockfile error.
+/// A package lockfile error.
 #[derive(Debug)]
 pub enum Error {
     /// A parse error.

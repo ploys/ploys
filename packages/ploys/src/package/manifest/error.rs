@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-/// A cargo package manifest error.
+/// A package manifest error.
 #[derive(Debug)]
 pub enum Error {
     /// A glob error.
