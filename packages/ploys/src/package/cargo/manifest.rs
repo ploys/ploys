@@ -5,7 +5,7 @@ use globset::{Glob, GlobSetBuilder};
 use semver::Version;
 use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
 
-use crate::package::members::Members;
+use crate::package::manifest::Members;
 
 use super::dependency::{Dependencies, DependenciesMut};
 use super::error::Error;

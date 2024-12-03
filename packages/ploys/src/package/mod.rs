@@ -10,7 +10,6 @@ mod error;
 mod kind;
 mod lockfile;
 mod manifest;
-mod members;
 mod release;
 
 use std::borrow::Cow;
@@ -29,8 +28,7 @@ pub use self::dependency::{Dependencies, DependenciesMut, Dependency, Dependency
 pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
-pub use self::manifest::Manifest;
-pub use self::members::Members;
+pub use self::manifest::{Manifest, Members};
 pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
 
 /// A project package.

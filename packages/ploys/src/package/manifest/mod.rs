@@ -1,10 +1,13 @@
+mod members;
+
 use std::fmt::{self, Display};
 
 use strum::{EnumIs, EnumTryAs};
 
+pub use self::members::Members;
+
 use super::cargo::CargoManifest;
 use super::error::Error;
-use super::members::Members;
 use super::{Dependencies, DependenciesMut, Dependency, DependencyMut, PackageKind};
 
 /// The package manifest.
