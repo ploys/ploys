@@ -1,3 +1,5 @@
+mod dependency;
+
 use std::fmt::{self, Display};
 use std::path::PathBuf;
 
@@ -5,8 +7,10 @@ use globset::{Glob, GlobSetBuilder};
 use semver::Version;
 use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
 
-use crate::package::cargo::{Dependencies, DependenciesMut, Dependency, DependencyMut, Error};
+use crate::package::cargo::Error;
 use crate::package::manifest::Members;
+
+pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 
 /// The cargo package manifest.
 #[derive(Clone, Debug)]
