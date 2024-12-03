@@ -5,11 +5,8 @@ use globset::{Glob, GlobSetBuilder};
 use semver::Version;
 use toml_edit::{Array, DocumentMut, Item, TableLike, Value};
 
+use crate::package::cargo::{Dependencies, DependenciesMut, Dependency, DependencyMut, Error};
 use crate::package::manifest::Members;
-
-use super::dependency::{Dependencies, DependenciesMut};
-use super::error::Error;
-use super::{Dependency, DependencyMut};
 
 /// The cargo package manifest.
 #[derive(Clone, Debug)]

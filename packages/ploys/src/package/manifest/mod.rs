@@ -1,3 +1,4 @@
+pub mod cargo;
 mod dependency;
 mod members;
 
@@ -5,10 +6,10 @@ use std::fmt::{self, Display};
 
 use strum::{EnumIs, EnumTryAs};
 
+pub use self::cargo::CargoManifest;
 pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::members::Members;
 
-use super::cargo::CargoManifest;
 use super::error::Error;
 use super::PackageKind;
 
