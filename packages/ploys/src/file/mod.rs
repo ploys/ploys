@@ -1,4 +1,5 @@
 mod cache;
+mod error;
 mod fileset;
 
 use std::fmt::{self, Display};
@@ -10,6 +11,7 @@ use crate::changelog::Changelog;
 use crate::package::{Lockfile, Manifest, PackageKind};
 
 pub use self::cache::FileCache;
+pub use self::error::ParseError;
 pub use self::fileset::Fileset;
 
 /// A file in one of a number of formats.

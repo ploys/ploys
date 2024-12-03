@@ -4,13 +4,10 @@
 //! on the local file system or in a remote version control system.
 
 mod bump;
-pub mod cargo;
-mod dependency;
 mod error;
 mod kind;
-mod lockfile;
-mod manifest;
-mod members;
+pub mod lockfile;
+pub mod manifest;
 mod release;
 
 use std::borrow::Cow;
@@ -25,12 +22,11 @@ use crate::file::File;
 use crate::project::Project;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
-pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 pub use self::manifest::Manifest;
-pub use self::members::Members;
+use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
 
 /// A project package.

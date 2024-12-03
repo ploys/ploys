@@ -2,8 +2,7 @@ use semver::Version;
 
 use crate::changelog::Release;
 use crate::file::File;
-
-use super::{BumpOrVersion, Package};
+use crate::package::{BumpOrVersion, Package};
 
 /// The release request.
 pub struct ReleaseRequest<'a> {
@@ -49,7 +48,7 @@ pub struct ReleaseRequestBuilder<'a> {
 
 impl<'a> ReleaseRequestBuilder<'a> {
     /// Constructs a new release request builder.
-    pub(super) fn new(package: Package<'a>, version: BumpOrVersion) -> Self {
+    pub(crate) fn new(package: Package<'a>, version: BumpOrVersion) -> Self {
         Self {
             package,
             version,

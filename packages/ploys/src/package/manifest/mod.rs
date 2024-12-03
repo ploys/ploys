@@ -1,11 +1,23 @@
+//! Manifest inspection and management utilities
+//!
+//! This module includes utilities for inspecting and managing package manifests
+//! across different package managers.
+
+pub mod cargo;
+mod dependency;
+mod error;
+mod members;
+
 use std::fmt::{self, Display};
 
 use strum::{EnumIs, EnumTryAs};
 
-use super::cargo::CargoManifest;
-use super::error::Error;
-use super::members::Members;
-use super::{Dependencies, DependenciesMut, Dependency, DependencyMut, PackageKind};
+pub use self::cargo::CargoManifest;
+pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
+pub use self::error::Error;
+pub use self::members::Members;
+
+use super::PackageKind;
 
 /// The package manifest.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]
