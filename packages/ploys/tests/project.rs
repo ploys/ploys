@@ -10,13 +10,6 @@ fn test_valid_local_project() -> Result<(), Error> {
     assert_eq!(url.domain(), Some("github.com"));
     assert_eq!(url.path().trim_end_matches(".git"), "/ploys/ploys");
 
-    let a = String::from_utf8(project.get_file_contents("Cargo.toml")?).unwrap();
-    let b = String::from_utf8(project.get_file_contents("packages/ploys/Cargo.toml")?).unwrap();
-
-    assert!(a.contains("[workspace]"));
-    assert!(b.contains("[package]"));
-    assert!(project.get_file_contents("packages/ploys").is_err());
-
     assert!(project.packages().any(|pkg| pkg.name() == "ploys"));
     assert!(project.packages().any(|pkg| pkg.name() == "ploys-cli"));
 
@@ -36,13 +29,6 @@ fn test_valid_remote_project() -> Result<(), Error> {
         project.get_url()?,
         "https://github.com/ploys/ploys".parse().unwrap()
     );
-
-    let a = String::from_utf8(project.get_file_contents("Cargo.toml")?).unwrap();
-    let b = String::from_utf8(project.get_file_contents("packages/ploys/Cargo.toml")?).unwrap();
-
-    assert!(a.contains("[workspace]"));
-    assert!(b.contains("[package]"));
-    assert!(project.get_file_contents("packages/ploys").is_err());
 
     assert!(project.packages().any(|pkg| pkg.name() == "ploys"));
     assert!(project.packages().any(|pkg| pkg.name() == "ploys-cli"));

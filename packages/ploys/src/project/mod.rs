@@ -188,17 +188,6 @@ impl Project {
     pub fn packages(&self) -> Packages<'_> {
         Packages::new(self)
     }
-
-    /// Queries the contents of a project file.
-    ///
-    /// This method may perform file system operations or network requests to
-    /// query the latest project information.
-    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
-    where
-        P: AsRef<Path>,
-    {
-        Ok(self.repository.get_file_contents(path)?)
-    }
 }
 
 impl Project {
