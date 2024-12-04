@@ -17,6 +17,11 @@ impl ReferenceRef<'_> {
     pub fn url(&self) -> &str {
         &self.definition.url
     }
+
+    /// Creates an owned reference.
+    pub fn to_owned(&self) -> (String, String) {
+        (self.id().to_owned(), self.url().to_owned())
+    }
 }
 
 impl<'a> ReferenceRef<'a> {
