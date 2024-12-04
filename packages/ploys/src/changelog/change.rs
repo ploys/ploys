@@ -6,7 +6,7 @@ use markdown::ParseOptions;
 use super::Text;
 
 /// A changelog change.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Change {
     message: String,
     url: Option<(String, String)>,
@@ -121,6 +121,65 @@ impl ChangeRef<'_> {
             Node::Link(link) => Some(&*link.url),
             _ => None,
         })
+    }
+
+    /// Creates an owned change.
+    pub fn to_owned(&self) -> Change {
+        fn inner(nodes: &[Node]) -> Option<Change> {
+            let mut nodes = nodes.iter().rev();
+
+            let Node::Text(close) = nodes.next()? else {
+                return None;
+            };
+
+            if close.value != ")" {
+                return None;
+            }
+
+            let Node::Link(link) = nodes.next()? else {
+                return None;
+            };
+
+            let Node::Text(open) = nodes.next()? else {
+                return None;
+            };
+
+            if !open.value.ends_with("(") {
+                return None;
+            }
+
+            let nodes = nodes
+                .rev()
+                .cloned()
+                .chain(
+                    Some(open.clone())
+                        .into_iter()
+                        .map(|mut text| {
+                            text.value = text.value.trim_end_matches("(").trim().to_owned();
+                            text
+                        })
+                        .map(Node::Text),
+                )
+                .collect::<Vec<_>>();
+
+            let message = Text { nodes: &nodes };
+            let text = Text {
+                nodes: &link.children,
+            };
+
+            Some(Change {
+                message: message.to_string(),
+                url: Some((text.to_string(), link.url.to_owned())),
+            })
+        }
+
+        match inner(self.text.nodes) {
+            Some(change) => change,
+            None => Change {
+                message: self.message().to_string(),
+                url: None,
+            },
+        }
     }
 }
 

@@ -6,7 +6,7 @@ use markdown::ParseOptions;
 use super::{Changeset, ChangesetRef, MultilineText, ReferenceRef};
 
 /// A changelog release.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Release {
     version: String,
     date: Option<String>,
@@ -293,6 +293,24 @@ impl<'a> ReleaseRef<'a> {
                 })
             })
     }
+
+    /// Creates an owned release.
+    pub fn to_owned(&self) -> Release {
+        Release {
+            version: self.version().to_owned(),
+            date: self.date().map(ToOwned::to_owned),
+            url: None,
+            description: self.description().map(|text| text.to_string()),
+            changesets: self
+                .changesets()
+                .map(|changeset| changeset.to_owned())
+                .collect(),
+            references: self
+                .references()
+                .map(|reference| reference.to_owned())
+                .collect(),
+        }
+    }
 }
 
 impl<'a> ReleaseRef<'a> {
@@ -390,7 +408,7 @@ mod tests {
     use indoc::indoc;
     use pretty_assertions::assert_eq;
 
-    use crate::changelog::{Change, Changeset};
+    use crate::changelog::{Change, Changelog, Changeset};
 
     use super::Release;
 
@@ -433,5 +451,45 @@ mod tests {
         assert_eq!(release.changesets().count(), 1);
         assert_eq!(release.references().count(), 1);
         assert_eq!(release.to_string(), output);
+    }
+
+    #[test]
+    fn test_release_to_owned() {
+        let document = indoc! {"
+            ## [0.1.0] - 2024-01-01
+
+            ### Fixed
+
+            Fixed some things.
+
+            - Fixed `one` ([#1](https://github.com/ploys/example/pull/1))
+            - Fixed `two` ([#2](https://github.com/ploys/example/pull/2))
+
+            [0.1.0]: https://github.com/ploys/example/releases/tag/0.1.0\
+        "};
+
+        let changelog = document.parse::<Changelog>().unwrap();
+        let release_ref = changelog.get_release("0.1.0").unwrap();
+
+        let release = Release::new("0.1.0")
+            .with_date("2024-01-01")
+            .with_changeset(
+                Changeset::fixed()
+                    .with_description("Fixed some things.")
+                    .with_change(
+                        Change::new("Fixed `one`")
+                            .with_url("#1", "https://github.com/ploys/example/pull/1"),
+                    )
+                    .with_change(
+                        Change::new("Fixed `two`")
+                            .with_url("#2", "https://github.com/ploys/example/pull/2"),
+                    ),
+            )
+            .with_reference(
+                "0.1.0",
+                "https://github.com/ploys/example/releases/tag/0.1.0",
+            );
+
+        assert_eq!(release_ref.to_owned(), release);
     }
 }

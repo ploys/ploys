@@ -6,7 +6,7 @@ use markdown::ParseOptions;
 use super::{Change, ChangeRef, MultilineText};
 
 /// A changelog changeset.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Changeset {
     label: String,
     description: Option<String>,
@@ -210,6 +210,15 @@ impl<'a> ChangesetRef<'a> {
                     _ => None,
                 })
             })
+    }
+
+    /// Creates an owned changeset.
+    pub fn to_owned(&self) -> Changeset {
+        Changeset {
+            label: self.label().to_owned(),
+            description: self.description().map(|text| text.to_string()),
+            changes: self.changes().map(|change| change.to_owned()).collect(),
+        }
     }
 }
 
