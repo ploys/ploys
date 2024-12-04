@@ -5,20 +5,18 @@ mod payload;
 pub mod secret;
 
 use axum::extract::State;
-use ploys::changelog::Changelog;
 use ploys::package::BumpOrVersion;
 use ploys::project::Project;
 use ploys::repository::revision::Revision;
-use reqwest::Client;
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 
 use crate::state::AppState;
 
 use self::auth::get_installation_access_token;
 use self::error::Error;
-use self::payload::{Payload, RepositoryDispatchPayload};
+use self::payload::{Payload, PullRequestPayload, RepositoryDispatchPayload};
 
 /// Receives the GitHub webhook event payload.
 pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Error> {
@@ -26,13 +24,11 @@ pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Err
         Payload::PullRequest(payload) => match &*payload.action {
             "closed" if payload.pull_request.merged => {
                 if payload.pull_request.head.r#ref.starts_with("release/") {
-                    if let Some(sha) = payload.pull_request.merge_commit_sha {
+                    if let Some(sha) = &payload.pull_request.merge_commit_sha {
                         create_release(
-                            &payload.pull_request.head.r#ref[8..],
-                            &sha,
-                            payload.installation.id,
-                            payload.repository.id,
-                            &payload.repository.full_name,
+                            payload.pull_request.head.r#ref[8..].to_owned(),
+                            sha.clone(),
+                            payload,
                             &state,
                         )
                         .await?;
@@ -62,106 +58,54 @@ pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Err
 
 /// Creates a new release.
 async fn create_release(
-    release: &str,
-    sha: &str,
-    installation_id: u64,
-    repository_id: u64,
-    repository_name: &str,
+    release: String,
+    sha: String,
+    payload: PullRequestPayload,
     state: &AppState,
 ) -> Result<(), Error> {
-    let token = get_installation_access_token(installation_id, repository_id, state).await?;
-    let revision = Revision::sha(sha);
-    let project =
-        Project::github_with_revision_and_authentication_token(repository_name, revision, &token)?;
-    let package = project.packages().find(|package| {
-        release.starts_with(package.name())
-            && release.as_bytes().get(package.name().len()) == Some(&b'-')
-            && release[package.name().len() + 1..]
-                .parse::<Version>()
-                .is_ok()
+    let token =
+        get_installation_access_token(payload.installation.id, payload.repository.id, state)
+            .await?;
+
+    tokio::task::spawn_blocking(move || {
+        if let Err(err) = create_release_sync(token, release, sha, payload) {
+            println!("Error creating release: {err}");
+        }
     });
 
-    let (package, path, version) = match package {
-        Some(package) => (
-            package.name().to_owned(),
-            package.path().to_owned(),
-            release[package.name().len() + 1..]
-                .parse::<Version>()
-                .map_err(|_| Error::Payload)?,
-        ),
-        None => {
-            let version = release.parse::<Version>().map_err(|_| Error::Payload)?;
-            let package = project
-                .packages()
-                .find(|package| package.name() == project.name())
-                .ok_or_else(|| ploys::package::Error::NotFound(project.name().to_owned()))
-                .map_err(ploys::project::Error::Package)?;
+    Ok(())
+}
 
-            (
-                package.name().to_owned(),
-                package.path().to_owned(),
-                version,
-            )
-        }
-    };
+/// Creates a new release.
+fn create_release_sync(
+    token: String,
+    release: String,
+    sha: String,
+    payload: PullRequestPayload,
+) -> Result<(), Error> {
+    let project = Project::github_with_revision_and_authentication_token(
+        &payload.repository.full_name,
+        Revision::sha(sha),
+        &token,
+    )?;
 
-    let name = match package == project.name() {
-        true => format!("{version}"),
-        false => format!("{package} {version}"),
-    };
-
-    let tag_name = match package == project.name() {
-        true => format!("{version}"),
-        false => format!("{package}-{version}"),
-    };
-
-    let changelog_path = path.parent().expect("parent").join("CHANGELOG.md");
-    let changelog = match project.get_file_contents(changelog_path).ok() {
-        Some(bytes) => String::from_utf8(bytes)?
-            .parse::<Changelog>()
-            .expect("changelog"),
-        None => Changelog::new(),
-    };
-
-    let body = match changelog.get_release(version.to_string()) {
-        Some(release) => format!("{release:#}"),
-        None => {
-            let release = project.get_changelog_release(&package, &version)?;
-
-            format!("{release:#}")
-        }
-    };
-
-    let body = body.lines().skip(2).collect::<Vec<_>>().join("\n");
-    let prerelease = !version.pre.is_empty();
-    let is_latest = package == project.name() && !prerelease;
-
-    let client = Client::new();
-    let release_id = client
-        .post(format!(
-            "https://api.github.com/repos/{repository_name}/releases",
-        ))
-        .header("Accept", "application/vnd.github+json")
-        .header("Authorization", format!("Bearer {token}"))
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("User-Agent", "ploys/ploys")
-        .json(&CreateRelease {
-            tag_name,
-            target_commitish: sha.to_owned(),
-            name,
-            body,
-            draft: false,
-            prerelease,
-            generate_release_notes: false,
-            make_latest: is_latest.into(),
+    let package = project
+        .packages()
+        .find(|package| match package.is_primary() {
+            true => release.parse::<Version>().ok() == Some(package.version()),
+            false => {
+                release.starts_with(package.name())
+                    && release.as_bytes().get(package.name().len()) == Some(&b'-')
+                    && release[package.name().len() + 1..].parse::<Version>().ok()
+                        == Some(package.version())
+            }
         })
-        .send()
-        .await?
-        .json::<ReleaseResponse>()
-        .await?
-        .id;
+        .ok_or(ploys::package::Error::NotFound(release))
+        .map_err(ploys::project::Error::Package)?;
 
-    println!("Created release {release_id}");
+    let release = package.create_release().finish()?;
+
+    println!("Created release {}.", release.id());
 
     Ok(())
 }
@@ -219,39 +163,6 @@ struct ClientPayload {
     package: String,
     #[serde_as(as = "DisplayFromStr")]
     version: BumpOrVersion,
-}
-
-#[derive(Serialize)]
-struct CreateRelease {
-    tag_name: String,
-    target_commitish: String,
-    name: String,
-    body: String,
-    draft: bool,
-    prerelease: bool,
-    generate_release_notes: bool,
-    make_latest: MakeLatest,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "lowercase")]
-enum MakeLatest {
-    True,
-    False,
-}
-
-impl From<bool> for MakeLatest {
-    fn from(value: bool) -> Self {
-        match value {
-            true => Self::True,
-            false => Self::False,
-        }
-    }
-}
-
-#[derive(Deserialize)]
-struct ReleaseResponse {
-    id: u64,
 }
 
 #[cfg(test)]
