@@ -200,6 +200,10 @@ impl GitHub {
 }
 
 impl Remote for GitHub {
+    fn sha(&self) -> Result<String, super::Error> {
+        Ok(self.sha()?)
+    }
+
     fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, super::Error> {
         #[derive(Serialize)]
         struct CreateBlob {
@@ -440,6 +444,71 @@ impl Remote for GitHub {
             .number;
 
         Ok(number)
+    }
+
+    fn create_release(
+        &self,
+        tag: &str,
+        sha: &str,
+        name: &str,
+        body: &str,
+        prerelease: bool,
+        latest: bool,
+    ) -> Result<u64, super::Error> {
+        #[derive(Serialize)]
+        struct NewRelease {
+            tag_name: String,
+            target_commitish: String,
+            name: String,
+            body: String,
+            draft: bool,
+            prerelease: bool,
+            generate_release_notes: bool,
+            make_latest: MakeLatest,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "lowercase")]
+        enum MakeLatest {
+            True,
+            False,
+        }
+
+        impl From<bool> for MakeLatest {
+            fn from(value: bool) -> Self {
+                match value {
+                    true => Self::True,
+                    false => Self::False,
+                }
+            }
+        }
+
+        #[derive(Deserialize)]
+        struct ReleaseResponse {
+            id: u64,
+        }
+
+        let id = self
+            .repository
+            .post("releases", self.token.as_deref())
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(NewRelease {
+                tag_name: tag.to_owned(),
+                target_commitish: sha.to_owned(),
+                name: name.to_owned(),
+                body: body.to_owned(),
+                draft: false,
+                prerelease,
+                generate_release_notes: false,
+                make_latest: latest.into(),
+            })
+            .map_err(Error::from)?
+            .into_json::<ReleaseResponse>()
+            .map_err(Error::from)?
+            .id;
+
+        Ok(id)
     }
 }
 

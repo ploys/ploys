@@ -8,7 +8,6 @@ use reqwest::StatusCode;
 /// The webhook response error.
 #[derive(Debug)]
 pub enum Error {
-    Payload,
     Jwt(jsonwebtoken::errors::Error),
     Request(reqwest::Error),
     Project(ploys::project::Error),
@@ -19,7 +18,6 @@ pub enum Error {
 impl Error {
     pub fn status(&self) -> StatusCode {
         match self {
-            Self::Payload => StatusCode::UNPROCESSABLE_ENTITY,
             Self::Jwt(_) => StatusCode::FORBIDDEN,
             Self::Request(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Project(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -30,7 +28,6 @@ impl Error {
 
     pub fn message(&self) -> Cow<'static, str> {
         match self {
-            Self::Payload => Cow::Borrowed("Unsupported or invalid payload"),
             Self::Jwt(error) => Cow::Owned(format!("JWT: {error}")),
             Self::Request(error) => Cow::Owned(format!("Request: {error}")),
             Self::Project(error) => Cow::Owned(format!("Project: {error}")),
@@ -49,7 +46,6 @@ impl IntoResponse for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::Payload => None,
             Self::Jwt(err) => Some(err),
             Self::Request(err) => Some(err),
             Self::Project(err) => Some(err),

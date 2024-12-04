@@ -12,6 +12,9 @@ use super::Error;
 /// This defines the shared API of a remote repository to simplify feature flag
 /// handling.
 pub trait Remote {
+    /// Gets the commit SHA.
+    fn sha(&self) -> Result<String, Error>;
+
     /// Commits the changes to the repository.
     fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, Error>;
 
@@ -42,5 +45,16 @@ pub trait Remote {
         base: &str,
         title: &str,
         body: &str,
+    ) -> Result<u64, Error>;
+
+    /// Creates a release.
+    fn create_release(
+        &self,
+        tag: &str,
+        sha: &str,
+        name: &str,
+        body: &str,
+        prerelease: bool,
+        latest: bool,
     ) -> Result<u64, Error>;
 }

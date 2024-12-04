@@ -27,7 +27,7 @@ pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 pub use self::manifest::Manifest;
 use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
-pub use self::release::{ReleaseRequest, ReleaseRequestBuilder};
+pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 
 /// A project package.
 #[derive(Clone)]
@@ -179,6 +179,11 @@ impl<'a> Package<'a> {
         version: impl Into<BumpOrVersion>,
     ) -> ReleaseRequestBuilder<'a> {
         ReleaseRequestBuilder::new(self, version.into())
+    }
+
+    /// Constructs a new release builder.
+    pub fn create_release(self) -> ReleaseBuilder<'a> {
+        ReleaseBuilder::new(self)
     }
 }
 
