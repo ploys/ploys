@@ -463,7 +463,8 @@ mod tests {
             Fixed some things.
 
             - Fixed `one` ([#1](https://github.com/ploys/example/pull/1))
-            - Fixed `two` ([#2](https://github.com/ploys/example/pull/2))
+            - Fixed `two` ok ([#2](https://github.com/ploys/example/pull/2))
+            - Fixed three ([#3](https://github.com/ploys/example/pull/3))
 
             [0.1.0]: https://github.com/ploys/example/releases/tag/0.1.0\
         "};
@@ -481,8 +482,12 @@ mod tests {
                             .with_url("#1", "https://github.com/ploys/example/pull/1"),
                     )
                     .with_change(
-                        Change::new("Fixed `two`")
+                        Change::new("Fixed `two` ok")
                             .with_url("#2", "https://github.com/ploys/example/pull/2"),
+                    )
+                    .with_change(
+                        Change::new("Fixed three")
+                            .with_url("#3", "https://github.com/ploys/example/pull/3"),
                     ),
             )
             .with_reference(

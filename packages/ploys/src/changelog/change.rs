@@ -155,7 +155,7 @@ impl ChangeRef<'_> {
                     Some(open.clone())
                         .into_iter()
                         .map(|mut text| {
-                            text.value = text.value.trim_end_matches("(").trim().to_owned();
+                            text.value = text.value.trim_end_matches("(").trim_end().to_owned();
                             text
                         })
                         .map(Node::Text),
