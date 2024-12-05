@@ -5,6 +5,7 @@
 
 mod error;
 mod remote;
+mod spec;
 
 #[cfg(feature = "git")]
 pub mod git;
@@ -23,6 +24,7 @@ use crate::file::File;
 
 pub use self::error::Error;
 pub(crate) use self::remote::Remote;
+pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
 
 /// A source code repository.
 pub enum Repository {
@@ -84,5 +86,20 @@ impl Repository {
             #[cfg(feature = "github")]
             Self::GitHub(github) => Ok(github.get_file_contents(path)?),
         }
+    }
+}
+
+impl TryFrom<RepoSpec> for Repository {
+    type Error = RepoSpecError;
+
+    fn try_from(spec: RepoSpec) -> Result<Self, Self::Error> {
+        #[cfg(feature = "github")]
+        if let Some(spec) = spec.to_github() {
+            use self::github::GitHub;
+
+            return Ok(Self::GitHub(GitHub::new(spec)));
+        }
+
+        Err(RepoSpecError::invalid(spec.to_string()))
     }
 }

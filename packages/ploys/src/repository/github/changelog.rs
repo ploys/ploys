@@ -67,7 +67,9 @@ pub(super) fn get_release(
 
     release.set_date(timestamp.format(&Iso8601::DATE).expect("date"));
     release.set_url(format!(
-        "https://github.com/{repository}/releases/tag/{tagname}"
+        "https://github.com/{}/{}/releases/tag/{tagname}",
+        repository.owner(),
+        repository.name()
     ));
 
     for pull_request in pull_requests {

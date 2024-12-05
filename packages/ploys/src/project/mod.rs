@@ -94,9 +94,17 @@ impl Project {
     where
         R: AsRef<str>,
     {
-        use crate::repository::github::GitHub;
+        use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
-        let repository = Repository::GitHub(GitHub::new(repository)?.validated()?);
+        let repository = Repository::GitHub(
+            GitHub::new(
+                repository
+                    .as_ref()
+                    .parse::<GitHubRepoSpec>()
+                    .map_err(GitHubError::Spec)?,
+            )
+            .validated()?,
+        );
         let name = repository.get_name()?;
 
         Ok(Self { repository, name })
@@ -108,12 +116,17 @@ impl Project {
         R: AsRef<str>,
         V: Into<crate::repository::revision::Revision>,
     {
-        use crate::repository::github::GitHub;
+        use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
         let repository = Repository::GitHub(
-            GitHub::new(repository)?
-                .with_revision(revision)
-                .validated()?,
+            GitHub::new(
+                repository
+                    .as_ref()
+                    .parse::<GitHubRepoSpec>()
+                    .map_err(GitHubError::Spec)?,
+            )
+            .with_revision(revision)
+            .validated()?,
         );
         let name = repository.get_name()?;
 
@@ -126,12 +139,17 @@ impl Project {
         R: AsRef<str>,
         T: Into<String>,
     {
-        use crate::repository::github::GitHub;
+        use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
         let repository = Repository::GitHub(
-            GitHub::new(repository)?
-                .with_authentication_token(token)
-                .validated()?,
+            GitHub::new(
+                repository
+                    .as_ref()
+                    .parse::<GitHubRepoSpec>()
+                    .map_err(GitHubError::Spec)?,
+            )
+            .with_authentication_token(token)
+            .validated()?,
         );
         let name = repository.get_name()?;
 
@@ -150,13 +168,18 @@ impl Project {
         V: Into<crate::repository::revision::Revision>,
         T: Into<String>,
     {
-        use crate::repository::github::GitHub;
+        use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
         let repository = Repository::GitHub(
-            GitHub::new(repository)?
-                .with_revision(revision)
-                .with_authentication_token(token)
-                .validated()?,
+            GitHub::new(
+                repository
+                    .as_ref()
+                    .parse::<GitHubRepoSpec>()
+                    .map_err(GitHubError::Spec)?,
+            )
+            .with_revision(revision)
+            .with_authentication_token(token)
+            .validated()?,
         );
         let name = repository.get_name()?;
 

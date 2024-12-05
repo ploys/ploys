@@ -6,6 +6,7 @@
 mod changelog;
 mod error;
 mod repo;
+mod spec;
 
 use std::collections::BTreeSet;
 use std::io;
@@ -21,6 +22,7 @@ use crate::package::BumpOrVersion;
 
 pub use self::error::Error;
 pub use self::repo::Repository;
+pub use self::spec::GitHubRepoSpec;
 
 use super::revision::Revision;
 use super::Remote;
@@ -36,16 +38,13 @@ pub struct GitHub {
 
 impl GitHub {
     /// Creates a GitHub repository.
-    pub(crate) fn new<R>(repository: R) -> Result<Self, Error>
-    where
-        R: AsRef<str>,
-    {
-        Ok(Self {
-            repository: repository.as_ref().parse::<Repository>()?,
+    pub(crate) fn new(spec: impl Into<GitHubRepoSpec>) -> Self {
+        Self {
+            repository: Repository::new(spec),
             revision: Revision::head(),
             token: None,
             file_cache: FileCache::new(),
-        })
+        }
     }
 }
 
@@ -125,9 +124,13 @@ impl GitHub {
     }
 
     pub fn get_url(&self) -> Result<Url, Error> {
-        Ok(format!("https://github.com/{}", self.repository)
-            .parse()
-            .unwrap())
+        Ok(format!(
+            "https://github.com/{}/{}",
+            self.repository.owner(),
+            self.repository.name()
+        )
+        .parse()
+        .unwrap())
     }
 
     /// Gets the file at the given path.
@@ -531,19 +534,12 @@ struct RepositoryDispatchEvent<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Error, GitHub};
-
-    #[test]
-    fn test_github_constructor() {
-        assert!(GitHub::new("ploys/ploys").is_ok());
-        assert!(GitHub::new("rust-lang/rust").is_ok());
-        assert!(GitHub::new("one/two/three").is_err());
-    }
+    use super::{Error, GitHub, GitHubRepoSpec};
 
     #[test]
     fn test_github_url() -> Result<(), Error> {
         assert_eq!(
-            GitHub::new("ploys/ploys")?.get_url()?,
+            GitHub::new("ploys/ploys".parse::<GitHubRepoSpec>()?).get_url()?,
             "https://github.com/ploys/ploys".parse().unwrap()
         );
 

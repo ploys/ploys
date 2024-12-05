@@ -1,6 +1,5 @@
 mod package;
 mod project;
-mod util;
 
 use anyhow::Error;
 use clap::{Parser, Subcommand};
