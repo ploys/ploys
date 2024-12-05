@@ -1,9 +1,8 @@
-use anyhow::Error;
+use anyhow::{bail, Error};
 use clap::Args;
 use ploys::package::BumpOrVersion;
 use ploys::project::Project;
-
-use crate::util::repo_or_url::RepoOrUrl;
+use ploys::repository::RepoSpec;
 
 /// The release command.
 #[derive(Args)]
@@ -16,7 +15,7 @@ pub struct Release {
 
     /// The remote GitHub repository owner/repo or URL.
     #[clap(long)]
-    remote: Option<RepoOrUrl>,
+    remote: Option<RepoSpec>,
 
     /// The authentication token for GitHub API access.
     #[clap(long, env = "GITHUB_TOKEN", hide_env_values = true)]
@@ -32,14 +31,15 @@ impl Release {
                 let project = Project::git(".")?;
                 let url = project.get_url()?;
 
-                RepoOrUrl::Url(url)
+                RepoSpec::Url(url)
             }
         };
 
-        let project = Project::github_with_authentication_token(
-            remote.try_into_repo()?.to_string(),
-            self.token,
-        )?;
+        let Some(github) = remote.to_github() else {
+            bail!("Unsupported remote repository: {remote}");
+        };
+
+        let project = Project::github_with_authentication_token(github.to_string(), self.token)?;
 
         project.request_package_release(self.package, self.version)?;
 

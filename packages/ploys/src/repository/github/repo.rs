@@ -1,26 +1,27 @@
-use std::fmt::{self, Display};
-use std::str::FromStr;
-
 use ureq::Request;
 
-use super::Error;
+use super::{Error, GitHubRepoSpec};
 
 /// The GitHub repository information.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Repository {
-    owner: String,
-    repo: String,
+    spec: GitHubRepoSpec,
 }
 
 impl Repository {
+    /// Constructs a new repository.
+    pub(crate) fn new(spec: impl Into<GitHubRepoSpec>) -> Self {
+        Self { spec: spec.into() }
+    }
+
     /// Gets the repository owner.
     pub fn owner(&self) -> &str {
-        &self.owner
+        self.spec.owner()
     }
 
     /// Gets the repository name.
     pub fn name(&self) -> &str {
-        &self.repo
+        self.spec.repo()
     }
 
     /// Validates whether the remote repository exists.
@@ -38,10 +39,10 @@ impl Repository {
         P: AsRef<str>,
     {
         match path.as_ref() {
-            "" => format!("https://api.github.com/repos/{}", self),
+            "" => format!("https://api.github.com/repos/{}", self.spec),
             path => format!(
                 "https://api.github.com/repos/{}/{}",
-                self,
+                self.spec,
                 path.trim_start_matches('/')
             ),
         }
@@ -104,42 +105,5 @@ impl Repository {
         }
 
         request
-    }
-}
-
-impl Display for Repository {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}/{}", self.owner, self.repo)?;
-
-        Ok(())
-    }
-}
-
-impl FromStr for Repository {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.split_once('/') {
-            Some((owner, repo)) => match repo.contains('/') {
-                true => Err(Error::Parse(format!("Invalid repository format `{s}`"))),
-                false => Ok(Self {
-                    owner: owner.to_string(),
-                    repo: repo.to_string(),
-                }),
-            },
-            None => Err(Error::Parse(format!("Invalid repository format `{s}`"))),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Repository;
-
-    #[test]
-    fn test_repository_parser() {
-        assert!("ploys/ploys".parse::<Repository>().is_ok());
-        assert!("rust-lang/rust".parse::<Repository>().is_ok());
-        assert!("one/two/three".parse::<Repository>().is_err());
     }
 }

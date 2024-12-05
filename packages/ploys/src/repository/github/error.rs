@@ -1,6 +1,8 @@
 use std::fmt::{self, Display};
 use std::io;
 
+use crate::repository::RepoSpecError;
+
 /// The GitHub repository error.
 #[derive(Debug)]
 pub enum Error {
@@ -12,6 +14,8 @@ pub enum Error {
     Parse(String),
     /// An I/O error.
     Io(io::Error),
+    /// A specification error.
+    Spec(RepoSpecError),
 }
 
 impl Display for Error {
@@ -27,11 +31,18 @@ impl Display for Error {
             Self::Transport(transport) => Display::fmt(transport, f),
             Self::Parse(message) => write!(f, "Parse error: {message}"),
             Self::Io(err) => Display::fmt(err, f),
+            Self::Spec(err) => Display::fmt(err, f),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<RepoSpecError> for Error {
+    fn from(err: RepoSpecError) -> Self {
+        Self::Spec(err)
+    }
+}
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {

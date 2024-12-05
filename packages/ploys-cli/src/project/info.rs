@@ -1,17 +1,16 @@
-use anyhow::Error;
+use anyhow::{bail, Error};
 use clap::Args;
 use console::style;
 use ploys::project::Project;
 use ploys::repository::revision::Revision;
-
-use crate::util::repo_or_url::RepoOrUrl;
+use ploys::repository::RepoSpec;
 
 /// Gets the project information.
 #[derive(Args)]
 pub struct Info {
-    /// The remote GitHub repository owner/repo or URL.
+    /// The remote repository specification.
     #[clap(long)]
-    remote: Option<RepoOrUrl>,
+    remote: Option<RepoSpec>,
 
     /// The target branch name.
     #[arg(long, conflicts_with_all = ["tag", "sha"])]
@@ -34,17 +33,25 @@ impl Info {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
         match &self.remote {
-            Some(remote) => match &self.token {
-                Some(token) => self.print(Project::github_with_revision_and_authentication_token(
-                    remote.clone().try_into_repo()?.to_string(),
-                    self.revision(),
-                    token,
-                )?),
-                None => self.print(Project::github_with_revision(
-                    remote.clone().try_into_repo()?.to_string(),
-                    self.revision(),
-                )?),
-            },
+            Some(remote) => {
+                let Some(github) = remote.to_github() else {
+                    bail!("Unsupported remote repository: {remote}");
+                };
+
+                match &self.token {
+                    Some(token) => {
+                        self.print(Project::github_with_revision_and_authentication_token(
+                            github.to_string(),
+                            self.revision(),
+                            token,
+                        )?)
+                    }
+                    None => self.print(Project::github_with_revision(
+                        github.to_string(),
+                        self.revision(),
+                    )?),
+                }
+            }
             None => self.print(Project::git_with_revision(".", self.revision())?),
         }
     }
