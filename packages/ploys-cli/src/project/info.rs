@@ -25,7 +25,7 @@ pub struct Info {
     sha: Option<String>,
 
     /// The authentication token for GitHub API access.
-    #[clap(long, env = "GITHUB_TOKEN")]
+    #[clap(long, env = "GITHUB_TOKEN", hide_env_values = true)]
     token: Option<String>,
 }
 
