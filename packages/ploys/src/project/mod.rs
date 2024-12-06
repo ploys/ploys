@@ -278,3 +278,21 @@ impl TryFrom<Repository> for Project {
         Self::open(repository)
     }
 }
+
+#[cfg(feature = "git")]
+impl TryFrom<crate::repository::git::Git> for Project {
+    type Error = Error;
+
+    fn try_from(repository: crate::repository::git::Git) -> Result<Self, Self::Error> {
+        Self::open(repository)
+    }
+}
+
+#[cfg(feature = "github")]
+impl TryFrom<crate::repository::github::GitHub> for Project {
+    type Error = Error;
+
+    fn try_from(repository: crate::repository::github::GitHub) -> Result<Self, Self::Error> {
+        Self::open(repository)
+    }
+}
