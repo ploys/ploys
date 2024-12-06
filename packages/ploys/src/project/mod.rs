@@ -57,6 +57,16 @@ pub struct Project {
     name: String,
 }
 
+impl Project {
+    /// Opens an existing project from the given repository.
+    pub fn open(repository: impl Into<Repository>) -> Result<Self, Error> {
+        let repository = repository.into();
+        let name = repository.get_name()?;
+
+        Ok(Self { repository, name })
+    }
+}
+
 #[cfg(feature = "git")]
 impl Project {
     /// Opens a project with the Git repository.
@@ -66,10 +76,7 @@ impl Project {
     {
         use crate::repository::git::Git;
 
-        let repository = Repository::Git(Git::new(path)?);
-        let name = repository.get_name()?;
-
-        Ok(Self { repository, name })
+        Self::open(Git::new(path)?)
     }
 
     /// Opens a project with the Git repository and revision.
@@ -80,10 +87,7 @@ impl Project {
     {
         use crate::repository::git::Git;
 
-        let repository = Repository::Git(Git::new(path)?.with_revision(revision));
-        let name = repository.get_name()?;
-
-        Ok(Self { repository, name })
+        Self::open(Git::new(path)?.with_revision(revision))
     }
 }
 
@@ -96,7 +100,7 @@ impl Project {
     {
         use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
-        let repository = Repository::GitHub(
+        Self::open(
             GitHub::new(
                 repository
                     .as_ref()
@@ -104,10 +108,7 @@ impl Project {
                     .map_err(GitHubError::Spec)?,
             )
             .validated()?,
-        );
-        let name = repository.get_name()?;
-
-        Ok(Self { repository, name })
+        )
     }
 
     /// Opens a project with the GitHub repository and revision.
@@ -118,7 +119,7 @@ impl Project {
     {
         use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
-        let repository = Repository::GitHub(
+        Self::open(
             GitHub::new(
                 repository
                     .as_ref()
@@ -127,10 +128,7 @@ impl Project {
             )
             .with_revision(revision)
             .validated()?,
-        );
-        let name = repository.get_name()?;
-
-        Ok(Self { repository, name })
+        )
     }
 
     /// Opens a project with the GitHub repository and authentication token.
@@ -141,7 +139,7 @@ impl Project {
     {
         use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
-        let repository = Repository::GitHub(
+        Self::open(
             GitHub::new(
                 repository
                     .as_ref()
@@ -150,10 +148,7 @@ impl Project {
             )
             .with_authentication_token(token)
             .validated()?,
-        );
-        let name = repository.get_name()?;
-
-        Ok(Self { repository, name })
+        )
     }
 
     /// Opens a project with the GitHub repository, revision, and authentication
@@ -170,7 +165,7 @@ impl Project {
     {
         use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
-        let repository = Repository::GitHub(
+        Self::open(
             GitHub::new(
                 repository
                     .as_ref()
@@ -180,10 +175,7 @@ impl Project {
             .with_revision(revision)
             .with_authentication_token(token)
             .validated()?,
-        );
-        let name = repository.get_name()?;
-
-        Ok(Self { repository, name })
+        )
     }
 }
 
@@ -276,5 +268,31 @@ impl Project {
     /// Gets the file index.
     pub(crate) fn get_file_index(&self) -> &BTreeSet<PathBuf> {
         self.repository.get_file_index()
+    }
+}
+
+impl TryFrom<Repository> for Project {
+    type Error = Error;
+
+    fn try_from(repository: Repository) -> Result<Self, Self::Error> {
+        Self::open(repository)
+    }
+}
+
+#[cfg(feature = "git")]
+impl TryFrom<crate::repository::git::Git> for Project {
+    type Error = Error;
+
+    fn try_from(repository: crate::repository::git::Git) -> Result<Self, Self::Error> {
+        Self::open(repository)
+    }
+}
+
+#[cfg(feature = "github")]
+impl TryFrom<crate::repository::github::GitHub> for Project {
+    type Error = Error;
+
+    fn try_from(repository: crate::repository::github::GitHub) -> Result<Self, Self::Error> {
+        Self::open(repository)
     }
 }

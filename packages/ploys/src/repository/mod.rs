@@ -89,6 +89,20 @@ impl Repository {
     }
 }
 
+#[cfg(feature = "git")]
+impl From<self::git::Git> for Repository {
+    fn from(git: self::git::Git) -> Self {
+        Self::Git(git)
+    }
+}
+
+#[cfg(feature = "github")]
+impl From<self::github::GitHub> for Repository {
+    fn from(github: self::github::GitHub) -> Self {
+        Self::GitHub(github)
+    }
+}
+
 impl TryFrom<RepoSpec> for Repository {
     type Error = RepoSpecError;
 
