@@ -11,6 +11,7 @@ use super::Project;
 
 /// An iterator over packages in a project.
 pub struct Packages<'a> {
+    kinds: <PackageKind as IntoEnumIterator>::Iterator,
     state: State<'a>,
 }
 
@@ -18,6 +19,7 @@ impl<'a> Packages<'a> {
     /// Constructs a new packages iterator.
     pub(super) fn new(project: &'a Project) -> Self {
         Self {
+            kinds: PackageKind::iter(),
             state: State::Initial { project },
         }
     }
@@ -30,50 +32,47 @@ impl<'a> Iterator for Packages<'a> {
         loop {
             match &mut self.state {
                 State::Initial { project } => {
-                    let mut kinds = PackageKind::iter();
+                    let kind = self.kinds.next()?;
 
-                    match kinds.next() {
-                        Some(kind) => match project.get_file(kind.file_name()) {
-                            Some(File::Manifest(manifest)) => {
-                                self.state = State::Manifest {
-                                    packages: ManifestPackages {
-                                        project,
-                                        manifest,
-                                        members: match manifest.members() {
-                                            Ok(members) => members,
-                                            Err(_) => continue,
-                                        },
-                                        files: project.get_file_index().iter(),
-                                    },
-                                    kinds,
-                                };
-                                continue;
-                            }
-                            _ => continue,
-                        },
-                        None => break None,
+                    if let Some(File::Manifest(manifest)) = project.get_file(kind.file_name()) {
+                        if let Ok(members) = manifest.members() {
+                            self.state = State::Manifest {
+                                packages: ManifestPackages {
+                                    project,
+                                    manifest,
+                                    members,
+                                    files: project.get_file_index().iter(),
+                                },
+                            };
+                        }
                     }
                 }
-                State::Manifest { packages, kinds } => match packages.next() {
+                State::Manifest { packages } => match packages.next() {
                     Some(package) => break Some(package),
-                    None => match kinds.next() {
-                        Some(kind) => packages.next_kind(kind),
-                        None => break None,
-                    },
+                    None => {
+                        let kind = self.kinds.next()?;
+
+                        if let Some(File::Manifest(manifest)) =
+                            packages.project.get_file(kind.file_name())
+                        {
+                            if let Ok(members) = manifest.members() {
+                                packages.manifest = manifest;
+                                packages.members = members;
+                                packages.files = packages.project.get_file_index().iter();
+                            }
+                        }
+                    }
                 },
             }
         }
     }
 }
 
+impl FusedIterator for Packages<'_> {}
+
 enum State<'a> {
-    Initial {
-        project: &'a Project,
-    },
-    Manifest {
-        packages: ManifestPackages<'a>,
-        kinds: <PackageKind as IntoEnumIterator>::Iterator,
-    },
+    Initial { project: &'a Project },
+    Manifest { packages: ManifestPackages<'a> },
 }
 
 /// An iterator over packages in a package manifest.
@@ -82,18 +81,6 @@ struct ManifestPackages<'a> {
     manifest: &'a Manifest,
     members: Members,
     files: std::collections::btree_set::Iter<'a, PathBuf>,
-}
-
-impl ManifestPackages<'_> {
-    /// Advances the iterator to the next kind.
-    fn next_kind(&mut self, kind: PackageKind) {
-        let Some(File::Manifest(manifest)) = self.project.get_file(kind.file_name()) else {
-            return;
-        };
-
-        self.manifest = manifest;
-        self.files = self.project.get_file_index().iter();
-    }
 }
 
 impl<'a> Iterator for ManifestPackages<'a> {
