@@ -103,6 +103,13 @@ impl From<self::github::GitHub> for Repository {
     }
 }
 
+#[cfg(feature = "github")]
+impl From<self::github::GitHubRepoSpec> for Repository {
+    fn from(github: self::github::GitHubRepoSpec) -> Self {
+        Self::GitHub(github.into())
+    }
+}
+
 impl TryFrom<RepoSpec> for Repository {
     type Error = RepoSpecError;
 
@@ -111,7 +118,7 @@ impl TryFrom<RepoSpec> for Repository {
         if let Some(spec) = spec.to_github() {
             use self::github::GitHub;
 
-            return Ok(Self::GitHub(GitHub::new(spec)));
+            return Ok(Self::GitHub(GitHub::from(spec)));
         }
 
         Err(RepoSpecError::invalid(spec.to_string()))

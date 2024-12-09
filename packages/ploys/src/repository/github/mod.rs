@@ -37,14 +37,21 @@ pub struct GitHub {
 }
 
 impl GitHub {
-    /// Creates a GitHub repository.
-    pub(crate) fn new(spec: impl Into<GitHubRepoSpec>) -> Self {
-        Self {
-            repository: Repository::new(spec),
+    /// Opens a GitHub repository.
+    ///
+    /// Note that this does not validate the existence of the repository as it
+    /// may require an authentication token. Call `validated` to ensure that a
+    /// private repository exists after calling `with_authentication_token`.
+    pub fn open<R>(repo: R) -> Result<Self, Error>
+    where
+        R: TryInto<GitHubRepoSpec, Error: Into<Error>>,
+    {
+        Ok(Self {
+            repository: Repository::new(repo.try_into().map_err(Into::into)?),
             revision: Revision::head(),
             token: None,
             file_cache: FileCache::new(),
-        }
+        })
     }
 }
 
@@ -54,22 +61,22 @@ impl GitHub {
         self.revision = revision.into();
         self
     }
-}
 
-impl GitHub {
     /// Builds the repository with the given authentication token.
-    pub(crate) fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
+    pub fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
         self.token = Some(token.into());
         self
     }
 
     /// Builds the repository with validation to ensure it exists.
-    pub(crate) fn validated(self) -> Result<Self, Error> {
+    pub fn validated(self) -> Result<Self, Error> {
         self.repository.validate(self.token.as_deref())?;
 
         Ok(self)
     }
+}
 
+impl GitHub {
     /// Gets the commit SHA.
     pub(crate) fn sha(&self) -> Result<String, Error> {
         #[derive(serde::Deserialize)]
@@ -516,6 +523,17 @@ impl Remote for GitHub {
     }
 }
 
+impl From<GitHubRepoSpec> for GitHub {
+    fn from(repo: GitHubRepoSpec) -> Self {
+        Self {
+            repository: Repository::new(repo),
+            revision: Revision::head(),
+            token: None,
+            file_cache: FileCache::new(),
+        }
+    }
+}
+
 #[derive(Deserialize)]
 struct TreeResponse {
     tree: Vec<TreeResponseEntry>,
@@ -535,12 +553,12 @@ struct RepositoryDispatchEvent<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Error, GitHub, GitHubRepoSpec};
+    use super::{Error, GitHub};
 
     #[test]
     fn test_github_url() -> Result<(), Error> {
         assert_eq!(
-            GitHub::new("ploys/ploys".parse::<GitHubRepoSpec>()?).get_url()?,
+            GitHub::open("ploys/ploys").unwrap().get_url()?,
             "https://github.com/ploys/ploys".parse().unwrap()
         );
 

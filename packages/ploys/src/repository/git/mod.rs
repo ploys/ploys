@@ -27,13 +27,10 @@ pub struct Git {
 }
 
 impl Git {
-    /// Creates a Git repository.
-    pub(crate) fn new<P>(path: P) -> Result<Self, Error>
-    where
-        P: AsRef<Path>,
-    {
+    /// Opens a Git repository.
+    pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
         Ok(Self {
-            repository: ThreadSafeRepository::open(path.as_ref())?,
+            repository: ThreadSafeRepository::open(path)?,
             revision: Revision::Head,
             file_cache: FileCache::new(),
         })
