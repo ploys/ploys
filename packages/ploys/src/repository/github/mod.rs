@@ -139,6 +139,7 @@ impl GitHub {
             .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
                 Ok(bytes) => Ok(Some(bytes)),
                 Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
+                Err(Error::Response(404)) => Ok(None),
                 Err(err) => Err(err),
             })
             .inspect_err(|err| println!("Error loading file `{}`: {err}", path.as_ref().display()))
