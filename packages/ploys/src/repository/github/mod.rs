@@ -525,12 +525,7 @@ impl Remote for GitHub {
 
 impl From<GitHubRepoSpec> for GitHub {
     fn from(repo: GitHubRepoSpec) -> Self {
-        Self {
-            repository: Repository::new(repo),
-            revision: Revision::head(),
-            token: None,
-            file_cache: FileCache::new(),
-        }
+        Self::open(repo).expect("valid repo specification")
     }
 }
 

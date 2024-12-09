@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::fmt::{self, Display};
 use std::io;
 
@@ -56,5 +57,11 @@ impl From<ureq::Error> for Error {
             ureq::Error::Status(status_code, _) => Self::Response(status_code),
             ureq::Error::Transport(transport) => Self::Transport(Box::new(transport)),
         }
+    }
+}
+
+impl From<Infallible> for Error {
+    fn from(err: Infallible) -> Self {
+        match err {}
     }
 }

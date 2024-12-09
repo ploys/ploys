@@ -41,15 +41,12 @@ impl Info {
                 match &self.token {
                     Some(token) => {
                         self.print(Project::github_with_revision_and_authentication_token(
-                            github.to_string(),
+                            github,
                             self.revision(),
                             token,
                         )?)
                     }
-                    None => self.print(Project::github_with_revision(
-                        github.to_string(),
-                        self.revision(),
-                    )?),
+                    None => self.print(Project::github_with_revision(github, self.revision())?),
                 }
             }
             None => self.print(Project::git_with_revision(".", self.revision())?),
