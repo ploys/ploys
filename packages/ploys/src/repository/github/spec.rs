@@ -5,6 +5,8 @@ use url::Url;
 
 use crate::repository::spec::Error;
 
+use super::GitHub;
+
 /// The GitHub repository specification.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GitHubRepoSpec {
@@ -47,6 +49,11 @@ impl GitHubRepoSpec {
         Url::parse(&format!("https://github.com/{}", self))
             .expect("constructor ensures valid path components")
     }
+
+    /// Opens the repository.
+    pub fn open(self) -> GitHub {
+        GitHub::from(self)
+    }
 }
 
 impl Display for GitHubRepoSpec {
@@ -63,6 +70,30 @@ impl FromStr for GitHubRepoSpec {
             Some((owner, repo)) => Self::new(owner, repo),
             None => Err(Error::invalid(spec)),
         }
+    }
+}
+
+impl TryFrom<&str> for GitHubRepoSpec {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        value.parse()
+    }
+}
+
+impl TryFrom<&String> for GitHubRepoSpec {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        value.parse()
+    }
+}
+
+impl TryFrom<String> for GitHubRepoSpec {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.parse()
     }
 }
 

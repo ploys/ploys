@@ -68,114 +68,94 @@ impl Project {
 }
 
 #[cfg(feature = "git")]
-impl Project {
-    /// Opens a project with the Git repository.
-    pub fn git<P>(path: P) -> Result<Self, Error>
-    where
-        P: AsRef<Path>,
-    {
-        use crate::repository::git::Git;
+mod git {
+    use std::path::PathBuf;
 
-        Self::open(Git::new(path)?)
-    }
+    use crate::repository::git::Git;
+    use crate::repository::revision::Revision;
 
-    /// Opens a project with the Git repository and revision.
-    pub fn git_with_revision<P, R>(path: P, revision: R) -> Result<Self, Error>
-    where
-        P: AsRef<Path>,
-        R: Into<crate::repository::revision::Revision>,
-    {
-        use crate::repository::git::Git;
+    use super::{Error, Project};
 
-        Self::open(Git::new(path)?.with_revision(revision))
+    /// The [`Git`] repository constructors.
+    impl Project {
+        /// Opens a project from a [`Git`] repository.
+        pub fn git<P>(path: P) -> Result<Self, Error>
+        where
+            P: Into<PathBuf>,
+        {
+            Self::open(Git::open(path)?)
+        }
+
+        /// Opens a project from a [`Git`] repository and revision.
+        pub fn git_with_revision<P, V>(path: P, revision: V) -> Result<Self, Error>
+        where
+            P: Into<PathBuf>,
+            V: Into<Revision>,
+        {
+            Self::open(Git::open(path)?.with_revision(revision))
+        }
     }
 }
 
 #[cfg(feature = "github")]
-impl Project {
-    /// Opens a project with the GitHub repository.
-    pub fn github<R>(repository: R) -> Result<Self, Error>
-    where
-        R: AsRef<str>,
-    {
-        use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
+mod github {
+    use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
+    use crate::repository::revision::Revision;
 
-        Self::open(
-            GitHub::new(
-                repository
-                    .as_ref()
-                    .parse::<GitHubRepoSpec>()
-                    .map_err(GitHubError::Spec)?,
+    use super::{Error, Project};
+
+    /// The [`GitHub`] repository constructors.
+    impl Project {
+        /// Opens a project from a [`GitHub`] repository.
+        pub fn github<R>(repo: R) -> Result<Self, Error>
+        where
+            R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
+        {
+            Self::open(GitHub::open(repo)?)
+        }
+
+        /// Opens a project from a [`GitHub`] repository and revision.
+        pub fn github_with_revision<R, V>(repo: R, revision: V) -> Result<Self, Error>
+        where
+            R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
+            V: Into<Revision>,
+        {
+            Self::open(GitHub::open(repo)?.with_revision(revision).validated()?)
+        }
+
+        /// Opens a project from a [`GitHub`] repository and authentication
+        /// token.
+        pub fn github_with_authentication_token<R, T>(repo: R, token: T) -> Result<Self, Error>
+        where
+            R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
+            T: Into<String>,
+        {
+            Self::open(
+                GitHub::open(repo)?
+                    .with_authentication_token(token)
+                    .validated()?,
             )
-            .validated()?,
-        )
-    }
+        }
 
-    /// Opens a project with the GitHub repository and revision.
-    pub fn github_with_revision<R, V>(repository: R, revision: V) -> Result<Self, Error>
-    where
-        R: AsRef<str>,
-        V: Into<crate::repository::revision::Revision>,
-    {
-        use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
-
-        Self::open(
-            GitHub::new(
-                repository
-                    .as_ref()
-                    .parse::<GitHubRepoSpec>()
-                    .map_err(GitHubError::Spec)?,
+        /// Opens a project from a [`GitHub`] repository, revision, and
+        /// authentication token.
+        pub fn github_with_revision_and_authentication_token<R, V, T>(
+            repo: R,
+            revision: V,
+            token: T,
+        ) -> Result<Self, Error>
+        where
+            R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
+            V: Into<Revision>,
+            T: Into<String>,
+        {
+            Self::open(
+                GitHub::open(repo)?
+                    .with_revision(revision)
+                    .with_authentication_token(token)
+                    .validated()?,
             )
-            .with_revision(revision)
-            .validated()?,
-        )
-    }
-
-    /// Opens a project with the GitHub repository and authentication token.
-    pub fn github_with_authentication_token<R, T>(repository: R, token: T) -> Result<Self, Error>
-    where
-        R: AsRef<str>,
-        T: Into<String>,
-    {
-        use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
-
-        Self::open(
-            GitHub::new(
-                repository
-                    .as_ref()
-                    .parse::<GitHubRepoSpec>()
-                    .map_err(GitHubError::Spec)?,
-            )
-            .with_authentication_token(token)
-            .validated()?,
-        )
-    }
-
-    /// Opens a project with the GitHub repository, revision, and authentication
-    /// token.
-    pub fn github_with_revision_and_authentication_token<R, V, T>(
-        repository: R,
-        revision: V,
-        token: T,
-    ) -> Result<Self, Error>
-    where
-        R: AsRef<str>,
-        V: Into<crate::repository::revision::Revision>,
-        T: Into<String>,
-    {
-        use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
-
-        Self::open(
-            GitHub::new(
-                repository
-                    .as_ref()
-                    .parse::<GitHubRepoSpec>()
-                    .map_err(GitHubError::Spec)?,
-            )
-            .with_revision(revision)
-            .with_authentication_token(token)
-            .validated()?,
-        )
+        }
     }
 }
 
