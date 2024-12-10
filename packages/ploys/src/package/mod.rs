@@ -192,7 +192,7 @@ impl<'a> Package<'a> {
     /// all development to be on the default branch in the repository settings.
     pub fn request_release(
         &self,
-        version: impl Into<crate::package::BumpOrVersion>,
+        version: impl Into<BumpOrVersion>,
     ) -> Result<(), crate::project::Error> {
         self.project
             .get_remote()
