@@ -10,7 +10,7 @@ pub mod lockfile;
 pub mod manifest;
 mod release;
 
-use std::borrow::Cow;
+use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
@@ -184,6 +184,43 @@ impl<'a> Package<'a> {
     /// Constructs a new release builder.
     pub fn create_release(self) -> ReleaseBuilder<'a> {
         ReleaseBuilder::new(self)
+    }
+
+    /// Requests the release of the specified package version.
+    ///
+    /// It does not yet support parallel release or hotfix branches and expects
+    /// all development to be on the default branch in the repository settings.
+    pub fn request_release(
+        &self,
+        version: impl Into<BumpOrVersion>,
+    ) -> Result<(), crate::project::Error> {
+        self.project
+            .get_remote()
+            .ok_or(crate::project::Error::Unsupported)?
+            .request_package_release(self.name(), version.into())?;
+
+        Ok(())
+    }
+
+    /// Builds the changelog release for the given package version.
+    ///
+    /// This method queries the GitHub API to generate new release information
+    /// and may differ to the existing release information or changelogs. This
+    /// includes information for new releases as well as existing ones.
+    ///
+    /// It does not yet support parallel release or hotfix branches and expects
+    /// all development to be on the default branch in the repository settings.
+    pub fn build_release_notes(
+        &self,
+        version: impl Borrow<Version>,
+    ) -> Result<crate::changelog::Release, crate::project::Error> {
+        let release = self
+            .project
+            .get_remote()
+            .ok_or(crate::project::Error::Unsupported)?
+            .get_changelog_release(self.name(), version.borrow(), self.is_primary())?;
+
+        Ok(release)
     }
 }
 
