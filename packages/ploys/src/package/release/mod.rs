@@ -70,10 +70,7 @@ impl<'a> ReleaseBuilder<'a> {
 
         let release = match release {
             Some(release) => release.to_owned(),
-            None => self
-                .package
-                .project
-                .get_changelog_release(self.package.name(), &version)?,
+            None => self.package.build_release_notes(&version)?,
         };
 
         let body = format!("{release:#}")

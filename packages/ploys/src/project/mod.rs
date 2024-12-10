@@ -37,11 +37,9 @@
 mod error;
 mod packages;
 
-use std::borrow::Borrow;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use semver::Version;
 use url::Url;
 
 use crate::file::File;
@@ -182,49 +180,6 @@ impl Project {
     /// Gets an iterator over the project packages.
     pub fn packages(&self) -> Packages<'_> {
         Packages::new(self)
-    }
-}
-
-impl Project {
-    /// Requests the release of the specified package version.
-    ///
-    /// It does not yet support parallel release or hotfix branches and expects
-    /// all development to be on the default branch in the repository settings.
-    pub fn request_package_release(
-        &self,
-        package: impl AsRef<str>,
-        version: impl Into<crate::package::BumpOrVersion>,
-    ) -> Result<(), Error> {
-        self.get_remote()
-            .ok_or(Error::Unsupported)?
-            .request_package_release(package.as_ref(), version.into())?;
-
-        Ok(())
-    }
-
-    /// Gets the changelog release for the given package version.
-    ///
-    /// This method queries the GitHub API to generate new release information
-    /// and may differ to the existing release information or changelogs. This
-    /// includes information for new releases as well as existing ones.
-    ///
-    /// It does not yet support parallel release or hotfix branches and expects
-    /// all development to be on the default branch in the repository settings.
-    pub fn get_changelog_release(
-        &self,
-        package: impl AsRef<str>,
-        version: impl Borrow<Version>,
-    ) -> Result<crate::changelog::Release, Error> {
-        let release = self
-            .get_remote()
-            .ok_or(Error::Unsupported)?
-            .get_changelog_release(
-                package.as_ref(),
-                version.borrow(),
-                package.as_ref() == self.name(),
-            )?;
-
-        Ok(release)
     }
 }
 

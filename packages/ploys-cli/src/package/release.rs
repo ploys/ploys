@@ -41,7 +41,10 @@ impl Release {
 
         let project = Project::github_with_authentication_token(github.to_string(), self.token)?;
 
-        project.request_package_release(self.package, self.version)?;
+        project
+            .get_package(&self.package)
+            .ok_or(ploys::package::Error::NotFound(self.package))?
+            .request_release(self.version)?;
 
         Ok(())
     }
