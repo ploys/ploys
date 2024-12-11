@@ -1,6 +1,5 @@
 mod cache;
 mod error;
-mod fileset;
 
 use std::fmt::{self, Display};
 use std::path::Path;
@@ -13,7 +12,6 @@ use crate::project::Config;
 
 pub use self::cache::FileCache;
 pub use self::error::ParseError;
-pub use self::fileset::Fileset;
 
 /// A file in one of a number of formats.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIs, EnumTryAs)]
