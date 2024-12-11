@@ -20,41 +20,20 @@ fn test_project_info_command_git_output() {
 #[test]
 #[ignore]
 fn test_project_info_command_github_output() {
-    Command::cargo_bin("ploys")
-        .unwrap()
-        .current_dir("../..")
-        .arg("project")
-        .arg("info")
-        .arg("--remote")
-        .arg("ploys/ploys")
-        .assert()
-        .success()
-        .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())
-        .stdout(predicate::str::is_match(r#"Repository:.*github\.com/ploys/ploys"#).unwrap());
-}
+    let mut command = Command::cargo_bin("ploys").unwrap();
 
-#[test]
-#[ignore]
-fn test_project_info_command_github_url_output() {
-    Command::cargo_bin("ploys")
-        .unwrap()
+    command
         .current_dir("../..")
         .arg("project")
         .arg("info")
         .arg("--remote")
-        .arg("https://github.com/ploys/ploys")
-        .assert()
-        .success()
-        .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())
-        .stdout(predicate::str::is_match(r#"Repository:.*github\.com/ploys/ploys"#).unwrap());
+        .arg("https://github.com/ploys/ploys");
 
-    Command::cargo_bin("ploys")
-        .unwrap()
-        .current_dir("../..")
-        .arg("project")
-        .arg("info")
-        .arg("--remote")
-        .arg("https://github.com/ploys/ploys.git")
+    if let Ok(sha) = std::env::var("GITHUB_SHA") {
+        command.arg("--sha").arg(sha);
+    }
+
+    command
         .assert()
         .success()
         .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())

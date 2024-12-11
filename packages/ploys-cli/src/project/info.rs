@@ -69,8 +69,13 @@ impl Info {
 
     pub fn print(&self, project: Project) -> Result<(), Error> {
         println!("{}:\n", style("Project").underlined().bold());
-        println!("Name:       {}", project.name());
-        println!("Repository: {}", project.get_url()?);
+        println!("Name:        {}", project.name());
+
+        if let Some(description) = project.description() {
+            println!("Description: {description}");
+        }
+
+        println!("Repository:  {}", project.repository().to_url());
 
         println!("\n{}:\n", style("Packages").underlined().bold());
 

@@ -27,12 +27,7 @@ impl Release {
     pub fn exec(self) -> Result<(), Error> {
         let remote = match self.remote {
             Some(remote) => remote,
-            None => {
-                let project = Project::git(".")?;
-                let url = project.get_url()?;
-
-                RepoSpec::Url(url)
-            }
+            None => Project::git(".")?.repository(),
         };
 
         let Some(github) = remote.to_github() else {

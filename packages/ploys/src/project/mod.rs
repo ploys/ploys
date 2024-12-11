@@ -16,7 +16,7 @@
 //! let project = Project::git(".").unwrap();
 //!
 //! println!("Name:       {}", project.name());
-//! println!("Repository: {}", project.get_url().unwrap());
+//! println!("Repository: {}", project.repository());
 //! ```
 //!
 //! ## GitHub
@@ -31,37 +31,50 @@
 //! let project = Project::github("ploys/ploys").unwrap();
 //!
 //! println!("Name:       {}", project.name());
-//! println!("Repository: {}", project.get_url().unwrap());
+//! println!("Repository: {}", project.repository());
 //! ```
 
+pub mod config;
 mod error;
 mod packages;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use url::Url;
-
 use crate::file::File;
 use crate::package::Package;
-use crate::repository::{Remote, Repository};
+use crate::repository::{Remote, RepoSpec, Repository};
 
+pub use self::config::Config;
 pub use self::error::Error;
 pub use self::packages::Packages;
 
 /// A project from one of several supported repositories.
+///
+/// A valid project contains a `Ploys.toml` configuration file with the
+/// following fields:
+///
+/// ```toml
+/// [project]
+/// name = "{project-name}"
+/// repository = "https://github.com/{project-owner}/{project-name}"
+/// ```
 pub struct Project {
     repository: Repository,
-    name: String,
 }
 
 impl Project {
     /// Opens an existing project from the given repository.
     pub fn open(repository: impl Into<Repository>) -> Result<Self, Error> {
         let repository = repository.into();
-        let name = repository.get_name()?;
 
-        Ok(Self { repository, name })
+        repository
+            .get_file("Ploys.toml")
+            .ok_or(self::config::Error::Missing)?
+            .try_as_config_ref()
+            .ok_or(self::config::Error::Invalid)?;
+
+        Ok(Self { repository })
     }
 }
 
@@ -160,15 +173,17 @@ mod github {
 impl Project {
     /// Gets the project name.
     pub fn name(&self) -> &str {
-        &self.name
+        self.config().project().name()
     }
 
-    /// Queries the project URL.
-    ///
-    /// This method may perform file system operations or network requests to
-    /// query the latest project information.
-    pub fn get_url(&self) -> Result<Url, Error> {
-        Ok(self.repository.get_url()?)
+    /// Gets the project description.
+    pub fn description(&self) -> Option<&str> {
+        self.config().project().description()
+    }
+
+    /// Gets the project repository.
+    pub fn repository(&self) -> RepoSpec {
+        self.config().project().repository()
     }
 
     /// Gets a package with the given name.
@@ -203,6 +218,14 @@ impl Project {
     /// Gets the file index.
     pub(crate) fn get_file_index(&self) -> &BTreeSet<PathBuf> {
         self.repository.get_file_index()
+    }
+
+    /// Gets the config.
+    pub(crate) fn config(&self) -> &Config {
+        self.get_file("Ploys.toml")
+            .expect("loaded on open")
+            .try_as_config_ref()
+            .expect("validated on open")
     }
 }
 

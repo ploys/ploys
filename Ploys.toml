@@ -1,0 +1,4 @@
+[project]
+name = "ploys"
+description = "Manage projects, packages, releases and deployments"
+repository = "https://github.com/ploys/ploys"
