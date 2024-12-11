@@ -4,6 +4,8 @@ use std::fmt::{self, Display};
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
+    /// The configuration error.
+    Config(super::config::Error),
     /// The repository error.
     Repository(crate::repository::Error),
     /// The package error.
@@ -15,6 +17,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Config(err) => Display::fmt(err, f),
             Self::Repository(err) => Display::fmt(err, f),
             Self::Package(err) => Display::fmt(err, f),
             Self::Unsupported => write!(f, "Action not supported"),
@@ -23,6 +26,12 @@ impl Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl From<super::config::Error> for Error {
+    fn from(err: super::config::Error) -> Self {
+        Self::Config(err)
+    }
+}
 
 impl From<crate::repository::Error> for Error {
     fn from(err: crate::repository::Error) -> Self {

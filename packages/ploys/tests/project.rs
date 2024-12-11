@@ -4,11 +4,12 @@ use ploys::project::{Error, Project};
 #[ignore]
 fn test_valid_local_project() -> Result<(), Error> {
     let project = Project::git("../..")?;
-    let url = project.get_url()?;
 
     assert_eq!(project.name(), "ploys");
-    assert_eq!(url.domain(), Some("github.com"));
-    assert_eq!(url.path().trim_end_matches(".git"), "/ploys/ploys");
+    assert_eq!(
+        project.repository().to_url(),
+        "https://github.com/ploys/ploys".parse().unwrap()
+    );
 
     assert!(project.packages().any(|pkg| pkg.name() == "ploys"));
     assert!(project.packages().any(|pkg| pkg.name() == "ploys-cli"));
@@ -26,7 +27,7 @@ fn test_valid_remote_project() -> Result<(), Error> {
 
     assert_eq!(project.name(), "ploys");
     assert_eq!(
-        project.get_url()?,
+        project.repository().to_url(),
         "https://github.com/ploys/ploys".parse().unwrap()
     );
 
