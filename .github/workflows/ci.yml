@@ -59,6 +59,7 @@ jobs:
         run: cargo test --target ${{ matrix.target }} -- --include-ignored
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
   lint:
     name: Lint

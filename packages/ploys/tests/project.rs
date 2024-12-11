@@ -1,4 +1,5 @@
 use ploys::project::{Error, Project};
+use ploys::repository::revision::Revision;
 
 #[test]
 #[ignore]
@@ -20,9 +21,15 @@ fn test_valid_local_project() -> Result<(), Error> {
 #[test]
 #[ignore]
 fn test_valid_remote_project() -> Result<(), Error> {
+    let revision = std::env::var("GITHUB_SHA")
+        .map(Revision::Sha)
+        .unwrap_or_default();
+
     let project = match std::env::var("GITHUB_TOKEN").ok() {
-        Some(token) => Project::github_with_authentication_token("ploys/ploys", token)?,
-        None => Project::github("ploys/ploys")?,
+        Some(token) => {
+            Project::github_with_revision_and_authentication_token("ploys/ploys", revision, token)?
+        }
+        None => Project::github_with_revision("ploys/ploys", revision)?,
     };
 
     assert_eq!(project.name(), "ploys");
