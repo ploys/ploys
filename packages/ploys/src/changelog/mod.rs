@@ -1,5 +1,6 @@
 mod change;
 mod changeset;
+mod error;
 mod reference;
 mod release;
 mod text;
@@ -13,6 +14,7 @@ use markdown::ParseOptions;
 
 pub use self::change::{Change, ChangeRef};
 pub use self::changeset::{Changeset, ChangesetRef};
+pub use self::error::Error;
 pub use self::reference::ReferenceRef;
 pub use self::release::{Release, ReleaseRef};
 pub use self::text::{MultilineText, Text};

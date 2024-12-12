@@ -27,16 +27,17 @@ impl FileCache {
         &self,
         path: impl AsRef<Path>,
         with: F,
-    ) -> Result<Option<&File>, E>
+    ) -> Result<Option<&File>, crate::project::Error>
     where
         F: FnOnce(&Path) -> Result<Option<Vec<u8>>, E>,
+        E: Into<crate::project::Error>,
     {
         self.inner
             .try_insert(path.as_ref().to_owned(), |path| {
-                with(path).map(|bytes| match bytes {
-                    Some(bytes) => Box::new(File::from_bytes(bytes, path)),
-                    None => Box::new(None),
-                })
+                match with(path).map_err(Into::into)? {
+                    Some(bytes) => Ok(Box::new(Some(File::from_bytes(bytes, path)?))),
+                    None => Ok(Box::new(None)),
+                }
             })
             .map(Option::as_ref)
     }

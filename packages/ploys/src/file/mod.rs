@@ -24,19 +24,26 @@ pub enum File {
 
 impl File {
     /// Constructs a new file from the given bytes and path.
-    pub(crate) fn from_bytes(bytes: Vec<u8>, path: &Path) -> Option<Self> {
+    pub(crate) fn from_bytes(bytes: Vec<u8>, path: &Path) -> Result<Self, crate::project::Error> {
         match path.file_name() {
-            Some(name) if name == "Ploys.toml" => Config::from_bytes(&bytes).ok().map(Self::Config),
-            Some(name) if name == "Cargo.toml" => Manifest::from_bytes(PackageKind::Cargo, &bytes)
-                .ok()
-                .map(Self::Manifest),
-            Some(name) if name == "Cargo.lock" => Lockfile::from_bytes(PackageKind::Cargo, &bytes)
-                .ok()
-                .map(Self::Lockfile),
-            Some(name) if name == "CHANGELOG.md" => Some(Self::Changelog(
-                String::from_utf8(bytes).ok()?.parse().ok()?,
+            Some(name) if name == "Ploys.toml" => Ok(Config::from_bytes(&bytes).map(Self::Config)?),
+            Some(name) if name == "Cargo.toml" => {
+                Ok(Manifest::from_bytes(PackageKind::Cargo, &bytes)
+                    .map(Self::Manifest)
+                    .map_err(crate::package::Error::Manifest)?)
+            }
+            Some(name) if name == "Cargo.lock" => {
+                Ok(Lockfile::from_bytes(PackageKind::Cargo, &bytes)
+                    .map(Self::Lockfile)
+                    .map_err(crate::package::Error::Lockfile)?)
+            }
+            Some(name) if name == "CHANGELOG.md" => Ok(Self::Changelog(
+                std::str::from_utf8(&bytes)
+                    .map_err(ParseError::Utf8)
+                    .map_err(crate::changelog::Error::Parse)?
+                    .parse()?,
             )),
-            _ => None,
+            _ => Err(crate::project::Error::Unsupported),
         }
     }
 }

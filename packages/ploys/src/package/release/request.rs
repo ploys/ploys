@@ -135,7 +135,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
 
         if self.options.update_lockfile {
             if let Some(path) = self.package.kind().lockfile_name() {
-                if let Some(File::Lockfile(lockfile)) = self.package.project.get_file(path) {
+                if let Ok(Some(File::Lockfile(lockfile))) = self.package.project.get_file(path) {
                     let mut lockfile = lockfile.clone();
 
                     lockfile.set_package_version(self.package.name(), version.clone());
