@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::fmt::{self, Display};
 
 /// The project error.
@@ -6,6 +7,8 @@ use std::fmt::{self, Display};
 pub enum Error {
     /// The configuration error.
     Config(super::config::Error),
+    /// The changelog error.
+    Changelog(crate::changelog::Error),
     /// The repository error.
     Repository(crate::repository::Error),
     /// The package error.
@@ -17,6 +20,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Changelog(err) => Display::fmt(err, f),
             Self::Config(err) => Display::fmt(err, f),
             Self::Repository(err) => Display::fmt(err, f),
             Self::Package(err) => Display::fmt(err, f),
@@ -27,9 +31,21 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
+impl From<Infallible> for Error {
+    fn from(err: Infallible) -> Self {
+        match err {}
+    }
+}
+
 impl From<super::config::Error> for Error {
     fn from(err: super::config::Error) -> Self {
         Self::Config(err)
+    }
+}
+
+impl From<crate::changelog::Error> for Error {
+    fn from(err: crate::changelog::Error) -> Self {
+        Self::Changelog(err)
     }
 }
 

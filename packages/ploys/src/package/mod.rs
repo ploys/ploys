@@ -102,6 +102,8 @@ impl<'a> Package<'a> {
     pub fn changelog(&self) -> Option<&'a Changelog> {
         self.project
             .get_file(self.path().parent()?.join("CHANGELOG.md"))
+            .ok()
+            .flatten()
             .and_then(File::try_as_changelog_ref)
     }
 }

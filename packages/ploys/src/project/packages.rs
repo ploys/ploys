@@ -34,7 +34,7 @@ impl<'a> Iterator for Packages<'a> {
                 State::Initial { project } => {
                     let kind = self.kinds.next()?;
 
-                    if let Some(File::Manifest(manifest)) = project.get_file(kind.file_name()) {
+                    if let Ok(Some(File::Manifest(manifest))) = project.get_file(kind.file_name()) {
                         if let Ok(members) = manifest.members() {
                             self.state = State::Manifest {
                                 packages: ManifestPackages {
@@ -52,7 +52,7 @@ impl<'a> Iterator for Packages<'a> {
                     None => {
                         let kind = self.kinds.next()?;
 
-                        if let Some(File::Manifest(manifest)) =
+                        if let Ok(Some(File::Manifest(manifest))) =
                             packages.project.get_file(kind.file_name())
                         {
                             if let Ok(members) = manifest.members() {
@@ -103,7 +103,7 @@ impl<'a> Iterator for ManifestPackages<'a> {
                 continue;
             }
 
-            let Some(File::Manifest(manifest)) = self.project.get_file(path) else {
+            let Ok(Some(File::Manifest(manifest))) = self.project.get_file(path) else {
                 continue;
             };
 

@@ -69,7 +69,7 @@ impl Project {
         let repository = repository.into();
 
         repository
-            .get_file("Ploys.toml")
+            .get_file("Ploys.toml")?
             .ok_or(self::config::Error::Missing)?
             .try_as_config_ref()
             .ok_or(self::config::Error::Invalid)?;
@@ -211,7 +211,7 @@ impl Project {
     }
 
     /// Gets a file at the given path.
-    pub(crate) fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
+    pub(crate) fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<&File>, Error> {
         self.repository.get_file(path)
     }
 
@@ -223,6 +223,8 @@ impl Project {
     /// Gets the config.
     pub(crate) fn config(&self) -> &Config {
         self.get_file("Ploys.toml")
+            .ok()
+            .flatten()
             .expect("loaded on open")
             .try_as_config_ref()
             .expect("validated on open")

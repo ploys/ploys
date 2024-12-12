@@ -141,7 +141,7 @@ impl GitHub {
     }
 
     /// Gets the file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<&File>, crate::project::Error> {
         self.file_cache
             .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
                 Ok(bytes) => Ok(Some(bytes)),
@@ -149,9 +149,6 @@ impl GitHub {
                 Err(Error::Response(404)) => Ok(None),
                 Err(err) => Err(err),
             })
-            .inspect_err(|err| println!("Error loading file `{}`: {err}", path.as_ref().display()))
-            .ok()
-            .flatten()
     }
 
     /// Gets the file index.

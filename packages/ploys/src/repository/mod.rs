@@ -56,12 +56,15 @@ impl Repository {
     }
 
     /// Gets a file at the given path.
-    pub(crate) fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
+    pub(crate) fn get_file(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Option<&File>, crate::project::Error> {
         match self {
             #[cfg(feature = "git")]
-            Repository::Git(git) => git.get_file(path),
+            Repository::Git(git) => Ok(git.get_file(path)?),
             #[cfg(feature = "github")]
-            Repository::GitHub(github) => github.get_file(path),
+            Repository::GitHub(github) => Ok(github.get_file(path)?),
         }
     }
 
