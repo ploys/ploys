@@ -5,6 +5,16 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2024-12-13
+
+### Changed
+
+- Add package release `repository_dispatch` event handler ([#108](https://github.com/ploys/ploys/pull/108))
+- Remove release branch creation webhook event handler ([#131](https://github.com/ploys/ploys/pull/131))
+- Add project package release request builder ([#134](https://github.com/ploys/ploys/pull/134))
+- Add project package release builder ([#154](https://github.com/ploys/ploys/pull/154))
+- Bump `shuttle-runtime` to `0.49.0` ([#173](https://github.com/ploys/ploys/pull/173))
+
 ## [0.2.1] - 2024-10-24
 
 ### Changed
@@ -34,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `shuttle-runtime` to `0.48.0` ([#68](https://github.com/ploys/ploys/pull/68))
 - Add release workflow with deploy job ([#69](https://github.com/ploys/ploys/pull/69))
 
+[0.3.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.3.0
 [0.2.1]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.2.1
 [0.2.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.2.0
 [0.1.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.1.0
