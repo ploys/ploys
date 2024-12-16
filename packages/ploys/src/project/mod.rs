@@ -122,7 +122,7 @@ mod github {
         where
             R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
         {
-            Self::open(GitHub::open(repo)?)
+            Self::open(GitHub::open(repo)?.validated()?)
         }
 
         /// Opens a project from a [`GitHub`] repository and revision.
