@@ -116,7 +116,7 @@ fn get_all_tags(repository: &Repository, token: Option<&str>) -> Result<Vec<GitT
     loop {
         let response = repository
             .graphql(token)
-            .send_json(Query {
+            .json(&Query {
                 query: ALL_TAGS_QUERY,
                 variables: Variables {
                     owner: repository.owner(),
@@ -125,8 +125,10 @@ fn get_all_tags(repository: &Repository, token: Option<&str>) -> Result<Vec<GitT
                     to: None,
                     cursor: cursor.as_deref(),
                 },
-            })?
-            .into_json::<MatchingTagsResponse>()?;
+            })
+            .send()?
+            .error_for_status()?
+            .json::<MatchingTagsResponse>()?;
 
         tags.extend(response.data.repository.refs.nodes);
 
@@ -224,7 +226,7 @@ fn all(repository: &Repository, token: Option<&str>) -> Result<Vec<PullRequest>,
     loop {
         let response = repository
             .graphql(token)
-            .send_json(Query {
+            .json(&Query {
                 query: ALL_QUERY,
                 variables: Variables {
                     owner: repository.owner(),
@@ -233,8 +235,10 @@ fn all(repository: &Repository, token: Option<&str>) -> Result<Vec<PullRequest>,
                     to: None,
                     cursor: cursor.as_deref(),
                 },
-            })?
-            .into_json::<AllResponse>()?;
+            })
+            .send()?
+            .error_for_status()?
+            .json::<AllResponse>()?;
 
         let commits = response.data.repository.default_branch_ref.target.history;
 
@@ -310,7 +314,7 @@ fn until(
     loop {
         let response = repository
             .graphql(token)
-            .send_json(Query {
+            .json(&Query {
                 query: UNTIL_QUERY,
                 variables: Variables {
                     owner: repository.owner(),
@@ -319,8 +323,10 @@ fn until(
                     to: Some(to),
                     cursor: cursor.as_deref(),
                 },
-            })?
-            .into_json::<UntilResponse>()?;
+            })
+            .send()?
+            .error_for_status()?
+            .json::<UntilResponse>()?;
 
         let commits = response.data.repository.r#ref.target.history;
 
@@ -398,7 +404,7 @@ fn between(
     loop {
         let response = repository
             .graphql(token)
-            .send_json(Query {
+            .json(&Query {
                 query: BETWEEN_QUERY,
                 variables: Variables {
                     owner: repository.owner(),
@@ -407,8 +413,10 @@ fn between(
                     to: Some(to),
                     cursor: cursor.as_deref(),
                 },
-            })?
-            .into_json::<BetweenResponse>()?;
+            })
+            .send()?
+            .error_for_status()?
+            .json::<BetweenResponse>()?;
 
         let commits = response.data.repository.r#ref.compare.commits;
 

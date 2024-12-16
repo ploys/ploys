@@ -1,17 +1,27 @@
-use ureq::Request;
+use reqwest::blocking::{Client, RequestBuilder};
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::Method;
 
 use super::{Error, GitHubRepoSpec};
 
 /// The GitHub repository information.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct Repository {
     spec: GitHubRepoSpec,
+    client: Client,
 }
 
 impl Repository {
     /// Constructs a new repository.
-    pub(crate) fn new(spec: impl Into<GitHubRepoSpec>) -> Self {
-        Self { spec: spec.into() }
+    pub(crate) fn new(spec: impl Into<GitHubRepoSpec>) -> Result<Self, Error> {
+        let mut headers = HeaderMap::new();
+
+        headers.insert(USER_AGENT, HeaderValue::from_static("ploys/ploys"));
+
+        Ok(Self {
+            spec: spec.into(),
+            client: Client::builder().default_headers(headers).build()?,
+        })
     }
 
     /// Gets the repository owner.
@@ -26,7 +36,7 @@ impl Repository {
 
     /// Validates whether the remote repository exists.
     pub(super) fn validate(&self, token: Option<&str>) -> Result<(), Error> {
-        self.head("", token).call()?;
+        self.head("", token).send()?;
 
         Ok(())
     }
@@ -49,59 +59,57 @@ impl Repository {
     }
 
     /// Creates a HTTP request.
-    pub(super) fn request<P>(&self, method: &str, path: P, token: Option<&str>) -> Request
+    pub(super) fn request<P>(&self, method: Method, path: P, token: Option<&str>) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        let mut request =
-            ureq::request(method, &self.endpoint(path)).set("User-Agent", "ploys/ploys");
+        let mut request = self.client.request(method, self.endpoint(path));
 
-        if let Some(token) = &token {
-            request = request.set("Authorization", &format!("Bearer {token}"));
+        if let Some(token) = token {
+            request = request.bearer_auth(token);
         }
 
         request
     }
 
     /// Creates a HEAD request.
-    pub(super) fn head<P>(&self, path: P, token: Option<&str>) -> Request
+    pub(super) fn head<P>(&self, path: P, token: Option<&str>) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        self.request("HEAD", path, token)
+        self.request(Method::HEAD, path, token)
     }
 
     /// Creates a GET request.
-    pub(super) fn get<P>(&self, path: P, token: Option<&str>) -> Request
+    pub(super) fn get<P>(&self, path: P, token: Option<&str>) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        self.request("GET", path, token)
+        self.request(Method::GET, path, token)
     }
 
     /// Creates a POST request.
-    pub(super) fn post<P>(&self, path: P, token: Option<&str>) -> Request
+    pub(super) fn post<P>(&self, path: P, token: Option<&str>) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        self.request("POST", path, token)
+        self.request(Method::POST, path, token)
     }
 
     /// Creates a PATCH request.
-    pub(super) fn patch<P>(&self, path: P, token: Option<&str>) -> Request
+    pub(super) fn patch<P>(&self, path: P, token: Option<&str>) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        self.request("PATCH", path, token)
+        self.request(Method::PATCH, path, token)
     }
 
     /// Creates a GraphQL HTTP request.
-    pub(super) fn graphql(&self, token: Option<&str>) -> Request {
-        let mut request =
-            ureq::post("https://api.github.com/graphql").set("User-Agent", "ploys/ploys");
+    pub(super) fn graphql(&self, token: Option<&str>) -> RequestBuilder {
+        let mut request = self.client.post("https://api.github.com/graphql");
 
-        if let Some(token) = &token {
-            request = request.set("Authorization", &format!("Bearer {token}"));
+        if let Some(token) = token {
+            request = request.bearer_auth(token);
         }
 
         request

@@ -7,10 +7,8 @@ use crate::repository::RepoSpecError;
 /// The GitHub repository error.
 #[derive(Debug)]
 pub enum Error {
-    /// An HTTP status response.
-    Response(u16),
-    /// A transport error.
-    Transport(Box<ureq::Transport>),
+    /// A request error.
+    Request(reqwest::Error),
     /// A parse error.
     Parse(String),
     /// An I/O error.
@@ -22,14 +20,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Response(status_code) => match status_code {
-                401 => write!(f, "401 Unauthorized"),
-                403 => write!(f, "403 Forbidden"),
-                404 => write!(f, "404 Not Found"),
-                429 => write!(f, "429 Too Many Requests"),
-                status_code => write!(f, "Response error: {status_code}"),
-            },
-            Self::Transport(transport) => Display::fmt(transport, f),
+            Self::Request(transport) => Display::fmt(transport, f),
             Self::Parse(message) => write!(f, "Parse error: {message}"),
             Self::Io(err) => Display::fmt(err, f),
             Self::Spec(err) => Display::fmt(err, f),
@@ -37,7 +28,16 @@ impl Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Request(err) => Some(err),
+            Self::Io(err) => Some(err),
+            Self::Spec(err) => Some(err),
+            Self::Parse(_) => None,
+        }
+    }
+}
 
 impl From<RepoSpecError> for Error {
     fn from(err: RepoSpecError) -> Self {
@@ -51,12 +51,9 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<ureq::Error> for Error {
-    fn from(err: ureq::Error) -> Self {
-        match err {
-            ureq::Error::Status(status_code, _) => Self::Response(status_code),
-            ureq::Error::Transport(transport) => Self::Transport(Box::new(transport)),
-        }
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Self::Request(err)
     }
 }
 
