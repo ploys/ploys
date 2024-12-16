@@ -36,7 +36,7 @@ impl Repository {
 
     /// Validates whether the remote repository exists.
     pub(super) fn validate(&self, token: Option<&str>) -> Result<(), Error> {
-        self.head("", token).send()?;
+        self.head("", token).send()?.error_for_status()?;
 
         Ok(())
     }
