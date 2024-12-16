@@ -9,9 +9,11 @@ mod repo;
 mod spec;
 
 use std::collections::BTreeSet;
-use std::io;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
+use reqwest::header::CONTENT_TYPE;
+use reqwest::StatusCode;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -47,7 +49,7 @@ impl GitHub {
         R: TryInto<GitHubRepoSpec, Error: Into<Error>>,
     {
         Ok(Self {
-            repository: Repository::new(repo.try_into().map_err(Into::into)?),
+            repository: Repository::new(repo.try_into().map_err(Into::into)?)?,
             revision: Revision::head(),
             token: None,
             file_cache: FileCache::new(),
@@ -100,10 +102,11 @@ impl GitHub {
                 let sha = self
                     .repository
                     .get("git/trees/HEAD", self.token.as_deref())
-                    .set("Accept", "application/vnd.github+json")
-                    .set("X-GitHub-Api-Version", "2022-11-28")
-                    .call()?
-                    .into_json::<TreeResponse>()?
+                    .header("Accept", "application/vnd.github+json")
+                    .header("X-GitHub-Api-Version", "2022-11-28")
+                    .send()?
+                    .error_for_status()?
+                    .json::<TreeResponse>()?
                     .sha;
 
                 Ok(sha)
@@ -112,10 +115,11 @@ impl GitHub {
                 let sha = self
                     .repository
                     .get(format!("git/ref/{reference}"), self.token.as_deref())
-                    .set("Accept", "application/vnd.github+json")
-                    .set("X-GitHub-Api-Version", "2022-11-28")
-                    .call()?
-                    .into_json::<RefResponse>()?
+                    .header("Accept", "application/vnd.github+json")
+                    .header("X-GitHub-Api-Version", "2022-11-28")
+                    .send()?
+                    .error_for_status()?
+                    .json::<RefResponse>()?
                     .object
                     .sha;
 
@@ -146,7 +150,7 @@ impl GitHub {
             .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
                 Ok(bytes) => Ok(Some(bytes)),
                 Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
-                Err(Error::Response(404)) => Ok(None),
+                Err(Error::Request(err)) if err.status() == Some(StatusCode::NOT_FOUND) => Ok(None),
                 Err(err) => Err(err),
             })
     }
@@ -157,19 +161,18 @@ impl GitHub {
     }
 
     pub(crate) fn get_files(&self) -> Result<BTreeSet<PathBuf>, Error> {
-        let request = self
+        let entries = self
             .repository
             .get(
                 format!("git/trees/{}", self.revision),
                 self.token.as_deref(),
             )
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .query("recursive", "true");
-
-        let entries = request
-            .call()?
-            .into_json::<TreeResponse>()?
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .query(&[("recursive", "true")])
+            .send()?
+            .error_for_status()?
+            .json::<TreeResponse>()?
             .tree
             .into_iter()
             .filter(|entry| entry.r#type == "blob")
@@ -183,25 +186,28 @@ impl GitHub {
     where
         P: AsRef<Path>,
     {
-        let request = self
+        let mut response = self
             .repository
             .get(
                 format!("contents/{}?ref={}", path.as_ref().display(), self.revision),
                 self.token.as_deref(),
             )
-            .set("Accept", "application/vnd.github.raw")
-            .set("X-GitHub-Api-Version", "2022-11-28");
+            .header("Accept", "application/vnd.github.raw")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .send()?
+            .error_for_status()?;
 
-        let response = request.call()?;
+        match response.headers().get(CONTENT_TYPE) {
+            Some(content_type) => match content_type.to_str() {
+                Ok(content_type) if content_type.contains("application/vnd.github.raw") => {
+                    let mut contents = Vec::new();
 
-        match response.header("content-type") {
-            Some(content_type) if content_type.contains("application/vnd.github.raw") => {
-                let mut contents = Vec::new();
+                    response.read_to_end(&mut contents)?;
 
-                response.into_reader().read_to_end(&mut contents)?;
-
-                Ok(contents)
-            }
+                    Ok(contents)
+                }
+                _ => Err(io::Error::from(io::ErrorKind::NotFound))?,
+            },
             _ => Err(io::Error::from(io::ErrorKind::NotFound))?,
         }
     }
@@ -266,14 +272,17 @@ impl Remote for GitHub {
             let sha = self
                 .repository
                 .post("git/blobs", self.token.as_deref())
-                .set("Accept", "application/vnd.github+json")
-                .set("X-GitHub-Api-Version", "2022-11-28")
-                .send_json(CreateBlob {
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .json(&CreateBlob {
                     content,
                     encoding: String::from("utf-8"),
                 })
+                .send()
                 .map_err(Error::from)?
-                .into_json::<NewBlob>()
+                .error_for_status()
+                .map_err(Error::from)?
+                .json::<NewBlob>()
                 .map_err(Error::from)?
                 .sha;
 
@@ -288,26 +297,32 @@ impl Remote for GitHub {
         let tree_sha = self
             .repository
             .post("git/trees", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(tree)
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&tree)
+            .send()
             .map_err(Error::from)?
-            .into_json::<NewTree>()
+            .error_for_status()
+            .map_err(Error::from)?
+            .json::<NewTree>()
             .map_err(Error::from)?
             .sha;
 
         let commit_sha = self
             .repository
             .post("git/commits", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(CreateCommit {
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&CreateCommit {
                 message: message.to_owned(),
                 tree: tree_sha,
                 parents: vec![base_sha],
             })
+            .send()
             .map_err(Error::from)?
-            .into_json::<NewCommit>()
+            .error_for_status()
+            .map_err(Error::from)?
+            .json::<NewCommit>()
             .map_err(Error::from)?
             .sha;
 
@@ -327,14 +342,17 @@ impl Remote for GitHub {
 
         self.repository
             .post("dispatches", self.token.as_deref())
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(RepositoryDispatchEvent {
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&RepositoryDispatchEvent {
                 event_type: String::from("ploys-package-release-request"),
                 client_payload: ClientPayload {
                     package: package.to_owned(),
                     version: version.to_string(),
                 },
             })
+            .send()
+            .map_err(Error::from)?
+            .error_for_status()
             .map_err(Error::from)?;
 
         Ok(())
@@ -364,11 +382,13 @@ impl Remote for GitHub {
         let default_branch = self
             .repository
             .get("", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .call()
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .send()
             .map_err(Error::from)?
-            .into_json::<RepoResponse>()
+            .error_for_status()
+            .map_err(Error::from)?
+            .json::<RepoResponse>()
             .map_err(Error::from)?
             .default_branch;
 
@@ -386,12 +406,15 @@ impl Remote for GitHub {
 
         self.repository
             .post("git/refs", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(NewBranch {
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&NewBranch {
                 r#ref: format!("refs/heads/{}", name.trim_start_matches('/')),
                 sha,
             })
+            .send()
+            .map_err(Error::from)?
+            .error_for_status()
             .map_err(Error::from)?;
 
         Ok(())
@@ -405,11 +428,14 @@ impl Remote for GitHub {
 
         self.repository
             .patch(format!("git/refs/heads/{name}"), self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(UpdateRef {
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&UpdateRef {
                 sha: sha.to_owned(),
             })
+            .send()
+            .map_err(Error::from)?
+            .error_for_status()
             .map_err(Error::from)?;
 
         Ok(())
@@ -438,16 +464,19 @@ impl Remote for GitHub {
         let number = self
             .repository
             .post("pulls", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(NewPullRequest {
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&NewPullRequest {
                 title: title.to_owned(),
                 head: head.to_owned(),
                 base: base.to_owned(),
                 body: body.to_owned(),
             })
+            .send()
             .map_err(Error::from)?
-            .into_json::<PullRequestResponse>()
+            .error_for_status()
+            .map_err(Error::from)?
+            .json::<PullRequestResponse>()
             .map_err(Error::from)?
             .number;
 
@@ -499,9 +528,9 @@ impl Remote for GitHub {
         let id = self
             .repository
             .post("releases", self.token.as_deref())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28")
-            .send_json(NewRelease {
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&NewRelease {
                 tag_name: tag.to_owned(),
                 target_commitish: sha.to_owned(),
                 name: name.to_owned(),
@@ -511,8 +540,11 @@ impl Remote for GitHub {
                 generate_release_notes: false,
                 make_latest: latest.into(),
             })
+            .send()
             .map_err(Error::from)?
-            .into_json::<ReleaseResponse>()
+            .error_for_status()
+            .map_err(Error::from)?
+            .json::<ReleaseResponse>()
             .map_err(Error::from)?
             .id;
 

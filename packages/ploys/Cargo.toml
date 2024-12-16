@@ -11,7 +11,7 @@ edition = "2021"
 [features]
 default = ["git", "github"]
 git = ["dep:gix"]
-github = ["dep:ureq"]
+github = ["dep:reqwest"]
 
 [dependencies]
 gix = { version = "0.66.0", optional = true }
@@ -23,8 +23,12 @@ serde = { version = "1.0.185", features = ["derive"] }
 strum = { version = "0.26.3", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde", "formatting", "parsing"] }
 toml_edit = { version = "0.22.14", features = ["serde"] }
-ureq = { version = "2.7.1", features = ["json"], optional = true }
 url = "2.4.0"
+
+[dependencies.reqwest]
+version = "0.12.9"
+features = ["blocking", "json"]
+optional = true
 
 [dev-dependencies]
 indoc = "2.0.5"
