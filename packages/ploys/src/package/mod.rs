@@ -16,6 +16,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 
 use semver::Version;
+use tracing::info;
 
 use crate::changelog::Changelog;
 use crate::file::File;
@@ -196,10 +197,18 @@ impl<'a> Package<'a> {
         &self,
         version: impl Into<BumpOrVersion>,
     ) -> Result<(), crate::project::Error> {
+        let version = version.into();
+
+        info!(
+            "Requesting release `{version}` for `{}@{}`",
+            self.name(),
+            self.version()
+        );
+
         self.project
             .get_remote()
             .ok_or(crate::project::Error::Unsupported)?
-            .request_package_release(self.name(), version.into())?;
+            .request_package_release(self.name(), version)?;
 
         Ok(())
     }

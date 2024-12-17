@@ -1,5 +1,7 @@
 mod request;
 
+use tracing::info;
+
 pub use self::request::{ReleaseRequest, ReleaseRequestBuilder};
 
 use super::Package;
@@ -50,6 +52,9 @@ impl<'a> ReleaseBuilder<'a> {
         let sha = remote.sha()?;
 
         let version = self.package.version();
+
+        info!("Creating release for `{}@{version}`", self.package.name());
+
         let prerelease = !version.pre.is_empty();
         let latest = self.package.is_primary() && !prerelease;
 
@@ -80,6 +85,11 @@ impl<'a> ReleaseBuilder<'a> {
             .join("\n");
 
         let id = remote.create_release(&tag, &sha, &name, &body, prerelease, latest)?;
+
+        info!(
+            "Created release `{id}` for `{}@{version}`",
+            self.package.name()
+        );
 
         Ok(Release {
             package: self.package,
