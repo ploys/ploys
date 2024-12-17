@@ -235,6 +235,7 @@ mod tests {
             .uri("/github/webhook")
             .header("Content-Type", "application/json")
             .header("X-GitHub-Event", "issues")
+            .header("X-GitHub-Delivery", "00000000-0000-0000-0000-000000000000")
             .header("X-Hub-Signature-256", format!("sha256={hex}"))
             .body(Body::from(payload))
             .unwrap();
@@ -260,6 +261,7 @@ mod tests {
             .uri("/github/webhook")
             .header("Content-Type", "application/json")
             .header("X-GitHub-Event", "issues")
+            .header("X-GitHub-Delivery", "00000000-0000-0000-0000-000000000000")
             .header("X-Hub-Signature-256", format!("sha256={hex}"))
             .body(Body::from(payload))
             .unwrap();
