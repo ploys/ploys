@@ -2,8 +2,10 @@ use std::fmt::{self, Display};
 
 use axum::http::{HeaderName, HeaderValue};
 use axum_extra::headers::{Error, Header};
+use uuid::Uuid;
 
 static X_GITHUB_EVENT: HeaderName = HeaderName::from_static("x-github-event");
+static X_GITHUB_DELIVERY: HeaderName = HeaderName::from_static("x-github-delivery");
 static X_HUB_SIGNATURE_256: HeaderName = HeaderName::from_static("x-hub-signature-256");
 
 pub struct XGitHubEvent {
@@ -48,6 +50,54 @@ impl Header for XGitHubEvent {
     {
         values.extend(std::iter::once(
             HeaderValue::from_str(&self.value).expect("valid header"),
+        ));
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct XGitHubDelivery {
+    value: Uuid,
+}
+
+impl XGitHubDelivery {
+    pub fn into_inner(self) -> Uuid {
+        self.value
+    }
+}
+
+impl Display for XGitHubDelivery {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.value, f)
+    }
+}
+
+impl Header for XGitHubDelivery {
+    fn name() -> &'static HeaderName {
+        &X_GITHUB_DELIVERY
+    }
+
+    fn decode<'i, I>(values: &mut I) -> Result<Self, Error>
+    where
+        I: Iterator<Item = &'i HeaderValue>,
+        Self: Sized,
+    {
+        Ok(Self {
+            value: values
+                .next()
+                .ok_or_else(Error::invalid)?
+                .to_str()
+                .map_err(|_| Error::invalid())?
+                .parse()
+                .map_err(|_| Error::invalid())?,
+        })
+    }
+
+    fn encode<E>(&self, values: &mut E)
+    where
+        E: Extend<HeaderValue>,
+    {
+        values.extend(std::iter::once(
+            HeaderValue::from_str(&self.value.to_string()).expect("valid header"),
         ));
     }
 }

@@ -200,9 +200,10 @@ impl<'a> Package<'a> {
         let version = version.into();
 
         info!(
-            "Requesting release `{version}` for `{}@{}`",
-            self.name(),
-            self.version()
+            package = self.name(),
+            version = %self.version(),
+            request = %version,
+            "Requesting release"
         );
 
         self.project

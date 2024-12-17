@@ -5,23 +5,31 @@ mod payload;
 pub mod secret;
 
 use axum::extract::State;
+use axum_extra::TypedHeader;
 use ploys::package::BumpOrVersion;
 use ploys::project::Project;
 use ploys::repository::revision::Revision;
 use semver::Version;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
-use tracing::{error, instrument};
+use tracing::{debug, error, instrument};
 
 use crate::state::AppState;
 
 use self::auth::get_installation_access_token;
 use self::error::Error;
+use self::header::XGitHubDelivery;
 use self::payload::{Payload, PullRequestPayload, RepositoryDispatchPayload};
 
 /// Receives the GitHub webhook event payload.
-#[instrument(level = "debug", skip(state))]
-pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Error> {
+#[instrument(skip_all, fields(delivery = %delivery.into_inner(), event_name = payload.event_name()))]
+pub async fn receive(
+    state: State<AppState>,
+    delivery: TypedHeader<XGitHubDelivery>,
+    payload: Payload,
+) -> Result<(), Error> {
+    debug!(?payload, "Received webhook event");
+
     match payload {
         Payload::PullRequest(payload) => match &*payload.action {
             "closed" if payload.pull_request.merged => {

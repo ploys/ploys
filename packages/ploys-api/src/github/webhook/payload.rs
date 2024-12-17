@@ -28,6 +28,17 @@ pub enum Payload {
     Other(String, Value),
 }
 
+impl Payload {
+    /// Gets the event name.
+    pub fn event_name(&self) -> &str {
+        match self {
+            Payload::PullRequest(_) => "pull_request",
+            Payload::RepositoryDispatch(_) => "repository_dispatch",
+            Payload::Other(name, _) => name,
+        }
+    }
+}
+
 #[async_trait]
 impl<S> FromRequest<S> for Payload
 where
