@@ -3,6 +3,7 @@ mod project;
 
 use anyhow::Error;
 use clap::{Parser, Subcommand};
+use clap_verbosity_flag::Verbosity;
 
 use self::package::Package;
 use self::project::Project;
@@ -13,6 +14,8 @@ use self::project::Project;
 struct Args {
     #[clap(subcommand)]
     command: Command,
+    #[command(flatten)]
+    verbose: Verbosity,
 }
 
 impl Args {
@@ -35,5 +38,12 @@ enum Command {
 }
 
 fn main() -> Result<(), Error> {
-    Args::parse().exec()
+    let args = Args::parse();
+
+    tracing_subscriber::fmt()
+        .with_max_level(args.verbose.tracing_level_filter())
+        .pretty()
+        .init();
+
+    args.exec()
 }

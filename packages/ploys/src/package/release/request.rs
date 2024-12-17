@@ -1,4 +1,5 @@
 use semver::Version;
+use tracing::{info, info_span};
 
 use crate::changelog::Release;
 use crate::file::File;
@@ -99,6 +100,11 @@ impl<'a> ReleaseRequestBuilder<'a> {
             }
         };
 
+        let span = info_span!("release_request", package = self.package.name(), %version);
+        let _enter = span.enter();
+
+        info!("Creating release request");
+
         if self.options.update_package_manifest {
             files.push((self.package.path().to_owned(), self.package.to_string()));
         }
@@ -188,6 +194,8 @@ impl<'a> ReleaseRequestBuilder<'a> {
         remote.update_branch(&branch, &sha)?;
 
         let id = remote.create_pull_request(&branch, &default_branch, &title, &body)?;
+
+        info!(id, "Created release request");
 
         Ok(ReleaseRequest {
             package: self.package,

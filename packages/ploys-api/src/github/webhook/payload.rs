@@ -20,10 +20,23 @@ use super::header::{XGitHubEvent, XHubSignature256};
 use super::secret::WebhookSecret;
 
 /// The GitHub event payload.
+#[derive(Debug)]
 pub enum Payload {
     PullRequest(PullRequestPayload),
     RepositoryDispatch(RepositoryDispatchPayload),
+    #[allow(dead_code)]
     Other(String, Value),
+}
+
+impl Payload {
+    /// Gets the event name.
+    pub fn event_name(&self) -> &str {
+        match self {
+            Payload::PullRequest(_) => "pull_request",
+            Payload::RepositoryDispatch(_) => "repository_dispatch",
+            Payload::Other(name, _) => name,
+        }
+    }
 }
 
 #[async_trait]

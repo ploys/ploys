@@ -5,21 +5,31 @@ mod payload;
 pub mod secret;
 
 use axum::extract::State;
+use axum_extra::TypedHeader;
 use ploys::package::BumpOrVersion;
 use ploys::project::Project;
 use ploys::repository::revision::Revision;
 use semver::Version;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
+use tracing::{debug, error, instrument};
 
 use crate::state::AppState;
 
 use self::auth::get_installation_access_token;
 use self::error::Error;
+use self::header::XGitHubDelivery;
 use self::payload::{Payload, PullRequestPayload, RepositoryDispatchPayload};
 
 /// Receives the GitHub webhook event payload.
-pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Error> {
+#[instrument(skip_all, fields(delivery = %delivery.into_inner(), event_name = payload.event_name()))]
+pub async fn receive(
+    state: State<AppState>,
+    delivery: TypedHeader<XGitHubDelivery>,
+    payload: Payload,
+) -> Result<(), Error> {
+    debug!(?payload, "Received webhook event");
+
     match payload {
         Payload::PullRequest(payload) => match &*payload.action {
             "closed" if payload.pull_request.merged => {
@@ -47,12 +57,7 @@ pub async fn receive(state: State<AppState>, payload: Payload) -> Result<(), Err
             }
             _ => Ok(()),
         },
-        Payload::Other(event, payload) => {
-            println!("Event: {event}");
-            println!("Payload: {payload:#}");
-
-            Ok(())
-        }
+        Payload::Other(_, _) => Ok(()),
     }
 }
 
@@ -69,7 +74,7 @@ async fn create_release(
 
     tokio::task::spawn_blocking(move || {
         if let Err(err) = create_release_sync(token, release, sha, payload) {
-            println!("Error creating release: {err}");
+            error!("Error creating release: {err}");
         }
     });
 
@@ -103,9 +108,7 @@ fn create_release_sync(
         .ok_or(ploys::package::Error::NotFound(release))
         .map_err(ploys::project::Error::Package)?;
 
-    let release = package.create_release().finish()?;
-
-    println!("Created release {}.", release.id());
+    package.create_release().finish()?;
 
     Ok(())
 }
@@ -124,7 +127,7 @@ async fn request_release(
 
     tokio::task::spawn_blocking(move || {
         if let Err(err) = create_release_request(token, payload) {
-            println!("Error creating release request: {err}");
+            error!("Error creating release request: {err}");
         }
     });
 
@@ -145,14 +148,12 @@ fn create_release_request(token: String, payload: RepositoryDispatchPayload) -> 
         &token,
     )?;
 
-    let release_request = project
+    project
         .get_package(&package)
         .ok_or(ploys::package::Error::NotFound(package))
         .map_err(ploys::project::Error::Package)?
         .create_release_request(version)
         .finish()?;
-
-    println!("Created release request {}.", release_request.id());
 
     Ok(())
 }
@@ -234,6 +235,7 @@ mod tests {
             .uri("/github/webhook")
             .header("Content-Type", "application/json")
             .header("X-GitHub-Event", "issues")
+            .header("X-GitHub-Delivery", "00000000-0000-0000-0000-000000000000")
             .header("X-Hub-Signature-256", format!("sha256={hex}"))
             .body(Body::from(payload))
             .unwrap();
@@ -259,6 +261,7 @@ mod tests {
             .uri("/github/webhook")
             .header("Content-Type", "application/json")
             .header("X-GitHub-Event", "issues")
+            .header("X-GitHub-Delivery", "00000000-0000-0000-0000-000000000000")
             .header("X-Hub-Signature-256", format!("sha256={hex}"))
             .body(Body::from(payload))
             .unwrap();
