@@ -17,13 +17,8 @@ impl<'a> Project<'a> {
     }
 
     /// Gets the project repository.
-    pub fn repository(&self) -> RepoSpec {
-        self.0
-            .get("repository")
-            .and_then(Item::as_str)
-            .expect("repository")
-            .parse()
-            .expect("repository specification")
+    pub fn repository(&self) -> Option<RepoSpec> {
+        self.0.get("repository")?.as_str()?.parse().ok()
     }
 }
 
@@ -31,11 +26,6 @@ impl<'a> Project<'a> {
     /// Constructs the project section from a table.
     pub(super) fn from_table(table: &'a dyn TableLike) -> Option<Self> {
         table.get("name").and_then(Item::as_str)?;
-        table
-            .get("repository")
-            .and_then(Item::as_str)?
-            .parse::<RepoSpec>()
-            .ok()?;
 
         Some(Self(table))
     }
@@ -74,13 +64,8 @@ impl ProjectMut<'_> {
     }
 
     /// Gets the project repository.
-    pub fn repository(&self) -> RepoSpec {
-        self.0
-            .get("repository")
-            .and_then(Item::as_str)
-            .expect("repository")
-            .parse()
-            .expect("repository specification")
+    pub fn repository(&self) -> Option<RepoSpec> {
+        self.0.get("repository")?.as_str()?.parse().ok()
     }
 
     /// Sets the project repository.
@@ -97,11 +82,6 @@ impl<'a> ProjectMut<'a> {
     /// Constructs the mutable project section from a mutable table.
     pub(super) fn from_table(table: &'a mut dyn TableLike) -> Option<Self> {
         table.get("name").and_then(Item::as_str)?;
-        table
-            .get("repository")
-            .and_then(Item::as_str)?
-            .parse::<RepoSpec>()
-            .ok()?;
 
         Some(Self(table))
     }

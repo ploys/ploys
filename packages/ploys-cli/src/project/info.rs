@@ -75,7 +75,9 @@ impl Info {
             println!("Description: {description}");
         }
 
-        println!("Repository:  {}", project.repository().to_url());
+        if let Some(repository) = project.repository() {
+            println!("Repository:  {}", repository.to_url());
+        }
 
         println!("\n{}:\n", style("Packages").underlined().bold());
 
