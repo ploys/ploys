@@ -8,7 +8,7 @@ fn test_valid_local_project() -> Result<(), Error> {
 
     assert_eq!(project.name(), "ploys");
     assert_eq!(
-        project.repository().to_url(),
+        project.repository().unwrap().to_url(),
         "https://github.com/ploys/ploys".parse().unwrap()
     );
 
@@ -34,7 +34,7 @@ fn test_valid_remote_project() -> Result<(), Error> {
 
     assert_eq!(project.name(), "ploys");
     assert_eq!(
-        project.repository().to_url(),
+        project.repository().unwrap().to_url(),
         "https://github.com/ploys/ploys".parse().unwrap()
     );
 

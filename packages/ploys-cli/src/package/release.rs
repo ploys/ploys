@@ -1,4 +1,4 @@
-use anyhow::{bail, Error};
+use anyhow::{bail, Context, Error};
 use clap::Args;
 use ploys::package::BumpOrVersion;
 use ploys::project::Project;
@@ -27,7 +27,9 @@ impl Release {
     pub fn exec(self) -> Result<(), Error> {
         let remote = match self.remote {
             Some(remote) => remote,
-            None => Project::git(".")?.repository(),
+            None => Project::git(".")?
+                .repository()
+                .context("Missing remote repository")?,
         };
 
         let Some(github) = remote.to_github() else {

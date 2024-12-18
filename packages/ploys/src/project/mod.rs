@@ -16,7 +16,7 @@
 //! let project = Project::git(".").unwrap();
 //!
 //! println!("Name:       {}", project.name());
-//! println!("Repository: {}", project.repository());
+//! println!("Repository: {}", project.repository().unwrap());
 //! ```
 //!
 //! ## GitHub
@@ -31,7 +31,7 @@
 //! let project = Project::github("ploys/ploys").unwrap();
 //!
 //! println!("Name:       {}", project.name());
-//! println!("Repository: {}", project.repository());
+//! println!("Repository: {}", project.repository().unwrap());
 //! ```
 
 pub mod config;
@@ -51,12 +51,13 @@ pub use self::packages::Packages;
 
 /// A project from one of several supported repositories.
 ///
-/// A valid project contains a `Ploys.toml` configuration file with the
-/// following fields:
+/// A valid project contains a `Ploys.toml` configuration file in the following
+/// format. Note that only the `project.name` field is required.
 ///
 /// ```toml
 /// [project]
 /// name = "{project-name}"
+/// description = "{project-description}"
 /// repository = "https://github.com/{project-owner}/{project-name}"
 /// ```
 pub struct Project {
@@ -182,7 +183,7 @@ impl Project {
     }
 
     /// Gets the project repository.
-    pub fn repository(&self) -> RepoSpec {
+    pub fn repository(&self) -> Option<RepoSpec> {
         self.config().project().repository()
     }
 
