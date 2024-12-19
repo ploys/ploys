@@ -27,6 +27,11 @@ pub enum Manifest {
 }
 
 impl Manifest {
+    /// Constructs a new cargo manifest.
+    pub fn new_cargo(name: impl Into<String>) -> Self {
+        Self::Cargo(CargoManifest::new_package(name))
+    }
+
     /// Gets the package kind.
     pub fn package_kind(&self) -> PackageKind {
         match self {

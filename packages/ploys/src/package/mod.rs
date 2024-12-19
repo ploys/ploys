@@ -40,6 +40,18 @@ pub struct Package {
 }
 
 impl Package {
+    /// Constructs a new cargo package.
+    pub fn new_cargo(name: impl Into<String>) -> Self {
+        Self {
+            repository: None,
+            manifest: Manifest::new_cargo(name),
+            path: PathBuf::from("."),
+            primary: false,
+        }
+    }
+}
+
+impl Package {
     /// Gets the package name.
     pub fn name(&self) -> &str {
         match &self.manifest {
