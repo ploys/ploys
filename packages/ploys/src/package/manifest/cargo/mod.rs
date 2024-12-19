@@ -8,7 +8,7 @@ use std::fmt::{self, Display};
 use std::path::PathBuf;
 
 use globset::{Glob, GlobSetBuilder};
-use toml_edit::DocumentMut;
+use toml_edit::{DocumentMut, Item, Table, Value};
 
 use crate::package::manifest::Members;
 
@@ -23,6 +23,24 @@ use super::Error;
 pub struct CargoManifest(DocumentMut);
 
 impl CargoManifest {
+    /// Constructs a new cargo package manifest.
+    pub fn new_package(name: impl Into<String>) -> Self {
+        Self({
+            let mut document = DocumentMut::new();
+
+            document.insert(
+                "package",
+                Item::Table({
+                    let mut table = Table::new();
+
+                    table.insert("name", Item::Value(Value::from(name.into())));
+                    table
+                }),
+            );
+            document
+        })
+    }
+
     /// Gets the workspace table.
     pub fn workspace(&self) -> Option<Workspace<'_>> {
         match self.0.get("workspace") {
