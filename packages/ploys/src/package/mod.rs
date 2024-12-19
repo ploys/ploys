@@ -45,7 +45,7 @@ impl Package {
         Self {
             repository: None,
             manifest: Manifest::new_cargo(name),
-            path: PathBuf::from("."),
+            path: PathBuf::new(),
             primary: false,
         }
     }
@@ -298,7 +298,7 @@ mod tests {
         assert_eq!(package.dev_dependencies().into_iter().count(), 0);
         assert_eq!(package.build_dependencies().into_iter().count(), 0);
         assert_eq!(package.kind(), PackageKind::Cargo);
-        assert_eq!(package.path(), Path::new("."));
+        assert_eq!(package.path(), Path::new(""));
 
         package.set_version("0.1.0".parse::<Version>().unwrap());
 
