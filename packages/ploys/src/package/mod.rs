@@ -33,7 +33,7 @@ use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 /// A project package.
 #[derive(Clone)]
 pub struct Package {
-    repository: Arc<Repository>,
+    repository: Option<Arc<Repository>>,
     manifest: Manifest,
     path: PathBuf,
     primary: bool,
@@ -103,6 +103,7 @@ impl Package {
     /// Gets the package changelog.
     pub fn changelog(&self) -> Option<&Changelog> {
         self.repository
+            .as_ref()?
             .get_file(self.path().parent()?.join("CHANGELOG.md"))
             .ok()
             .flatten()
@@ -195,6 +196,8 @@ impl Package {
         );
 
         self.repository
+            .as_ref()
+            .ok_or(crate::project::Error::Unsupported)?
             .as_remote()
             .ok_or(crate::project::Error::Unsupported)?
             .request_package_release(self.name(), version)?;
@@ -216,6 +219,8 @@ impl Package {
     ) -> Result<crate::changelog::Release, crate::project::Error> {
         let release = self
             .repository
+            .as_ref()
+            .ok_or(crate::project::Error::Unsupported)?
             .as_remote()
             .ok_or(crate::project::Error::Unsupported)?
             .get_changelog_release(self.name(), version.borrow(), self.is_primary())?;
@@ -240,7 +245,7 @@ impl Package {
         };
 
         Some(Self {
-            repository: project.repository.clone(),
+            repository: Some(project.repository.clone()),
             manifest: manifest.clone(),
             path: path.into(),
             primary,
