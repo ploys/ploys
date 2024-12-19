@@ -100,6 +100,7 @@ impl<'a> Package<'a> {
     /// Gets the package changelog.
     pub fn changelog(&self) -> Option<&'a Changelog> {
         self.project
+            .repository
             .get_file(self.path().parent()?.join("CHANGELOG.md"))
             .ok()
             .flatten()
@@ -192,7 +193,8 @@ impl Package<'_> {
         );
 
         self.project
-            .get_remote()
+            .repository
+            .as_remote()
             .ok_or(crate::project::Error::Unsupported)?
             .request_package_release(self.name(), version)?;
 
@@ -213,7 +215,8 @@ impl Package<'_> {
     ) -> Result<crate::changelog::Release, crate::project::Error> {
         let release = self
             .project
-            .get_remote()
+            .repository
+            .as_remote()
             .ok_or(crate::project::Error::Unsupported)?
             .get_changelog_release(self.name(), version.borrow(), self.is_primary())?;
 

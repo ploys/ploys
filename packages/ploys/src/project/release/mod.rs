@@ -45,7 +45,7 @@ impl<'a> ReleaseBuilder<'a> {
 
     /// Finishes the release.
     pub fn finish(self) -> Result<Release<'a>, crate::project::Error> {
-        let Some(remote) = self.package.project.get_remote() else {
+        let Some(remote) = self.package.project.repository.as_remote() else {
             return Err(crate::project::Error::Unsupported);
         };
 
