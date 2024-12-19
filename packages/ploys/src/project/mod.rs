@@ -41,6 +41,7 @@ mod release;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::file::File;
 use crate::package::{BumpOrVersion, Package};
@@ -63,7 +64,7 @@ pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 /// repository = "https://github.com/{project-owner}/{project-name}"
 /// ```
 pub struct Project {
-    repository: Repository,
+    repository: Arc<Repository>,
 }
 
 impl Project {
@@ -77,7 +78,9 @@ impl Project {
             .try_as_config_ref()
             .ok_or(self::config::Error::Invalid)?;
 
-        Ok(Self { repository })
+        Ok(Self {
+            repository: Arc::new(repository),
+        })
     }
 }
 
@@ -237,7 +240,7 @@ impl Project {
     pub(crate) fn get_remote(&self) -> Option<&dyn Remote> {
         #[cfg(feature = "github")]
         #[allow(irrefutable_let_patterns)]
-        if let Repository::GitHub(github) = &self.repository {
+        if let Repository::GitHub(github) = &*self.repository {
             return Some(github);
         }
 
