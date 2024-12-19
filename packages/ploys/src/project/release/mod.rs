@@ -4,7 +4,7 @@ use tracing::{info, info_span};
 
 pub use self::request::{ReleaseRequest, ReleaseRequestBuilder};
 
-use super::Package;
+use super::{Package, Project};
 
 /// The package release.
 pub struct Release<'a> {
@@ -34,18 +34,19 @@ impl Release<'_> {
 
 /// The package release builder.
 pub struct ReleaseBuilder<'a> {
+    project: &'a Project,
     package: Package<'a>,
 }
 
 impl<'a> ReleaseBuilder<'a> {
     /// Constructs a new release builder.
-    pub(crate) fn new(package: Package<'a>) -> Self {
-        Self { package }
+    pub(crate) fn new(project: &'a Project, package: Package<'a>) -> Self {
+        Self { project, package }
     }
 
     /// Finishes the release.
     pub fn finish(self) -> Result<Release<'a>, crate::project::Error> {
-        let Some(remote) = self.package.project.repository.as_remote() else {
+        let Some(remote) = self.project.repository.as_remote() else {
             return Err(crate::project::Error::Unsupported);
         };
 

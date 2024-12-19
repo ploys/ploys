@@ -4,6 +4,7 @@ use tracing::{info, info_span};
 use crate::changelog::Release;
 use crate::file::File;
 use crate::package::{BumpOrVersion, Package};
+use crate::project::Project;
 
 /// The release request.
 pub struct ReleaseRequest<'a> {
@@ -42,6 +43,7 @@ impl ReleaseRequest<'_> {
 /// This configures the release request that will be generated on the remote
 /// repository.
 pub struct ReleaseRequestBuilder<'a> {
+    project: &'a Project,
     package: Package<'a>,
     version: BumpOrVersion,
     options: Options,
@@ -49,8 +51,9 @@ pub struct ReleaseRequestBuilder<'a> {
 
 impl<'a> ReleaseRequestBuilder<'a> {
     /// Constructs a new release request builder.
-    pub(crate) fn new(package: Package<'a>, version: BumpOrVersion) -> Self {
+    pub(crate) fn new(project: &'a Project, package: Package<'a>, version: BumpOrVersion) -> Self {
         Self {
+            project,
             package,
             version,
             options: Options::default(),
@@ -83,7 +86,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
 
     /// Finishes the release request.
     pub fn finish(mut self) -> Result<ReleaseRequest<'a>, crate::project::Error> {
-        let Some(remote) = self.package.project.repository.as_remote() else {
+        let Some(remote) = self.project.repository.as_remote() else {
             return Err(crate::project::Error::Unsupported);
         };
 
@@ -110,7 +113,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
         }
 
         if self.options.update_dependent_package_manifests {
-            for mut package in self.package.project.packages() {
+            for mut package in self.project.packages() {
                 if package.name() == self.package.name() {
                     continue;
                 }
@@ -141,9 +144,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
 
         if self.options.update_lockfile {
             if let Some(path) = self.package.kind().lockfile_name() {
-                if let Ok(Some(File::Lockfile(lockfile))) =
-                    self.package.project.repository.get_file(path)
-                {
+                if let Ok(Some(File::Lockfile(lockfile))) = self.project.repository.get_file(path) {
                     let mut lockfile = lockfile.clone();
 
                     lockfile.set_package_version(self.package.name(), version.clone());

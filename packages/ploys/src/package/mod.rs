@@ -13,6 +13,7 @@ use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use semver::Version;
 use tracing::info;
@@ -20,6 +21,7 @@ use tracing::info;
 use crate::changelog::Changelog;
 use crate::file::File;
 use crate::project::Project;
+use crate::repository::Repository;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 pub use self::error::Error;
@@ -31,9 +33,10 @@ use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 /// A project package.
 #[derive(Clone)]
 pub struct Package<'a> {
+    repository: Arc<Repository>,
     manifest: Cow<'a, Manifest>,
     path: PathBuf,
-    pub(crate) project: &'a Project,
+    primary: bool,
 }
 
 impl Package<'_> {
@@ -92,15 +95,14 @@ impl Package<'_> {
     /// A primary package shares the same name as the project and all releases
     /// are tagged under the version number without the package name prefix.
     pub fn is_primary(&self) -> bool {
-        self.name() == self.project.name()
+        self.primary
     }
 }
 
-impl<'a> Package<'a> {
+impl Package<'_> {
     /// Gets the package changelog.
-    pub fn changelog(&self) -> Option<&'a Changelog> {
-        self.project
-            .repository
+    pub fn changelog(&self) -> Option<&Changelog> {
+        self.repository
             .get_file(self.path().parent()?.join("CHANGELOG.md"))
             .ok()
             .flatten()
@@ -192,8 +194,7 @@ impl Package<'_> {
             "Requesting release"
         );
 
-        self.project
-            .repository
+        self.repository
             .as_remote()
             .ok_or(crate::project::Error::Unsupported)?
             .request_package_release(self.name(), version)?;
@@ -214,7 +215,6 @@ impl Package<'_> {
         version: impl Borrow<Version>,
     ) -> Result<crate::changelog::Release, crate::project::Error> {
         let release = self
-            .project
             .repository
             .as_remote()
             .ok_or(crate::project::Error::Unsupported)?
@@ -231,16 +231,19 @@ impl<'a> Package<'a> {
         path: impl Into<PathBuf>,
         manifest: &'a Manifest,
     ) -> Option<Self> {
-        match manifest.package_kind() {
+        let primary = match manifest.package_kind() {
             PackageKind::Cargo => {
-                manifest.try_as_cargo_ref()?.package()?;
+                let pkg = manifest.try_as_cargo_ref()?.package()?;
+
+                pkg.name() == project.name()
             }
-        }
+        };
 
         Some(Self {
+            repository: project.repository.clone(),
             manifest: Cow::Borrowed(manifest),
             path: path.into(),
-            project,
+            primary,
         })
     }
 }

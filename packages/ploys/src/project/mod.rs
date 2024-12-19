@@ -214,7 +214,7 @@ impl Project {
             ))
         })?;
 
-        Ok(ReleaseRequestBuilder::new(package, version.into()))
+        Ok(ReleaseRequestBuilder::new(self, package, version.into()))
     }
 
     /// Constructs a new package release builder.
@@ -228,7 +228,7 @@ impl Project {
             ))
         })?;
 
-        Ok(ReleaseBuilder::new(package))
+        Ok(ReleaseBuilder::new(self, package))
     }
 }
 
