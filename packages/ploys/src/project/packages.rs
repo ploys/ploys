@@ -25,8 +25,8 @@ impl<'a> Packages<'a> {
     }
 }
 
-impl<'a> Iterator for Packages<'a> {
-    type Item = Package<'a>;
+impl Iterator for Packages<'_> {
+    type Item = Package;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -86,8 +86,8 @@ struct ManifestPackages<'a> {
     files: std::collections::btree_set::Iter<'a, PathBuf>,
 }
 
-impl<'a> Iterator for ManifestPackages<'a> {
-    type Item = Package<'a>;
+impl Iterator for ManifestPackages<'_> {
+    type Item = Package;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

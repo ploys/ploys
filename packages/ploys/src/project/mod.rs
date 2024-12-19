@@ -190,7 +190,7 @@ impl Project {
     }
 
     /// Gets a package with the given name.
-    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<'_>> {
+    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package> {
         self.packages()
             .find(|package| package.name() == name.as_ref())
     }

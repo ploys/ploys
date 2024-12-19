@@ -7,16 +7,16 @@ use crate::package::{BumpOrVersion, Package};
 use crate::project::Project;
 
 /// The release request.
-pub struct ReleaseRequest<'a> {
+pub struct ReleaseRequest {
     #[allow(dead_code)]
-    package: Package<'a>,
+    package: Package,
     id: u64,
     title: String,
     notes: Release,
     version: Version,
 }
 
-impl ReleaseRequest<'_> {
+impl ReleaseRequest {
     /// Gets the release request id.
     pub fn id(&self) -> u64 {
         self.id
@@ -44,14 +44,14 @@ impl ReleaseRequest<'_> {
 /// repository.
 pub struct ReleaseRequestBuilder<'a> {
     project: &'a Project,
-    package: Package<'a>,
+    package: Package,
     version: BumpOrVersion,
     options: Options,
 }
 
 impl<'a> ReleaseRequestBuilder<'a> {
     /// Constructs a new release request builder.
-    pub(crate) fn new(project: &'a Project, package: Package<'a>, version: BumpOrVersion) -> Self {
+    pub(crate) fn new(project: &'a Project, package: Package, version: BumpOrVersion) -> Self {
         Self {
             project,
             package,
@@ -85,7 +85,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
     }
 
     /// Finishes the release request.
-    pub fn finish(mut self) -> Result<ReleaseRequest<'a>, crate::project::Error> {
+    pub fn finish(mut self) -> Result<ReleaseRequest, crate::project::Error> {
         let Some(remote) = self.project.repository.as_remote() else {
             return Err(crate::project::Error::Unsupported);
         };
