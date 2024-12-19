@@ -39,13 +39,10 @@ mod error;
 mod packages;
 mod release;
 
-use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::file::File;
 use crate::package::{BumpOrVersion, Package};
-use crate::repository::{Remote, RepoSpec, Repository};
+use crate::repository::{RepoSpec, Repository};
 
 pub use self::config::Config;
 pub use self::error::Error;
@@ -64,7 +61,7 @@ pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 /// repository = "https://github.com/{project-owner}/{project-name}"
 /// ```
 pub struct Project {
-    repository: Arc<Repository>,
+    pub(crate) repository: Arc<Repository>,
 }
 
 impl Project {
@@ -236,30 +233,10 @@ impl Project {
 }
 
 impl Project {
-    /// Gets the remote repository.
-    pub(crate) fn get_remote(&self) -> Option<&dyn Remote> {
-        #[cfg(feature = "github")]
-        #[allow(irrefutable_let_patterns)]
-        if let Repository::GitHub(github) = &*self.repository {
-            return Some(github);
-        }
-
-        None
-    }
-
-    /// Gets a file at the given path.
-    pub(crate) fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<&File>, Error> {
-        self.repository.get_file(path)
-    }
-
-    /// Gets the file index.
-    pub(crate) fn get_file_index(&self) -> &BTreeSet<PathBuf> {
-        self.repository.get_file_index()
-    }
-
     /// Gets the config.
     pub(crate) fn config(&self) -> &Config {
-        self.get_file("Ploys.toml")
+        self.repository
+            .get_file("Ploys.toml")
             .ok()
             .flatten()
             .expect("loaded on open")

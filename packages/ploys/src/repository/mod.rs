@@ -92,6 +92,18 @@ impl Repository {
     }
 }
 
+impl Repository {
+    /// Gets the repository as a remote.
+    pub(crate) fn as_remote(&self) -> Option<&dyn Remote> {
+        match self {
+            #[cfg(feature = "git")]
+            Self::Git(_) => None,
+            #[cfg(feature = "github")]
+            Self::GitHub(github) => Some(github),
+        }
+    }
+}
+
 #[cfg(feature = "git")]
 impl From<self::git::Git> for Repository {
     fn from(git: self::git::Git) -> Self {

@@ -34,14 +34,16 @@ impl<'a> Iterator for Packages<'a> {
                 State::Initial { project } => {
                     let kind = self.kinds.next()?;
 
-                    if let Ok(Some(File::Manifest(manifest))) = project.get_file(kind.file_name()) {
+                    if let Ok(Some(File::Manifest(manifest))) =
+                        project.repository.get_file(kind.file_name())
+                    {
                         if let Ok(members) = manifest.members() {
                             self.state = State::Manifest {
                                 packages: ManifestPackages {
                                     project,
                                     manifest,
                                     members,
-                                    files: project.get_file_index().iter(),
+                                    files: project.repository.get_file_index().iter(),
                                 },
                             };
                         }
@@ -53,12 +55,13 @@ impl<'a> Iterator for Packages<'a> {
                         let kind = self.kinds.next()?;
 
                         if let Ok(Some(File::Manifest(manifest))) =
-                            packages.project.get_file(kind.file_name())
+                            packages.project.repository.get_file(kind.file_name())
                         {
                             if let Ok(members) = manifest.members() {
                                 packages.manifest = manifest;
                                 packages.members = members;
-                                packages.files = packages.project.get_file_index().iter();
+                                packages.files =
+                                    packages.project.repository.get_file_index().iter();
                             }
                         }
                     }
@@ -103,7 +106,7 @@ impl<'a> Iterator for ManifestPackages<'a> {
                 continue;
             }
 
-            let Ok(Some(File::Manifest(manifest))) = self.project.get_file(path) else {
+            let Ok(Some(File::Manifest(manifest))) = self.project.repository.get_file(path) else {
                 continue;
             };
 
