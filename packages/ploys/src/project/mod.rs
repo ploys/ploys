@@ -37,17 +37,19 @@
 pub mod config;
 mod error;
 mod packages;
+mod release;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use crate::file::File;
-use crate::package::Package;
+use crate::package::{BumpOrVersion, Package};
 use crate::repository::{Remote, RepoSpec, Repository};
 
 pub use self::config::Config;
 pub use self::error::Error;
 pub use self::packages::Packages;
+pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 
 /// A project from one of several supported repositories.
 ///
@@ -196,6 +198,37 @@ impl Project {
     /// Gets an iterator over the project packages.
     pub fn packages(&self) -> Packages<'_> {
         Packages::new(self)
+    }
+}
+
+impl Project {
+    /// Constructs a new package release request builder.
+    pub fn create_package_release_request(
+        &self,
+        package: impl AsRef<str>,
+        version: impl Into<BumpOrVersion>,
+    ) -> Result<ReleaseRequestBuilder<'_>, Error> {
+        let package = self.get_package(package.as_ref()).ok_or_else(|| {
+            Error::Package(crate::package::Error::NotFound(
+                package.as_ref().to_string(),
+            ))
+        })?;
+
+        Ok(ReleaseRequestBuilder::new(package, version.into()))
+    }
+
+    /// Constructs a new package release builder.
+    pub fn create_package_release(
+        &self,
+        package: impl AsRef<str>,
+    ) -> Result<ReleaseBuilder<'_>, Error> {
+        let package = self.get_package(package.as_ref()).ok_or_else(|| {
+            Error::Package(crate::package::Error::NotFound(
+                package.as_ref().to_string(),
+            ))
+        })?;
+
+        Ok(ReleaseBuilder::new(package))
     }
 }
 
