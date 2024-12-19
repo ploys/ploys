@@ -278,3 +278,30 @@ impl Display for Package {
         Display::fmt(&self.manifest, f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use semver::Version;
+
+    use super::{Package, PackageKind};
+
+    #[test]
+    fn test_package_builder() {
+        let mut package = Package::new_cargo("example");
+
+        assert_eq!(package.name(), "example");
+        assert_eq!(package.description(), None);
+        assert_eq!(package.version().to_string(), "0.0.0");
+        assert_eq!(package.dependencies().into_iter().count(), 0);
+        assert_eq!(package.dev_dependencies().into_iter().count(), 0);
+        assert_eq!(package.build_dependencies().into_iter().count(), 0);
+        assert_eq!(package.kind(), PackageKind::Cargo);
+        assert_eq!(package.path(), Path::new("."));
+
+        package.set_version("0.1.0".parse::<Version>().unwrap());
+
+        assert_eq!(package.version().to_string(), "0.1.0");
+    }
+}
