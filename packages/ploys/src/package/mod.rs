@@ -8,7 +8,6 @@ mod error;
 mod kind;
 pub mod lockfile;
 pub mod manifest;
-mod release;
 
 use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display};
@@ -28,14 +27,13 @@ pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 pub use self::manifest::Manifest;
 use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
-pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 
 /// A project package.
 #[derive(Clone)]
 pub struct Package<'a> {
     manifest: Cow<'a, Manifest>,
     path: PathBuf,
-    project: &'a Project,
+    pub(crate) project: &'a Project,
 }
 
 impl Package<'_> {
@@ -175,20 +173,7 @@ impl Package<'_> {
     }
 }
 
-impl<'a> Package<'a> {
-    /// Constructs a new release request builder.
-    pub fn create_release_request(
-        self,
-        version: impl Into<BumpOrVersion>,
-    ) -> ReleaseRequestBuilder<'a> {
-        ReleaseRequestBuilder::new(self, version.into())
-    }
-
-    /// Constructs a new release builder.
-    pub fn create_release(self) -> ReleaseBuilder<'a> {
-        ReleaseBuilder::new(self)
-    }
-
+impl Package<'_> {
     /// Requests the release of the specified package version.
     ///
     /// It does not yet support parallel release or hotfix branches and expects

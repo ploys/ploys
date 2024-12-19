@@ -108,7 +108,7 @@ fn create_release_sync(
         .ok_or(ploys::package::Error::NotFound(release))
         .map_err(ploys::project::Error::Package)?;
 
-    package.create_release().finish()?;
+    project.create_package_release(package.name())?.finish()?;
 
     Ok(())
 }
@@ -148,11 +148,13 @@ fn create_release_request(token: String, payload: RepositoryDispatchPayload) -> 
         &token,
     )?;
 
-    project
+    let package = project
         .get_package(&package)
         .ok_or(ploys::package::Error::NotFound(package))
-        .map_err(ploys::project::Error::Package)?
-        .create_release_request(version)
+        .map_err(ploys::project::Error::Package)?;
+
+    project
+        .create_package_release_request(package.name(), version)?
         .finish()?;
 
     Ok(())
