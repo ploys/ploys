@@ -110,7 +110,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
 
         if self.options.update_package_manifest {
             files.push((
-                self.package.path().to_owned(),
+                self.package.manifest_path().to_owned(),
                 self.package.manifest().to_string(),
             ));
         }
@@ -140,7 +140,10 @@ impl<'a> ReleaseRequestBuilder<'a> {
                 }
 
                 if changed {
-                    files.push((package.path().to_owned(), package.manifest().to_string()));
+                    files.push((
+                        package.manifest_path().to_owned(),
+                        package.manifest().to_string(),
+                    ));
                 }
             }
         }
@@ -159,12 +162,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
         let mut release = self.package.build_release_notes(&version)?;
 
         if self.options.update_changelog {
-            let path = self
-                .package
-                .path()
-                .parent()
-                .expect("parent")
-                .join("CHANGELOG.md");
+            let path = self.package.path().join("CHANGELOG.md");
 
             let mut changelog = self.package.changelog().cloned().unwrap_or_default();
 

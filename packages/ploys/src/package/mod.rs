@@ -98,6 +98,11 @@ impl Package {
         &self.path
     }
 
+    /// Gets the package manifest path.
+    pub fn manifest_path(&self) -> PathBuf {
+        self.path().join(self.kind().file_name())
+    }
+
     /// Gets the package kind.
     pub fn kind(&self) -> PackageKind {
         self.kind
@@ -135,7 +140,7 @@ impl Package {
     pub fn changelog(&self) -> Option<&Changelog> {
         self.repository
             .as_ref()?
-            .get_file(self.path().parent()?.join("CHANGELOG.md"))
+            .get_file(self.path().join("CHANGELOG.md"))
             .ok()
             .flatten()
             .and_then(File::try_as_changelog_ref)
