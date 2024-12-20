@@ -128,6 +128,10 @@ impl Package {
     }
 
     /// Gets the mutable package manifest.
+    ///
+    /// Note that replacing the manifest with another kind is a logic error and
+    /// the behavior is not specified. This will likely lead to incorrect
+    /// results and panics.
     pub fn manifest_mut(&mut self) -> &mut Manifest {
         self.files
             .get_mut(self.kind().file_name())
@@ -165,6 +169,10 @@ impl Package {
     }
 
     /// Gets the mutable file at the given path.
+    ///
+    /// Note that replacing the file with another kind is a logic error and the
+    /// behavior is not specified. This will likely lead to incorrect results
+    /// and panics.
     pub fn get_file_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut File> {
         self.files
             .get_mut_or_try_insert_with(path.as_ref().to_owned(), |path| match &self.repository {
