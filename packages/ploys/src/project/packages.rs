@@ -110,7 +110,7 @@ impl Iterator for ManifestPackages<'_> {
                 continue;
             };
 
-            let Some(package) = Package::from_manifest(self.project, path, manifest) else {
+            let Some(package) = Package::from_manifest(self.project, parent, manifest) else {
                 continue;
             };
 
