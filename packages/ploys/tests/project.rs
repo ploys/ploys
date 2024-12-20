@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use ploys::project::{Error, Project};
 use ploys::repository::revision::Revision;
 
@@ -14,6 +16,18 @@ fn test_valid_local_project() -> Result<(), Error> {
 
     assert!(project.packages().any(|pkg| pkg.name() == "ploys"));
     assert!(project.packages().any(|pkg| pkg.name() == "ploys-cli"));
+
+    let ploys = project.get_package("ploys").unwrap();
+
+    assert_eq!(ploys.path(), Path::new("packages/ploys"));
+    assert_eq!(
+        ploys.manifest_path(),
+        Path::new("packages/ploys/Cargo.toml")
+    );
+
+    let changelog = ploys.changelog().unwrap();
+
+    assert!(changelog.get_release("0.1.0").is_some());
 
     Ok(())
 }
@@ -40,6 +54,18 @@ fn test_valid_remote_project() -> Result<(), Error> {
 
     assert!(project.packages().any(|pkg| pkg.name() == "ploys"));
     assert!(project.packages().any(|pkg| pkg.name() == "ploys-cli"));
+
+    let ploys = project.get_package("ploys").unwrap();
+
+    assert_eq!(ploys.path(), Path::new("packages/ploys"));
+    assert_eq!(
+        ploys.manifest_path(),
+        Path::new("packages/ploys/Cargo.toml")
+    );
+
+    let changelog = ploys.changelog().unwrap();
+
+    assert!(changelog.get_release("0.1.0").is_some());
 
     Ok(())
 }

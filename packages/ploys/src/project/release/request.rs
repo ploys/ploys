@@ -4,18 +4,19 @@ use tracing::{info, info_span};
 use crate::changelog::Release;
 use crate::file::File;
 use crate::package::{BumpOrVersion, Package};
+use crate::project::Project;
 
 /// The release request.
-pub struct ReleaseRequest<'a> {
+pub struct ReleaseRequest {
     #[allow(dead_code)]
-    package: Package<'a>,
+    package: Package,
     id: u64,
     title: String,
     notes: Release,
     version: Version,
 }
 
-impl ReleaseRequest<'_> {
+impl ReleaseRequest {
     /// Gets the release request id.
     pub fn id(&self) -> u64 {
         self.id
@@ -42,15 +43,17 @@ impl ReleaseRequest<'_> {
 /// This configures the release request that will be generated on the remote
 /// repository.
 pub struct ReleaseRequestBuilder<'a> {
-    package: Package<'a>,
+    project: &'a Project,
+    package: Package,
     version: BumpOrVersion,
     options: Options,
 }
 
 impl<'a> ReleaseRequestBuilder<'a> {
     /// Constructs a new release request builder.
-    pub(crate) fn new(package: Package<'a>, version: BumpOrVersion) -> Self {
+    pub(crate) fn new(project: &'a Project, package: Package, version: BumpOrVersion) -> Self {
         Self {
+            project,
             package,
             version,
             options: Options::default(),
@@ -82,8 +85,8 @@ impl<'a> ReleaseRequestBuilder<'a> {
     }
 
     /// Finishes the release request.
-    pub fn finish(mut self) -> Result<ReleaseRequest<'a>, crate::project::Error> {
-        let Some(remote) = self.package.project.repository.as_remote() else {
+    pub fn finish(mut self) -> Result<ReleaseRequest, crate::project::Error> {
+        let Some(remote) = self.project.repository.as_remote() else {
             return Err(crate::project::Error::Unsupported);
         };
 
@@ -106,11 +109,14 @@ impl<'a> ReleaseRequestBuilder<'a> {
         info!("Creating release request");
 
         if self.options.update_package_manifest {
-            files.push((self.package.path().to_owned(), self.package.to_string()));
+            files.push((
+                self.package.manifest_path().to_owned(),
+                self.package.manifest().to_string(),
+            ));
         }
 
         if self.options.update_dependent_package_manifests {
-            for mut package in self.package.project.packages() {
+            for mut package in self.project.packages() {
                 if package.name() == self.package.name() {
                     continue;
                 }
@@ -134,16 +140,17 @@ impl<'a> ReleaseRequestBuilder<'a> {
                 }
 
                 if changed {
-                    files.push((package.path().to_owned(), package.to_string()));
+                    files.push((
+                        package.manifest_path().to_owned(),
+                        package.manifest().to_string(),
+                    ));
                 }
             }
         }
 
         if self.options.update_lockfile {
             if let Some(path) = self.package.kind().lockfile_name() {
-                if let Ok(Some(File::Lockfile(lockfile))) =
-                    self.package.project.repository.get_file(path)
-                {
+                if let Ok(Some(File::Lockfile(lockfile))) = self.project.repository.get_file(path) {
                     let mut lockfile = lockfile.clone();
 
                     lockfile.set_package_version(self.package.name(), version.clone());
@@ -155,12 +162,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
         let mut release = self.package.build_release_notes(&version)?;
 
         if self.options.update_changelog {
-            let path = self
-                .package
-                .path()
-                .parent()
-                .expect("parent")
-                .join("CHANGELOG.md");
+            let path = self.package.path().join("CHANGELOG.md");
 
             let mut changelog = self.package.changelog().cloned().unwrap_or_default();
 

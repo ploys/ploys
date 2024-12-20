@@ -190,7 +190,7 @@ impl Project {
     }
 
     /// Gets a package with the given name.
-    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<'_>> {
+    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package> {
         self.packages()
             .find(|package| package.name() == name.as_ref())
     }
@@ -214,7 +214,7 @@ impl Project {
             ))
         })?;
 
-        Ok(ReleaseRequestBuilder::new(package, version.into()))
+        Ok(ReleaseRequestBuilder::new(self, package, version.into()))
     }
 
     /// Constructs a new package release builder.
@@ -228,7 +228,7 @@ impl Project {
             ))
         })?;
 
-        Ok(ReleaseBuilder::new(package))
+        Ok(ReleaseBuilder::new(self, package))
     }
 }
 
