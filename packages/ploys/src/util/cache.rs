@@ -38,6 +38,14 @@ where
             .find(|(k, _)| key.equivalent(*k))
             .map(|(_, val)| (**val).as_mut())?
     }
+
+    /// Inserts the given key-value pair.
+    pub fn insert(&mut self, key: impl Into<K>, val: impl Into<V>) {
+        let key = key.into();
+
+        self.inner.remove(&key);
+        self.inner.insert(key, |_| Box::new(Some(val.into())));
+    }
 }
 
 impl<K, V> Default for Cache<K, V> {

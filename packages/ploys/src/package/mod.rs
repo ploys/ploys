@@ -144,6 +144,30 @@ impl Package {
 }
 
 impl Package {
+    /// Gets the file at the given path.
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
+        self.files.get(path.as_ref())
+    }
+
+    /// Gets the mutable file at the given path.
+    pub fn get_file_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut File> {
+        self.files.get_mut(path.as_ref())
+    }
+
+    /// Inserts the given file.
+    pub fn insert_file(&mut self, path: impl AsRef<Path>, file: impl Into<File>) -> &mut Self {
+        self.files.insert(path.as_ref(), file.into());
+        self
+    }
+
+    /// Builds the package with the given file.
+    pub fn with_file(mut self, path: impl AsRef<Path>, file: impl Into<File>) -> Self {
+        self.insert_file(path, file);
+        self
+    }
+}
+
+impl Package {
     /// Gets the dependency with the given name.
     pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
         self.manifest().get_dependency(name)
