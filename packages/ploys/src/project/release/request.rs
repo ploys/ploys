@@ -109,7 +109,10 @@ impl<'a> ReleaseRequestBuilder<'a> {
         info!("Creating release request");
 
         if self.options.update_package_manifest {
-            files.push((self.package.path().to_owned(), self.package.to_string()));
+            files.push((
+                self.package.path().to_owned(),
+                self.package.manifest().to_string(),
+            ));
         }
 
         if self.options.update_dependent_package_manifests {
@@ -137,7 +140,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
                 }
 
                 if changed {
-                    files.push((package.path().to_owned(), package.to_string()));
+                    files.push((package.path().to_owned(), package.manifest().to_string()));
                 }
             }
         }

@@ -10,7 +10,6 @@ pub mod lockfile;
 pub mod manifest;
 
 use std::borrow::Borrow;
-use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -308,12 +307,6 @@ impl Package {
             kind,
             primary,
         })
-    }
-}
-
-impl Display for Package {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(self.manifest(), f)
     }
 }
 
