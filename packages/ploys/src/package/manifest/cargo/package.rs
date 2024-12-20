@@ -12,10 +12,7 @@ impl<'a> Package<'a> {
 
     /// Gets the package description.
     pub fn description(&self) -> Option<&'a str> {
-        match self.0.get("description") {
-            Some(description) => Some(description.as_str().expect("description")),
-            None => None,
-        }
+        self.0.get("description").and_then(Item::as_str)
     }
 
     /// Gets the package version.
@@ -45,10 +42,7 @@ impl PackageMut<'_> {
 
     /// Gets the package description.
     pub fn description(&self) -> Option<&str> {
-        match self.0.get("description") {
-            Some(description) => Some(description.as_str().expect("description")),
-            None => None,
-        }
+        self.0.get("description").and_then(Item::as_str)
     }
 
     /// Sets the package description.
