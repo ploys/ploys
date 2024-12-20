@@ -67,6 +67,26 @@ impl Package {
         }
     }
 
+    /// Sets the package description.
+    pub fn set_description(&mut self, description: impl Into<String>) -> &mut Self {
+        match self.manifest_mut() {
+            Manifest::Cargo(cargo) => {
+                cargo
+                    .package_mut()
+                    .expect("package")
+                    .set_description(description);
+            }
+        }
+
+        self
+    }
+
+    /// Builds the package with the given description.
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.set_description(description);
+        self
+    }
+
     /// Gets the package version.
     pub fn version(&self) -> Version {
         match self.manifest() {
@@ -91,6 +111,12 @@ impl Package {
         self.set_version(version);
 
         Ok(self)
+    }
+
+    /// Builds the package with the given version.
+    pub fn with_version(mut self, version: impl Into<Version>) -> Self {
+        self.set_version(version);
+        self
     }
 
     /// Gets the package path.
@@ -150,6 +176,18 @@ impl Package {
     pub fn changelog_mut(&mut self) -> Option<&mut Changelog> {
         self.get_file_mut("CHANGELOG.md")
             .and_then(File::try_as_changelog_mut)
+    }
+
+    /// Sets the package changelog.
+    pub fn set_changelog(&mut self, changelog: impl Into<Changelog>) -> &mut Self {
+        self.insert_file("CHANGELOG.md", changelog.into());
+        self
+    }
+
+    /// Builds the package with the given changelog.
+    pub fn with_changelog(mut self, changelog: impl Into<Changelog>) -> Self {
+        self.set_changelog(changelog);
+        self
     }
 }
 
@@ -371,9 +409,19 @@ mod tests {
         assert_eq!(package.version().to_string(), "0.1.0");
         assert_eq!(package.changelog(), None);
 
-        package.insert_file("CHANGELOG.md", Changelog::new());
+        package.set_changelog(Changelog::new());
 
         assert_eq!(package.changelog(), Some(&Changelog::new()));
         assert_eq!(package.changelog_mut(), Some(&mut Changelog::new()));
+
+        let package2 = Package::new_cargo("example2")
+            .with_description("An example.")
+            .with_version("0.1.0".parse::<Version>().unwrap())
+            .with_changelog(Changelog::new());
+
+        assert_eq!(package2.name(), "example2");
+        assert_eq!(package2.description(), Some("An example."));
+        assert_eq!(package2.version().to_string(), "0.1.0");
+        assert_eq!(package2.changelog(), Some(&Changelog::new()));
     }
 }
