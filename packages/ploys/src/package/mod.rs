@@ -138,24 +138,44 @@ impl Package {
 
     /// Gets the package changelog.
     pub fn changelog(&self) -> Option<&Changelog> {
-        self.repository
-            .as_ref()?
-            .get_file(self.path().join("CHANGELOG.md"))
-            .ok()
-            .flatten()
+        self.get_file("CHANGELOG.md")
             .and_then(File::try_as_changelog_ref)
+    }
+
+    /// Gets the mutable package changelog.
+    pub fn changelog_mut(&mut self) -> Option<&mut Changelog> {
+        self.get_file_mut("CHANGELOG.md")
+            .and_then(File::try_as_changelog_mut)
     }
 }
 
 impl Package {
     /// Gets the file at the given path.
     pub fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
-        self.files.get(path.as_ref())
+        self.files
+            .get_or_try_insert_with(path.as_ref().to_owned(), |path| match &self.repository {
+                Some(repository) => match repository.get_file(self.path.join(path)) {
+                    Ok(file) => Ok(file.cloned()),
+                    Err(err) => Err(err),
+                },
+                None => Ok(None),
+            })
+            .ok()
+            .flatten()
     }
 
     /// Gets the mutable file at the given path.
     pub fn get_file_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut File> {
-        self.files.get_mut(path.as_ref())
+        self.files
+            .get_mut_or_try_insert_with(path.as_ref().to_owned(), |path| match &self.repository {
+                Some(repository) => match repository.get_file(self.path.join(path)) {
+                    Ok(file) => Ok(file.cloned()),
+                    Err(err) => Err(err),
+                },
+                None => Ok(None),
+            })
+            .ok()
+            .flatten()
     }
 
     /// Inserts the given file.
@@ -321,6 +341,8 @@ mod tests {
 
     use semver::Version;
 
+    use crate::changelog::Changelog;
+
     use super::{Package, PackageKind};
 
     #[test]
@@ -339,5 +361,11 @@ mod tests {
         package.set_version("0.1.0".parse::<Version>().unwrap());
 
         assert_eq!(package.version().to_string(), "0.1.0");
+        assert_eq!(package.changelog(), None);
+
+        package.insert_file("CHANGELOG.md", Changelog::new());
+
+        assert_eq!(package.changelog(), Some(&Changelog::new()));
+        assert_eq!(package.changelog_mut(), Some(&mut Changelog::new()));
     }
 }

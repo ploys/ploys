@@ -46,6 +46,32 @@ where
         self.inner.remove(&key);
         self.inner.insert(key, |_| Box::new(Some(val.into())));
     }
+
+    /// Gets or inserts the key-value pair.
+    pub fn get_or_try_insert_with<E, F>(&self, key: K, with: F) -> Result<Option<&V>, E>
+    where
+        F: FnOnce(&K) -> Result<Option<V>, E>,
+    {
+        self.inner
+            .try_insert(key, |key| with(key).map(Box::new))
+            .map(Option::as_ref)
+    }
+}
+
+impl<K, V> Cache<K, V>
+where
+    K: Eq + Hash + Clone,
+{
+    /// Gets a mutable value or inserts the key-value pair.
+    pub fn get_mut_or_try_insert_with<E, F>(&mut self, key: K, with: F) -> Result<Option<&mut V>, E>
+    where
+        F: FnOnce(&K) -> Result<Option<V>, E>,
+    {
+        match self.get_or_try_insert_with(key.clone(), with)? {
+            Some(_) => Ok(self.get_mut(&key)),
+            None => Ok(None),
+        }
+    }
 }
 
 impl<K, V> Default for Cache<K, V> {

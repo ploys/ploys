@@ -25,6 +25,10 @@ fn test_valid_local_project() -> Result<(), Error> {
         Path::new("packages/ploys/Cargo.toml")
     );
 
+    let changelog = ploys.changelog().unwrap();
+
+    assert!(changelog.get_release("0.1.0").is_some());
+
     Ok(())
 }
 
@@ -58,6 +62,10 @@ fn test_valid_remote_project() -> Result<(), Error> {
         ploys.manifest_path(),
         Path::new("packages/ploys/Cargo.toml")
     );
+
+    let changelog = ploys.changelog().unwrap();
+
+    assert!(changelog.get_release("0.1.0").is_some());
 
     Ok(())
 }
