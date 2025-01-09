@@ -50,7 +50,7 @@ where
         let content_type = req.extract_parts::<TypedHeader<ContentType>>().await?;
         let mime: Mime = content_type.0.into();
         let is_json = mime.type_() == "application"
-            && (mime.subtype() == "json" || mime.suffix().map_or(false, |name| name == "json"));
+            && (mime.subtype() == "json" || mime.suffix().is_some_and(|name| name == "json"));
 
         if !is_json {
             return Err(PayloadRejection::ContentType);
