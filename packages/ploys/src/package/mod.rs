@@ -20,7 +20,6 @@ use crate::changelog::Changelog;
 use crate::file::File;
 use crate::project::Project;
 use crate::repository::Repository;
-use crate::util::cache::Cache;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 pub use self::error::Error;
@@ -33,9 +32,8 @@ use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 #[derive(Clone)]
 pub struct Package {
     repository: Option<Arc<Repository>>,
-    files: Cache<PathBuf, File>,
+    manifest: Manifest,
     path: PathBuf,
-    kind: PackageKind,
     primary: bool,
 }
 
@@ -44,9 +42,8 @@ impl Package {
     pub fn new_cargo(name: impl Into<String>) -> Self {
         Self {
             repository: None,
-            files: Cache::from_iter([(PackageKind::Cargo.file_name(), Manifest::new_cargo(name))]),
+            manifest: Manifest::new_cargo(name),
             path: PathBuf::new(),
-            kind: PackageKind::Cargo,
             primary: false,
         }
     }
@@ -131,7 +128,7 @@ impl Package {
 
     /// Gets the package kind.
     pub fn kind(&self) -> PackageKind {
-        self.kind
+        self.manifest.package_kind()
     }
 
     /// Checks if this is the primary package.
@@ -146,11 +143,7 @@ impl Package {
 impl Package {
     /// Gets the package manifest.
     pub fn manifest(&self) -> &Manifest {
-        self.files
-            .get(self.kind().file_name())
-            .expect("package file")
-            .try_as_manifest_ref()
-            .expect("package manifest")
+        &self.manifest
     }
 
     /// Gets the mutable package manifest.
@@ -159,11 +152,7 @@ impl Package {
     /// the behavior is not specified. This will likely lead to incorrect
     /// results and panics.
     pub fn manifest_mut(&mut self) -> &mut Manifest {
-        self.files
-            .get_mut(self.kind().file_name())
-            .expect("package file")
-            .try_as_manifest_mut()
-            .expect("package manifest")
+        &mut self.manifest
     }
 
     /// Gets the package changelog.
@@ -171,69 +160,16 @@ impl Package {
         self.get_file("CHANGELOG.md")
             .and_then(File::try_as_changelog_ref)
     }
-
-    /// Gets the mutable package changelog.
-    pub fn changelog_mut(&mut self) -> Option<&mut Changelog> {
-        self.get_file_mut("CHANGELOG.md")
-            .and_then(File::try_as_changelog_mut)
-    }
-
-    /// Sets the package changelog.
-    pub fn set_changelog(&mut self, changelog: impl Into<Changelog>) -> &mut Self {
-        self.insert_file("CHANGELOG.md", changelog.into());
-        self
-    }
-
-    /// Builds the package with the given changelog.
-    pub fn with_changelog(mut self, changelog: impl Into<Changelog>) -> Self {
-        self.set_changelog(changelog);
-        self
-    }
 }
 
 impl Package {
     /// Gets the file at the given path.
     pub fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
-        self.files
-            .get_or_try_insert_with(path.as_ref().to_owned(), |path| match &self.repository {
-                Some(repository) => match repository.get_file(self.path.join(path)) {
-                    Ok(file) => Ok(file.cloned()),
-                    Err(err) => Err(err),
-                },
-                None => Ok(None),
-            })
+        self.repository
+            .as_ref()?
+            .get_file(self.path.join(path))
             .ok()
             .flatten()
-    }
-
-    /// Gets the mutable file at the given path.
-    ///
-    /// Note that replacing the file with another kind is a logic error and the
-    /// behavior is not specified. This will likely lead to incorrect results
-    /// and panics.
-    pub fn get_file_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut File> {
-        self.files
-            .get_mut_or_try_insert_with(path.as_ref().to_owned(), |path| match &self.repository {
-                Some(repository) => match repository.get_file(self.path.join(path)) {
-                    Ok(file) => Ok(file.cloned()),
-                    Err(err) => Err(err),
-                },
-                None => Ok(None),
-            })
-            .ok()
-            .flatten()
-    }
-
-    /// Inserts the given file.
-    pub fn insert_file(&mut self, path: impl AsRef<Path>, file: impl Into<File>) -> &mut Self {
-        self.files.insert(path.as_ref(), file.into());
-        self
-    }
-
-    /// Builds the package with the given file.
-    pub fn with_file(mut self, path: impl AsRef<Path>, file: impl Into<File>) -> Self {
-        self.insert_file(path, file);
-        self
     }
 }
 
@@ -373,9 +309,8 @@ impl Package {
 
         Some(Self {
             repository: Some(project.repository.clone()),
-            files: Cache::from_iter([(kind.file_name(), manifest.clone())]),
+            manifest: manifest.clone(),
             path: path.into(),
-            kind,
             primary,
         })
     }
@@ -386,8 +321,6 @@ mod tests {
     use std::path::Path;
 
     use semver::Version;
-
-    use crate::changelog::Changelog;
 
     use super::{Package, PackageKind};
 
@@ -408,20 +341,5 @@ mod tests {
 
         assert_eq!(package.version().to_string(), "0.1.0");
         assert_eq!(package.changelog(), None);
-
-        package.set_changelog(Changelog::new());
-
-        assert_eq!(package.changelog(), Some(&Changelog::new()));
-        assert_eq!(package.changelog_mut(), Some(&mut Changelog::new()));
-
-        let package2 = Package::new_cargo("example2")
-            .with_description("An example.")
-            .with_version("0.1.0".parse::<Version>().unwrap())
-            .with_changelog(Changelog::new());
-
-        assert_eq!(package2.name(), "example2");
-        assert_eq!(package2.description(), Some("An example."));
-        assert_eq!(package2.version().to_string(), "0.1.0");
-        assert_eq!(package2.changelog(), Some(&Changelog::new()));
     }
 }
