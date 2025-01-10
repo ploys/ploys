@@ -18,6 +18,7 @@ use tracing::info;
 use crate::changelog::Changelog;
 use crate::file::File;
 use crate::project::Project;
+use crate::repository::memory::Memory;
 use crate::repository::Repository;
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
@@ -30,7 +31,7 @@ use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 /// A project package.
 #[derive(Clone)]
 pub struct Package {
-    repository: Option<Repository>,
+    repository: Repository,
     manifest: Manifest,
     path: PathBuf,
     primary: bool,
@@ -40,7 +41,7 @@ impl Package {
     /// Constructs a new cargo package.
     pub fn new_cargo(name: impl Into<String>) -> Self {
         Self {
-            repository: None,
+            repository: Repository::Memory(Memory::new()),
             manifest: Manifest::new_cargo(name),
             path: PathBuf::new(),
             primary: false,
@@ -166,7 +167,6 @@ impl Package {
     /// Gets the file at the given path.
     pub fn get_file(&self, path: impl AsRef<Path>) -> Option<Cow<'_, File>> {
         self.repository
-            .as_ref()?
             .get_file(self.path.join(path))
             .ok()
             .flatten()
@@ -258,8 +258,6 @@ impl Package {
         );
 
         self.repository
-            .as_ref()
-            .ok_or(crate::project::Error::Unsupported)?
             .as_remote()
             .ok_or(crate::project::Error::Unsupported)?
             .request_package_release(self.name(), version)?;
@@ -281,8 +279,6 @@ impl Package {
     ) -> Result<crate::changelog::Release, crate::project::Error> {
         let release = self
             .repository
-            .as_ref()
-            .ok_or(crate::project::Error::Unsupported)?
             .as_remote()
             .ok_or(crate::project::Error::Unsupported)?
             .get_changelog_release(self.name(), version.borrow(), self.is_primary())?;
@@ -308,7 +304,7 @@ impl Package {
         };
 
         Some(Self {
-            repository: Some(project.repository.clone()),
+            repository: project.repository.clone(),
             manifest: manifest.clone(),
             path: path.into(),
             primary,
