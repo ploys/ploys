@@ -58,19 +58,6 @@ impl Repository {
             Self::GitHub(github) => github.get_file_index(),
         }
     }
-
-    /// Queries the contents of a project file.
-    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
-    where
-        P: AsRef<Path>,
-    {
-        match self {
-            #[cfg(feature = "git")]
-            Self::Git(git) => Ok(git.get_file_contents(path)?),
-            #[cfg(feature = "github")]
-            Self::GitHub(github) => Ok(github.get_file_contents(path)?),
-        }
-    }
 }
 
 impl Repository {
