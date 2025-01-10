@@ -19,8 +19,6 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use url::Url;
-
 use crate::file::File;
 
 pub use self::error::Error;
@@ -37,26 +35,6 @@ pub enum Repository {
 }
 
 impl Repository {
-    /// Queries the project name.
-    pub fn get_name(&self) -> Result<String, Error> {
-        match self {
-            #[cfg(feature = "git")]
-            Self::Git(git) => Ok(git.get_name()?),
-            #[cfg(feature = "github")]
-            Self::GitHub(github) => Ok(github.get_name()?),
-        }
-    }
-
-    /// Queries the project URL.
-    pub fn get_url(&self) -> Result<Url, Error> {
-        match self {
-            #[cfg(feature = "git")]
-            Self::Git(git) => Ok(git.get_url()?),
-            #[cfg(feature = "github")]
-            Self::GitHub(github) => Ok(github.get_url()?),
-        }
-    }
-
     /// Gets a file at the given path.
     pub(crate) fn get_file(
         &self,

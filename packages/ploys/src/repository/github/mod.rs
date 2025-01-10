@@ -18,7 +18,6 @@ use reqwest::header::CONTENT_TYPE;
 use reqwest::StatusCode;
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 use crate::changelog::Release;
 use crate::file::{File, FileCache};
@@ -132,20 +131,6 @@ impl GitHub {
 }
 
 impl GitHub {
-    pub fn get_name(&self) -> Result<String, Error> {
-        Ok(self.repository.name().to_owned())
-    }
-
-    pub fn get_url(&self) -> Result<Url, Error> {
-        Ok(format!(
-            "https://github.com/{}/{}",
-            self.repository.owner(),
-            self.repository.name()
-        )
-        .parse()
-        .unwrap())
-    }
-
     /// Gets the file at the given path.
     pub fn get_file(
         &self,
@@ -585,19 +570,4 @@ struct TreeResponseEntry {
 struct RepositoryDispatchEvent<T> {
     event_type: String,
     client_payload: T,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Error, GitHub};
-
-    #[test]
-    fn test_github_url() -> Result<(), Error> {
-        assert_eq!(
-            GitHub::open("ploys/ploys").unwrap().get_url()?,
-            "https://github.com/ploys/ploys".parse().unwrap()
-        );
-
-        Ok(())
-    }
 }

@@ -10,17 +10,6 @@ pub enum Error {
     Io(io::Error),
 }
 
-impl Error {
-    /// Creates a remote not found error.
-    pub(super) fn remote_not_found() -> Self {
-        Self::Gix(GixError::Remote(Box::new(
-            gix::remote::find::existing::Error::NotFound {
-                name: String::from("origin").into(),
-            },
-        )))
-    }
-}
-
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
