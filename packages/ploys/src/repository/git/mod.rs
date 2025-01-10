@@ -78,11 +78,19 @@ impl Git {
     }
 
     /// Gets the file index.
-    pub fn get_file_index(&self) -> impl Iterator<Item = Cow<'_, Path>> {
-        self.file_cache
-            .get_or_try_index_with(|| self.get_files())
-            .iter()
-            .map(|path| Cow::Borrowed(path.as_path()))
+    pub fn get_file_index(
+        &self,
+    ) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, crate::project::Error> {
+        if !matches!(&self.revision, Revision::Sha(_)) {
+            return Ok(Box::new(self.get_files()?.into_iter().map(Cow::Owned)));
+        }
+
+        Ok(Box::new(
+            self.file_cache
+                .get_or_try_index_with(|| self.get_files())
+                .iter()
+                .map(|path| Cow::Borrowed(path.as_path())),
+        ))
     }
 
     pub(crate) fn get_files(&self) -> Result<BTreeSet<PathBuf>, Error> {
