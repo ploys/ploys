@@ -11,7 +11,6 @@ pub mod manifest;
 
 use std::borrow::{Borrow, Cow};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use semver::Version;
 use tracing::info;
@@ -31,7 +30,7 @@ use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 /// A project package.
 #[derive(Clone)]
 pub struct Package {
-    repository: Option<Arc<Repository>>,
+    repository: Option<Repository>,
     manifest: Manifest,
     path: PathBuf,
     primary: bool,
