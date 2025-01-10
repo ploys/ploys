@@ -153,8 +153,11 @@ impl GitHub {
     }
 
     /// Gets the file index.
-    pub fn get_file_index(&self) -> &BTreeSet<PathBuf> {
-        self.file_cache.get_or_try_index_with(|| self.get_files())
+    pub fn get_file_index(&self) -> impl Iterator<Item = Cow<'_, Path>> {
+        self.file_cache
+            .get_or_try_index_with(|| self.get_files())
+            .iter()
+            .map(|path| Cow::Borrowed(path.as_path()))
     }
 
     pub(crate) fn get_files(&self) -> Result<BTreeSet<PathBuf>, Error> {

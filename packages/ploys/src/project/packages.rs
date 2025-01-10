@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::iter::FusedIterator;
-use std::path::PathBuf;
+use std::path::Path;
 
 use strum::IntoEnumIterator;
 
@@ -46,7 +46,7 @@ impl Iterator for Packages<'_> {
                                     project,
                                     manifest,
                                     members,
-                                    files: project.repository.get_file_index().iter(),
+                                    files: project.repository.get_file_index(),
                                 },
                             };
                         }
@@ -66,8 +66,7 @@ impl Iterator for Packages<'_> {
                             if let Ok(members) = manifest.members() {
                                 packages.manifest = manifest;
                                 packages.members = members;
-                                packages.files =
-                                    packages.project.repository.get_file_index().iter();
+                                packages.files = packages.project.repository.get_file_index();
                             }
                         }
                     }
@@ -89,7 +88,7 @@ struct ManifestPackages<'a> {
     project: &'a Project,
     manifest: Manifest,
     members: Members,
-    files: std::collections::btree_set::Iter<'a, PathBuf>,
+    files: Box<dyn Iterator<Item = Cow<'a, Path>> + 'a>,
 }
 
 impl Iterator for ManifestPackages<'_> {
@@ -115,7 +114,7 @@ impl Iterator for ManifestPackages<'_> {
             let Ok(Some(File::Manifest(manifest))) = self
                 .project
                 .repository
-                .get_file(path)
+                .get_file(&path)
                 .map(|file| file.map(Cow::into_owned))
             else {
                 continue;
