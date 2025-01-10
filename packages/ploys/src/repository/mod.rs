@@ -51,9 +51,9 @@ impl Repository {
     pub(crate) fn get_file_index(&self) -> Box<dyn Iterator<Item = Cow<'_, Path>> + '_> {
         match self {
             #[cfg(feature = "git")]
-            Repository::Git(git) => git.get_file_index(),
+            Self::Git(git) => Box::new(git.get_file_index()),
             #[cfg(feature = "github")]
-            Repository::GitHub(github) => github.get_file_index(),
+            Self::GitHub(github) => Box::new(github.get_file_index()),
         }
     }
 
