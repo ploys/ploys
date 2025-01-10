@@ -190,7 +190,7 @@ impl GitHub {
         Ok(entries)
     }
 
-    pub fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
+    fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
     where
         P: AsRef<Path>,
     {
