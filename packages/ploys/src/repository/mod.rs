@@ -13,6 +13,7 @@ pub mod git;
 #[cfg(feature = "github")]
 pub mod github;
 
+pub mod memory;
 pub mod revision;
 
 use std::borrow::Cow;
@@ -27,6 +28,7 @@ pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
 /// A source code repository.
 #[derive(Clone)]
 pub enum Repository {
+    Memory(self::memory::Memory),
     #[cfg(feature = "git")]
     Git(self::git::Git),
     #[cfg(feature = "github")]
@@ -40,10 +42,11 @@ impl Repository {
         path: impl AsRef<Path>,
     ) -> Result<Option<Cow<'_, File>>, crate::project::Error> {
         match self {
+            Self::Memory(memory) => Ok(memory.get_file(path)?),
             #[cfg(feature = "git")]
-            Repository::Git(git) => Ok(git.get_file(path)?),
+            Self::Git(git) => Ok(git.get_file(path)?),
             #[cfg(feature = "github")]
-            Repository::GitHub(github) => Ok(github.get_file(path)?),
+            Self::GitHub(github) => Ok(github.get_file(path)?),
         }
     }
 
@@ -52,6 +55,7 @@ impl Repository {
         &self,
     ) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, crate::project::Error> {
         match self {
+            Self::Memory(memory) => Ok(Box::new(memory.get_file_index()?)),
             #[cfg(feature = "git")]
             Self::Git(git) => git.get_file_index(),
             #[cfg(feature = "github")]
@@ -64,11 +68,18 @@ impl Repository {
     /// Gets the repository as a remote.
     pub(crate) fn as_remote(&self) -> Option<&dyn Remote> {
         match self {
+            Self::Memory(_) => None,
             #[cfg(feature = "git")]
             Self::Git(_) => None,
             #[cfg(feature = "github")]
             Self::GitHub(github) => Some(github),
         }
+    }
+}
+
+impl From<self::memory::Memory> for Repository {
+    fn from(memory: self::memory::Memory) -> Self {
+        Self::Memory(memory)
     }
 }
 

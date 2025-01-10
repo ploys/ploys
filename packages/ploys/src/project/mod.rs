@@ -255,3 +255,20 @@ impl TryFrom<crate::repository::github::GitHub> for Project {
         Self::open(repository)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::project::Config;
+    use crate::repository::memory::Memory;
+
+    use super::Project;
+
+    #[test]
+    fn test_project_memory_repository() {
+        let config = Config::from_bytes(b"[project]\nname = \"example\"").unwrap();
+        let repository = Memory::new().with_file("Ploys.toml", config);
+        let project = Project::open(repository).unwrap();
+
+        assert_eq!(project.name(), "example");
+    }
+}
