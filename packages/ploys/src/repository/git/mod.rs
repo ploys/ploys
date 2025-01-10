@@ -10,10 +10,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use gix::remote::Direction;
 use gix::traverse::tree::Recorder;
 use gix::ThreadSafeRepository;
-use url::Url;
 
 use crate::file::{File, FileCache};
 
@@ -59,35 +57,6 @@ impl Git {
 }
 
 impl Git {
-    pub fn get_name(&self) -> Result<String, Error> {
-        let path = self.repository.path().join("..").canonicalize()?;
-
-        if let Some(file_stem) = path.file_stem() {
-            return Ok(file_stem.to_string_lossy().to_string());
-        }
-
-        Err(Error::Io(io::Error::new(
-            io::ErrorKind::Other,
-            "Invalid directory",
-        )))
-    }
-
-    pub fn get_url(&self) -> Result<Url, Error> {
-        let repo = self.repository.to_thread_local();
-
-        match repo.find_default_remote(Direction::Push).transpose()? {
-            Some(remote) => match remote.url(Direction::Push) {
-                Some(url) => Ok(url
-                    .to_bstring()
-                    .to_string()
-                    .parse()
-                    .expect("A repository URL should be valid")),
-                None => Err(Error::remote_not_found()),
-            },
-            None => Err(Error::remote_not_found()),
-        }
-    }
-
     /// Gets the file at the given path.
     pub fn get_file(
         &self,
