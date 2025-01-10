@@ -41,14 +41,16 @@ impl Iterator for Packages<'_> {
                         .map(|file| file.map(Cow::into_owned))
                     {
                         if let Ok(members) = manifest.members() {
-                            self.state = State::Manifest {
-                                packages: ManifestPackages {
-                                    project,
-                                    manifest,
-                                    members,
-                                    files: project.repository.get_file_index(),
-                                },
-                            };
+                            if let Ok(files) = project.repository.get_file_index() {
+                                self.state = State::Manifest {
+                                    packages: ManifestPackages {
+                                        project,
+                                        manifest,
+                                        members,
+                                        files,
+                                    },
+                                };
+                            }
                         }
                     }
                 }
@@ -64,9 +66,11 @@ impl Iterator for Packages<'_> {
                             .map(|file| file.map(Cow::into_owned))
                         {
                             if let Ok(members) = manifest.members() {
-                                packages.manifest = manifest;
-                                packages.members = members;
-                                packages.files = packages.project.repository.get_file_index();
+                                if let Ok(files) = packages.project.repository.get_file_index() {
+                                    packages.manifest = manifest;
+                                    packages.members = members;
+                                    packages.files = files;
+                                }
                             }
                         }
                     }
