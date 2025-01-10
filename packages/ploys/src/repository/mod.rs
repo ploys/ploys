@@ -15,6 +15,7 @@ pub mod github;
 
 pub mod revision;
 
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
@@ -59,7 +60,7 @@ impl Repository {
     pub(crate) fn get_file(
         &self,
         path: impl AsRef<Path>,
-    ) -> Result<Option<&File>, crate::project::Error> {
+    ) -> Result<Option<Cow<'_, File>>, crate::project::Error> {
         match self {
             #[cfg(feature = "git")]
             Repository::Git(git) => Ok(git.get_file(path)?),

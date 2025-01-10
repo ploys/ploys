@@ -8,6 +8,7 @@ mod error;
 mod repo;
 mod spec;
 
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -145,7 +146,16 @@ impl GitHub {
     }
 
     /// Gets the file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<&File>, crate::project::Error> {
+    pub fn get_file(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Option<Cow<'_, File>>, crate::project::Error> {
+        if !matches!(&self.revision, Revision::Sha(_)) {
+            let bytes = self.get_file_contents(path.as_ref())?;
+
+            return Ok(Some(Cow::Owned(File::from_bytes(bytes, path.as_ref())?)));
+        }
+
         self.file_cache
             .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
                 Ok(bytes) => Ok(Some(bytes)),
@@ -153,6 +163,7 @@ impl GitHub {
                 Err(Error::Request(err)) if err.status() == Some(StatusCode::NOT_FOUND) => Ok(None),
                 Err(err) => Err(err),
             })
+            .map(|file| file.map(Cow::Borrowed))
     }
 
     /// Gets the file index.

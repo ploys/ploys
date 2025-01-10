@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::iter::FusedIterator;
 use std::path::PathBuf;
 
@@ -34,8 +35,10 @@ impl Iterator for Packages<'_> {
                 State::Initial { project } => {
                     let kind = self.kinds.next()?;
 
-                    if let Ok(Some(File::Manifest(manifest))) =
-                        project.repository.get_file(kind.file_name())
+                    if let Ok(Some(File::Manifest(manifest))) = project
+                        .repository
+                        .get_file(kind.file_name())
+                        .map(|file| file.map(Cow::into_owned))
                     {
                         if let Ok(members) = manifest.members() {
                             self.state = State::Manifest {
@@ -54,8 +57,11 @@ impl Iterator for Packages<'_> {
                     None => {
                         let kind = self.kinds.next()?;
 
-                        if let Ok(Some(File::Manifest(manifest))) =
-                            packages.project.repository.get_file(kind.file_name())
+                        if let Ok(Some(File::Manifest(manifest))) = packages
+                            .project
+                            .repository
+                            .get_file(kind.file_name())
+                            .map(|file| file.map(Cow::into_owned))
                         {
                             if let Ok(members) = manifest.members() {
                                 packages.manifest = manifest;
@@ -81,7 +87,7 @@ enum State<'a> {
 /// An iterator over packages in a package manifest.
 struct ManifestPackages<'a> {
     project: &'a Project,
-    manifest: &'a Manifest,
+    manifest: Manifest,
     members: Members,
     files: std::collections::btree_set::Iter<'a, PathBuf>,
 }
@@ -106,7 +112,12 @@ impl Iterator for ManifestPackages<'_> {
                 continue;
             }
 
-            let Ok(Some(File::Manifest(manifest))) = self.project.repository.get_file(path) else {
+            let Ok(Some(File::Manifest(manifest))) = self
+                .project
+                .repository
+                .get_file(path)
+                .map(|file| file.map(Cow::into_owned))
+            else {
                 continue;
             };
 

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use semver::Version;
 use tracing::{info, info_span};
 
@@ -150,7 +152,12 @@ impl<'a> ReleaseRequestBuilder<'a> {
 
         if self.options.update_lockfile {
             if let Some(path) = self.package.kind().lockfile_name() {
-                if let Ok(Some(File::Lockfile(lockfile))) = self.project.repository.get_file(path) {
+                if let Ok(Some(File::Lockfile(lockfile))) = self
+                    .project
+                    .repository
+                    .get_file(path)
+                    .map(|file| file.map(Cow::into_owned))
+                {
                     let mut lockfile = lockfile.clone();
 
                     lockfile.set_package_version(self.package.name(), version.clone());
@@ -164,7 +171,7 @@ impl<'a> ReleaseRequestBuilder<'a> {
         if self.options.update_changelog {
             let path = self.package.path().join("CHANGELOG.md");
 
-            let mut changelog = self.package.changelog().cloned().unwrap_or_default();
+            let mut changelog = self.package.changelog().unwrap_or_default();
 
             changelog.add_release(release.clone());
             files.push((path, changelog.to_string()));
