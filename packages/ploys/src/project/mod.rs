@@ -39,8 +39,6 @@ mod error;
 mod packages;
 mod release;
 
-use std::sync::Arc;
-
 use crate::package::{BumpOrVersion, Package};
 use crate::repository::{RepoSpec, Repository};
 
@@ -61,7 +59,7 @@ pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 /// repository = "https://github.com/{project-owner}/{project-name}"
 /// ```
 pub struct Project {
-    pub(crate) repository: Arc<Repository>,
+    pub(crate) repository: Repository,
     config: Config,
 }
 
@@ -77,10 +75,7 @@ impl Project {
             .ok_or(self::config::Error::Invalid)?
             .clone();
 
-        Ok(Self {
-            repository: Arc::new(repository),
-            config,
-        })
+        Ok(Self { repository, config })
     }
 }
 

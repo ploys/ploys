@@ -8,6 +8,7 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use gix::remote::Direction;
 use gix::traverse::tree::Recorder;
@@ -21,10 +22,11 @@ pub use self::error::Error;
 use super::revision::Revision;
 
 /// The local Git repository.
+#[derive(Clone)]
 pub struct Git {
     repository: ThreadSafeRepository,
     revision: Revision,
-    file_cache: FileCache,
+    file_cache: Arc<FileCache>,
 }
 
 impl Git {
@@ -33,7 +35,7 @@ impl Git {
         Ok(Self {
             repository: ThreadSafeRepository::open(path)?,
             revision: Revision::Head,
-            file_cache: FileCache::new(),
+            file_cache: Arc::new(FileCache::new()),
         })
     }
 }

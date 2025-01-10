@@ -28,6 +28,7 @@ pub(crate) use self::remote::Remote;
 pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
 
 /// A source code repository.
+#[derive(Clone)]
 pub enum Repository {
     #[cfg(feature = "git")]
     Git(self::git::Git),
