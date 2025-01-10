@@ -72,9 +72,9 @@ impl<'a> ReleaseBuilder<'a> {
             false => format!("{} {version}", self.package.name()),
         };
 
-        let release = self
-            .package
-            .changelog()
+        let changelog = self.package.changelog();
+        let release = changelog
+            .as_ref()
             .and_then(|changelog| changelog.get_release(version.to_string()));
 
         let release = match release {

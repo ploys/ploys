@@ -9,7 +9,7 @@ mod kind;
 pub mod lockfile;
 pub mod manifest;
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -156,15 +156,16 @@ impl Package {
     }
 
     /// Gets the package changelog.
-    pub fn changelog(&self) -> Option<&Changelog> {
+    pub fn changelog(&self) -> Option<Changelog> {
         self.get_file("CHANGELOG.md")
-            .and_then(File::try_as_changelog_ref)
+            .map(Cow::into_owned)
+            .and_then(File::try_as_changelog)
     }
 }
 
 impl Package {
     /// Gets the file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Option<&File> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Option<Cow<'_, File>> {
         self.repository
             .as_ref()?
             .get_file(self.path.join(path))
@@ -296,7 +297,7 @@ impl Package {
     pub(super) fn from_manifest(
         project: &Project,
         path: impl Into<PathBuf>,
-        manifest: &Manifest,
+        manifest: Manifest,
     ) -> Option<Self> {
         let kind = manifest.package_kind();
         let primary = match kind {
