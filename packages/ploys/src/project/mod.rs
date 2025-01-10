@@ -62,6 +62,7 @@ pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 /// ```
 pub struct Project {
     pub(crate) repository: Arc<Repository>,
+    config: Config,
 }
 
 impl Project {
@@ -69,14 +70,16 @@ impl Project {
     pub fn open(repository: impl Into<Repository>) -> Result<Self, Error> {
         let repository = repository.into();
 
-        repository
+        let config = repository
             .get_file("Ploys.toml")?
             .ok_or(self::config::Error::Missing)?
             .try_as_config_ref()
-            .ok_or(self::config::Error::Invalid)?;
+            .ok_or(self::config::Error::Invalid)?
+            .clone();
 
         Ok(Self {
             repository: Arc::new(repository),
+            config,
         })
     }
 }
@@ -176,17 +179,17 @@ mod github {
 impl Project {
     /// Gets the project name.
     pub fn name(&self) -> &str {
-        self.config().project().name()
+        self.config.project().name()
     }
 
     /// Gets the project description.
     pub fn description(&self) -> Option<&str> {
-        self.config().project().description()
+        self.config.project().description()
     }
 
     /// Gets the project repository.
     pub fn repository(&self) -> Option<RepoSpec> {
-        self.config().project().repository()
+        self.config.project().repository()
     }
 
     /// Gets a package with the given name.
@@ -229,19 +232,6 @@ impl Project {
         })?;
 
         Ok(ReleaseBuilder::new(self, package))
-    }
-}
-
-impl Project {
-    /// Gets the config.
-    pub(crate) fn config(&self) -> &Config {
-        self.repository
-            .get_file("Ploys.toml")
-            .ok()
-            .flatten()
-            .expect("loaded on open")
-            .try_as_config_ref()
-            .expect("validated on open")
     }
 }
 
