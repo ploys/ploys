@@ -13,10 +13,11 @@ use std::sync::Arc;
 use gix::traverse::tree::Recorder;
 use gix::ThreadSafeRepository;
 
-use crate::file::{File, FileCache};
+use crate::file::File;
 
 pub use self::error::Error;
 
+use super::cache::FileCache;
 use super::revision::Revision;
 
 /// The local Git repository.

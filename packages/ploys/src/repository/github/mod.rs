@@ -20,13 +20,14 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
-use crate::file::{File, FileCache};
+use crate::file::File;
 use crate::package::BumpOrVersion;
 
 pub use self::error::Error;
 pub use self::repo::Repository;
 pub use self::spec::GitHubRepoSpec;
 
+use super::cache::FileCache;
 use super::revision::Revision;
 use super::Remote;
 

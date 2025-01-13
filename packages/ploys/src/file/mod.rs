@@ -1,4 +1,3 @@
-mod cache;
 mod error;
 
 use std::fmt::{self, Display};
@@ -10,7 +9,6 @@ use crate::changelog::Changelog;
 use crate::package::{Lockfile, Manifest, PackageKind};
 use crate::project::Config;
 
-pub use self::cache::FileCache;
 pub use self::error::ParseError;
 
 /// A file in one of a number of formats.
