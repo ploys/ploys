@@ -8,7 +8,6 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use gix::traverse::tree::Recorder;
 use gix::ThreadSafeRepository;
@@ -25,7 +24,7 @@ use super::revision::Revision;
 pub struct Git {
     repository: ThreadSafeRepository,
     revision: Revision,
-    cache: Arc<Cache>,
+    cache: Cache,
 }
 
 impl Git {
@@ -34,7 +33,7 @@ impl Git {
         Ok(Self {
             repository: ThreadSafeRepository::open(path)?,
             revision: Revision::Head,
-            cache: Arc::new(Cache::new()),
+            cache: Cache::new(),
         })
     }
 }

@@ -1,24 +1,24 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use once_map::OnceMap;
 
 use super::File;
 
 /// The repository cache.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Cache {
-    index: OnceLock<BTreeSet<PathBuf>>,
-    inner: OnceMap<PathBuf, Box<Option<File>>>,
+    index: Arc<OnceLock<BTreeSet<PathBuf>>>,
+    inner: Arc<OnceMap<PathBuf, Box<Option<File>>>>,
 }
 
 impl Cache {
     /// Constructs a new repository cache.
     pub fn new() -> Self {
         Self {
-            index: OnceLock::new(),
-            inner: OnceMap::new(),
+            index: Arc::new(OnceLock::new()),
+            inner: Arc::new(OnceMap::new()),
         }
     }
 
@@ -54,19 +54,5 @@ impl Cache {
 impl Default for Cache {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Clone for Cache {
-    fn clone(&self) -> Self {
-        Self {
-            index: self.index.clone(),
-            inner: self
-                .inner
-                .read_only_view()
-                .iter()
-                .map(|(key, val)| (key.clone(), val.clone()))
-                .collect(),
-        }
     }
 }

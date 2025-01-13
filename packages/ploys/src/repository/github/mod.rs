@@ -12,7 +12,6 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use reqwest::header::CONTENT_TYPE;
 use reqwest::StatusCode;
@@ -37,7 +36,7 @@ pub struct GitHub {
     repository: Repository,
     revision: Revision,
     token: Option<String>,
-    cache: Arc<Cache>,
+    cache: Cache,
 }
 
 impl GitHub {
@@ -54,7 +53,7 @@ impl GitHub {
             repository: Repository::new(repo.try_into().map_err(Into::into)?)?,
             revision: Revision::head(),
             token: None,
-            cache: Arc::new(Cache::new()),
+            cache: Cache::new(),
         })
     }
 }
