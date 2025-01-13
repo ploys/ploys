@@ -12,7 +12,6 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use reqwest::header::CONTENT_TYPE;
 use reqwest::StatusCode;
@@ -20,13 +19,14 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
-use crate::file::{File, FileCache};
+use crate::file::File;
 use crate::package::BumpOrVersion;
 
 pub use self::error::Error;
 pub use self::repo::Repository;
 pub use self::spec::GitHubRepoSpec;
 
+use super::cache::Cache;
 use super::revision::Revision;
 use super::Remote;
 
@@ -36,7 +36,7 @@ pub struct GitHub {
     repository: Repository,
     revision: Revision,
     token: Option<String>,
-    file_cache: Arc<FileCache>,
+    cache: Cache,
 }
 
 impl GitHub {
@@ -53,7 +53,7 @@ impl GitHub {
             repository: Repository::new(repo.try_into().map_err(Into::into)?)?,
             revision: Revision::head(),
             token: None,
-            file_cache: Arc::new(FileCache::new()),
+            cache: Cache::new(),
         })
     }
 }
@@ -142,7 +142,7 @@ impl GitHub {
             return Ok(Some(Cow::Owned(File::from_bytes(bytes, path.as_ref())?)));
         }
 
-        self.file_cache
+        self.cache
             .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
                 Ok(bytes) => Ok(Some(bytes)),
                 Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
@@ -161,7 +161,7 @@ impl GitHub {
         }
 
         Ok(Box::new(
-            self.file_cache
+            self.cache
                 .get_or_try_index_with(|| self.get_files())
                 .iter()
                 .map(|path| Cow::Borrowed(path.as_path())),

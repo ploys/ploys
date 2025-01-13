@@ -8,15 +8,15 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use gix::traverse::tree::Recorder;
 use gix::ThreadSafeRepository;
 
-use crate::file::{File, FileCache};
+use crate::file::File;
 
 pub use self::error::Error;
 
+use super::cache::Cache;
 use super::revision::Revision;
 
 /// The local Git repository.
@@ -24,7 +24,7 @@ use super::revision::Revision;
 pub struct Git {
     repository: ThreadSafeRepository,
     revision: Revision,
-    file_cache: Arc<FileCache>,
+    cache: Cache,
 }
 
 impl Git {
@@ -33,7 +33,7 @@ impl Git {
         Ok(Self {
             repository: ThreadSafeRepository::open(path)?,
             revision: Revision::Head,
-            file_cache: Arc::new(FileCache::new()),
+            cache: Cache::new(),
         })
     }
 }
@@ -68,7 +68,7 @@ impl Git {
             return Ok(Some(Cow::Owned(File::from_bytes(bytes, path.as_ref())?)));
         }
 
-        self.file_cache
+        self.cache
             .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
                 Ok(bytes) => Ok(Some(bytes)),
                 Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
@@ -86,7 +86,7 @@ impl Git {
         }
 
         Ok(Box::new(
-            self.file_cache
+            self.cache
                 .get_or_try_index_with(|| self.get_files())
                 .iter()
                 .map(|path| Cow::Borrowed(path.as_path())),
