@@ -6,15 +6,15 @@ use once_map::OnceMap;
 
 use super::File;
 
-/// The file cache.
+/// The repository cache.
 #[derive(Debug)]
-pub struct FileCache {
+pub struct Cache {
     index: OnceLock<BTreeSet<PathBuf>>,
     inner: OnceMap<PathBuf, Box<Option<File>>>,
 }
 
-impl FileCache {
-    /// Constructs a new file cache.
+impl Cache {
+    /// Constructs a new repository cache.
     pub fn new() -> Self {
         Self {
             index: OnceLock::new(),
@@ -51,13 +51,13 @@ impl FileCache {
     }
 }
 
-impl Default for FileCache {
+impl Default for Cache {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Clone for FileCache {
+impl Clone for Cache {
     fn clone(&self) -> Self {
         Self {
             index: self.index.clone(),
