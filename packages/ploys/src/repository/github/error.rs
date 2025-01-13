@@ -9,8 +9,6 @@ use crate::repository::RepoSpecError;
 pub enum Error {
     /// A request error.
     Request(reqwest::Error),
-    /// A parse error.
-    Parse(String),
     /// An I/O error.
     Io(io::Error),
     /// A specification error.
@@ -21,7 +19,6 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Request(transport) => Display::fmt(transport, f),
-            Self::Parse(message) => write!(f, "Parse error: {message}"),
             Self::Io(err) => Display::fmt(err, f),
             Self::Spec(err) => Display::fmt(err, f),
         }
@@ -34,7 +31,6 @@ impl std::error::Error for Error {
             Self::Request(err) => Some(err),
             Self::Io(err) => Some(err),
             Self::Spec(err) => Some(err),
-            Self::Parse(_) => None,
         }
     }
 }
