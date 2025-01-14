@@ -12,8 +12,6 @@ use std::path::{Path, PathBuf};
 use gix::traverse::tree::Recorder;
 use gix::ThreadSafeRepository;
 
-use crate::file::File;
-
 pub use self::error::Error;
 
 use super::cache::Cache;
@@ -58,42 +56,37 @@ impl Git {
 
 impl Git {
     /// Gets the file at the given path.
-    pub fn get_file(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, File>>, crate::project::Error> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            let bytes = self.get_file_contents(path.as_ref())?;
-
-            return Ok(Some(Cow::Owned(File::from_bytes(bytes, path.as_ref())?)));
+            return Ok(Some(Cow::Owned(self.get_file_uncached(path.as_ref())?)));
         }
 
-        self.cache
-            .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
-                Ok(bytes) => Ok(Some(bytes)),
-                Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
-                Err(err) => Err(err),
-            })
-            .map(|file| file.map(Cow::Borrowed))
+        Ok(self
+            .cache
+            .get_or_try_init(
+                path,
+                |path| self.get_file_uncached(path),
+                || self.get_index_uncached(),
+            )?
+            .map(Cow::Borrowed))
     }
 
-    /// Gets the file index.
-    pub fn get_file_index(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, crate::project::Error> {
+    /// Gets the index.
+    pub fn get_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Box::new(self.get_files()?.into_iter().map(Cow::Owned)));
+            return Ok(Box::new(
+                self.get_index_uncached()?.into_iter().map(Cow::Owned),
+            ));
         }
 
         Ok(Box::new(
             self.cache
-                .get_or_try_index_with(|| self.get_files())
-                .iter()
-                .map(|path| Cow::Borrowed(path.as_path())),
+                .get_or_try_index(|| self.get_index_uncached())?
+                .map(Cow::Borrowed),
         ))
     }
 
-    pub(crate) fn get_files(&self) -> Result<BTreeSet<PathBuf>, Error> {
+    fn get_index_uncached(&self) -> Result<BTreeSet<PathBuf>, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
         let tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
@@ -112,10 +105,7 @@ impl Git {
         Ok(entries)
     }
 
-    fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
-    where
-        P: AsRef<Path>,
-    {
+    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Vec<u8>, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
         let mut tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;

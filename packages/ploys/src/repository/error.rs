@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::fmt::{self, Display};
 
 /// The repository error.
@@ -42,5 +43,11 @@ impl From<super::git::Error> for Error {
 impl From<super::github::Error> for Error {
     fn from(err: super::github::Error) -> Self {
         Self::GitHub(err)
+    }
+}
+
+impl From<Infallible> for Error {
+    fn from(err: Infallible) -> Self {
+        match err {}
     }
 }

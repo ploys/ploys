@@ -1,13 +1,12 @@
 use std::borrow::Cow;
 use std::collections::BTreeMap;
+use std::convert::Infallible;
 use std::path::{Path, PathBuf};
-
-use crate::file::File;
 
 /// An in-memory repository.
 #[derive(Clone)]
 pub struct Memory {
-    files: BTreeMap<PathBuf, File>,
+    files: BTreeMap<PathBuf, Box<[u8]>>,
 }
 
 impl Memory {
@@ -19,13 +18,21 @@ impl Memory {
     }
 
     /// Inserts a file into the repository.
-    pub fn insert_file(&mut self, path: impl Into<PathBuf>, file: impl Into<File>) -> &mut Self {
-        self.files.insert(path.into(), file.into());
+    pub fn insert_file(
+        &mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Cow<'static, [u8]>>,
+    ) -> &mut Self {
+        self.files.insert(path.into(), file.into().into());
         self
     }
 
     /// Builds the repository with the given file.
-    pub fn with_file(mut self, path: impl Into<PathBuf>, file: impl Into<File>) -> Self {
+    pub fn with_file(
+        mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Cow<'static, [u8]>>,
+    ) -> Self {
         self.insert_file(path, file);
         self
     }
@@ -33,17 +40,16 @@ impl Memory {
 
 impl Memory {
     /// Gets the file at the given path.
-    pub fn get_file(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, File>>, crate::project::Error> {
-        Ok(self.files.get(path.as_ref()).map(Cow::Borrowed))
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Infallible> {
+        Ok(self
+            .files
+            .get(path.as_ref())
+            .map(AsRef::as_ref)
+            .map(Cow::Borrowed))
     }
 
-    /// Gets the file index.
-    pub fn get_file_index(
-        &self,
-    ) -> Result<impl Iterator<Item = Cow<'_, Path>>, crate::project::Error> {
+    /// Gets the index.
+    pub fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Infallible> {
         Ok(self.files.keys().map(|path| Cow::Borrowed(path.as_path())))
     }
 }

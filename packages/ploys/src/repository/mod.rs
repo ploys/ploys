@@ -20,8 +20,6 @@ pub mod revision;
 use std::borrow::Cow;
 use std::path::Path;
 
-use crate::file::File;
-
 pub use self::error::Error;
 pub(crate) use self::remote::Remote;
 pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
@@ -38,10 +36,7 @@ pub enum Repository {
 
 impl Repository {
     /// Gets a file at the given path.
-    pub(crate) fn get_file(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, File>>, crate::project::Error> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Error> {
         match self {
             Self::Memory(memory) => Ok(memory.get_file(path)?),
             #[cfg(feature = "git")]
@@ -51,16 +46,14 @@ impl Repository {
         }
     }
 
-    /// Gets the file index.
-    pub(crate) fn get_file_index(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, crate::project::Error> {
+    /// Gets the index.
+    pub fn get_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
         match self {
-            Self::Memory(memory) => Ok(Box::new(memory.get_file_index()?)),
+            Self::Memory(memory) => Ok(Box::new(memory.get_index()?)),
             #[cfg(feature = "git")]
-            Self::Git(git) => git.get_file_index(),
+            Self::Git(git) => Ok(git.get_index()?),
             #[cfg(feature = "github")]
-            Self::GitHub(github) => github.get_file_index(),
+            Self::GitHub(github) => Ok(github.get_index()?),
         }
     }
 }

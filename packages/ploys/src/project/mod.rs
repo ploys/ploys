@@ -70,12 +70,12 @@ impl Project {
 
         let config = repository
             .get_file("Ploys.toml")?
-            .ok_or(self::config::Error::Missing)?
-            .try_as_config_ref()
-            .ok_or(self::config::Error::Invalid)?
-            .clone();
+            .ok_or(self::config::Error::Missing)?;
 
-        Ok(Self { repository, config })
+        Ok(Self {
+            config: Config::from_bytes(&config)?,
+            repository,
+        })
     }
 }
 
@@ -258,15 +258,13 @@ impl TryFrom<crate::repository::github::GitHub> for Project {
 
 #[cfg(test)]
 mod tests {
-    use crate::project::Config;
     use crate::repository::memory::Memory;
 
     use super::Project;
 
     #[test]
     fn test_project_memory_repository() {
-        let config = Config::from_bytes(b"[project]\nname = \"example\"").unwrap();
-        let repository = Memory::new().with_file("Ploys.toml", config);
+        let repository = Memory::new().with_file("Ploys.toml", b"[project]\nname = \"example\"");
         let project = Project::open(repository).unwrap();
 
         assert_eq!(project.name(), "example");
