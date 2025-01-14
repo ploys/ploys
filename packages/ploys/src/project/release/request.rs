@@ -48,10 +48,7 @@ pub struct ReleaseRequestBuilder<'a, T> {
     options: Options,
 }
 
-impl<'a, T> ReleaseRequestBuilder<'a, T>
-where
-    T: Remote,
-{
+impl<'a, T> ReleaseRequestBuilder<'a, T> {
     /// Constructs a new release request builder.
     pub(crate) fn new(
         project: &'a Project<T>,
@@ -65,7 +62,9 @@ where
             options: Options::default(),
         }
     }
+}
 
+impl<T> ReleaseRequestBuilder<'_, T> {
     /// Update the package manifest.
     pub fn update_package_manifest(mut self, enable: bool) -> Self {
         self.options.update_package_manifest = enable;
@@ -89,7 +88,12 @@ where
         self.options.update_changelog = enable;
         self
     }
+}
 
+impl<T> ReleaseRequestBuilder<'_, T>
+where
+    T: Remote,
+{
     /// Finishes the release request.
     pub fn finish(mut self) -> Result<ReleaseRequest, crate::project::Error<T::Error>> {
         let mut files = Vec::new();

@@ -38,15 +38,17 @@ pub struct ReleaseBuilder<'a, T> {
     package: Package<&'a T>,
 }
 
-impl<'a, T> ReleaseBuilder<'a, T>
-where
-    T: Remote,
-{
+impl<'a, T> ReleaseBuilder<'a, T> {
     /// Constructs a new release builder.
     pub(crate) fn new(project: &'a Project<T>, package: Package<&'a T>) -> Self {
         Self { project, package }
     }
+}
 
+impl<T> ReleaseBuilder<'_, T>
+where
+    T: Remote,
+{
     /// Finishes the release.
     pub fn finish(self) -> Result<Release, T::Error> {
         let sha = self.project.repository.sha()?;
