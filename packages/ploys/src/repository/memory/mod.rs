@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::BTreeMap;
+use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 
 /// An in-memory repository.
@@ -39,10 +40,7 @@ impl Memory {
 
 impl Memory {
     /// Gets the file at the given path.
-    pub fn get_file(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, [u8]>>, crate::project::Error> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Infallible> {
         Ok(self
             .files
             .get(path.as_ref())
@@ -50,10 +48,8 @@ impl Memory {
             .map(Cow::Borrowed))
     }
 
-    /// Gets the file index.
-    pub fn get_file_index(
-        &self,
-    ) -> Result<impl Iterator<Item = Cow<'_, Path>>, crate::project::Error> {
+    /// Gets the index.
+    pub fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Infallible> {
         Ok(self.files.keys().map(|path| Cow::Borrowed(path.as_path())))
     }
 }

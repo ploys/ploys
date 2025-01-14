@@ -54,7 +54,7 @@ impl Repository {
         &self,
     ) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, crate::project::Error> {
         match self {
-            Self::Memory(memory) => Ok(Box::new(memory.get_file_index()?)),
+            Self::Memory(memory) => Ok(Box::new(memory.get_index()?)),
             #[cfg(feature = "git")]
             Self::Git(git) => Ok(git.get_index()?),
             #[cfg(feature = "github")]
