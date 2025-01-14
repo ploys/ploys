@@ -13,8 +13,6 @@ pub enum Error<T> {
     Repository(T),
     /// The package error.
     Package(crate::package::Error),
-    /// The action is not supported.
-    Unsupported,
 }
 
 impl<T> Display for Error<T>
@@ -27,7 +25,6 @@ where
             Self::Config(err) => Display::fmt(err, f),
             Self::Repository(err) => Display::fmt(err, f),
             Self::Package(err) => Display::fmt(err, f),
-            Self::Unsupported => write!(f, "Action not supported"),
         }
     }
 }
@@ -42,7 +39,6 @@ where
             Self::Config(err) => Some(err),
             Self::Repository(err) => Some(err),
             Self::Package(err) => Some(err),
-            Self::Unsupported => None,
         }
     }
 }
