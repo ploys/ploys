@@ -1,7 +1,5 @@
 use std::fmt::{self, Display};
 
-use crate::file::ParseError;
-
 /// The configuration error.
 #[derive(Debug)]
 pub enum Error {
@@ -9,15 +7,18 @@ pub enum Error {
     Missing,
     /// An invalid configuration error.
     Invalid,
-    /// A parse error.
-    Parse(ParseError),
+    /// A TOML error.
+    Toml(toml_edit::TomlError),
+    /// A UTF-8 error.
+    Utf8(std::str::Utf8Error),
 }
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Missing | Self::Invalid => None,
-            Self::Parse(err) => Some(err),
+            Self::Toml(err) => Some(err),
+            Self::Utf8(err) => Some(err),
         }
     }
 }
@@ -27,25 +28,20 @@ impl Display for Error {
         match self {
             Self::Missing => write!(f, "Missing project configuration"),
             Self::Invalid => write!(f, "Invalid project configuration"),
-            Self::Parse(err) => Display::fmt(err, f),
+            Self::Toml(err) => Display::fmt(err, f),
+            Self::Utf8(err) => Display::fmt(err, f),
         }
-    }
-}
-
-impl From<ParseError> for Error {
-    fn from(err: ParseError) -> Self {
-        Self::Parse(err)
     }
 }
 
 impl From<toml_edit::TomlError> for Error {
     fn from(err: toml_edit::TomlError) -> Self {
-        Self::Parse(err.into())
+        Self::Toml(err)
     }
 }
 
 impl From<std::str::Utf8Error> for Error {
     fn from(err: std::str::Utf8Error) -> Self {
-        Self::Parse(err.into())
+        Self::Utf8(err)
     }
 }
