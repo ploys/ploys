@@ -36,10 +36,7 @@ pub enum Repository {
 
 impl Repository {
     /// Gets a file at the given path.
-    pub(crate) fn get_file(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, [u8]>>, crate::project::Error> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Error> {
         match self {
             Self::Memory(memory) => Ok(memory.get_file(path)?),
             #[cfg(feature = "git")]
@@ -50,9 +47,7 @@ impl Repository {
     }
 
     /// Gets the index.
-    pub(crate) fn get_index(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, crate::project::Error> {
+    pub fn get_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
         match self {
             Self::Memory(memory) => Ok(Box::new(memory.get_index()?)),
             #[cfg(feature = "git")]
