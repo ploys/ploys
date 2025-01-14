@@ -4,8 +4,6 @@ use std::str::FromStr;
 use strum::{EnumIs, EnumTryAs};
 use url::Url;
 
-use super::Repository;
-
 /// The repository specification.
 ///
 /// A repository can be specified in one of two formats:
@@ -61,11 +59,6 @@ impl RepoSpec {
                 }
             },
         }
-    }
-
-    /// Attempts to construct a repository from a URL.
-    pub fn try_into_repo(self) -> Result<Repository, Error> {
-        self.try_into()
     }
 }
 

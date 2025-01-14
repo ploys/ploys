@@ -3,6 +3,8 @@ use std::collections::BTreeMap;
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 
+use super::Repository;
+
 /// An in-memory repository.
 #[derive(Clone)]
 pub struct Memory {
@@ -38,9 +40,10 @@ impl Memory {
     }
 }
 
-impl Memory {
-    /// Gets the file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Infallible> {
+impl Repository for Memory {
+    type Error = Infallible;
+
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error> {
         Ok(self
             .files
             .get(path.as_ref())
@@ -48,8 +51,7 @@ impl Memory {
             .map(Cow::Borrowed))
     }
 
-    /// Gets the index.
-    pub fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Infallible> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
         Ok(self.files.keys().map(|path| Cow::Borrowed(path.as_path())))
     }
 }

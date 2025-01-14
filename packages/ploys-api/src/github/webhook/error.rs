@@ -10,7 +10,7 @@ use reqwest::StatusCode;
 pub enum Error {
     Jwt(jsonwebtoken::errors::Error),
     Request(reqwest::Error),
-    Project(ploys::project::Error),
+    Project(ploys::project::Error<ploys::repository::github::Error>),
     Utf8(FromUtf8Error),
     Json(serde_json::Error),
 }
@@ -73,8 +73,8 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-impl From<ploys::project::Error> for Error {
-    fn from(error: ploys::project::Error) -> Self {
+impl From<ploys::project::Error<ploys::repository::github::Error>> for Error {
+    fn from(error: ploys::project::Error<ploys::repository::github::Error>) -> Self {
         Self::Project(error)
     }
 }

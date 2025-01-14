@@ -3,7 +3,7 @@ use clap::Args;
 use console::style;
 use ploys::project::Project;
 use ploys::repository::revision::Revision;
-use ploys::repository::RepoSpec;
+use ploys::repository::{RepoSpec, Repository};
 
 /// Gets the project information.
 #[derive(Args)]
@@ -67,7 +67,10 @@ impl Info {
         }
     }
 
-    pub fn print(&self, project: Project) -> Result<(), Error> {
+    pub fn print<T>(&self, project: Project<T>) -> Result<(), Error>
+    where
+        T: Repository + Clone,
+    {
         println!("{}:\n", style("Project").underlined().bold());
         println!("Name:        {}", project.name());
 

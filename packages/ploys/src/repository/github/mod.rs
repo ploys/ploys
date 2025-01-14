@@ -26,7 +26,7 @@ pub use self::spec::GitHubRepoSpec;
 
 use super::cache::Cache;
 use super::revision::Revision;
-use super::Remote;
+use super::{Remote, Repository};
 
 /// The remote GitHub repository.
 #[derive(Clone, Debug)]
@@ -128,9 +128,10 @@ impl GitHub {
     }
 }
 
-impl GitHub {
-    /// Gets the file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Error> {
+impl Repository for GitHub {
+    type Error = Error;
+
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Some(Cow::Owned(self.get_file_uncached(path.as_ref())?)));
         }
@@ -145,12 +146,12 @@ impl GitHub {
             .map(Cow::Borrowed))
     }
 
-    /// Gets the index.
-    pub fn get_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Box::new(
-                self.get_index_uncached()?.into_iter().map(Cow::Owned),
-            ));
+            return Ok(
+                Box::new(self.get_index_uncached()?.into_iter().map(Cow::Owned))
+                    as Box<dyn Iterator<Item = Cow<'_, Path>>>,
+            );
         }
 
         Ok(Box::new(
@@ -159,7 +160,9 @@ impl GitHub {
                 .map(Cow::Borrowed),
         ))
     }
+}
 
+impl GitHub {
     fn get_index_uncached(&self) -> Result<BTreeSet<PathBuf>, Error> {
         let entries = self
             .repository
@@ -211,11 +214,11 @@ impl GitHub {
 }
 
 impl Remote for GitHub {
-    fn sha(&self) -> Result<String, super::Error> {
-        Ok(self.sha()?)
+    fn sha(&self) -> Result<String, Self::Error> {
+        self.sha()
     }
 
-    fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, super::Error> {
+    fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, Self::Error> {
         #[derive(Serialize)]
         struct CreateBlob {
             content: String,
@@ -330,7 +333,7 @@ impl Remote for GitHub {
         &self,
         package: &str,
         version: BumpOrVersion,
-    ) -> Result<(), super::Error> {
+    ) -> Result<(), Self::Error> {
         #[derive(Serialize)]
         struct ClientPayload {
             package: String,
@@ -360,17 +363,17 @@ impl Remote for GitHub {
         package: &str,
         version: &Version,
         is_primary: bool,
-    ) -> Result<Release, super::Error> {
-        Ok(self::changelog::get_release(
+    ) -> Result<Release, Self::Error> {
+        self::changelog::get_release(
             &self.repository,
             package,
             version,
             is_primary,
             self.token.as_deref(),
-        )?)
+        )
     }
 
-    fn get_default_branch(&self) -> Result<String, super::Error> {
+    fn get_default_branch(&self) -> Result<String, Self::Error> {
         #[derive(Deserialize)]
         struct RepoResponse {
             default_branch: String,
@@ -392,7 +395,7 @@ impl Remote for GitHub {
         Ok(default_branch)
     }
 
-    fn create_branch(&self, name: &str) -> Result<(), super::Error> {
+    fn create_branch(&self, name: &str) -> Result<(), Self::Error> {
         #[derive(Serialize)]
         struct NewBranch {
             r#ref: String,
@@ -417,7 +420,7 @@ impl Remote for GitHub {
         Ok(())
     }
 
-    fn update_branch(&self, name: &str, sha: &str) -> Result<(), super::Error> {
+    fn update_branch(&self, name: &str, sha: &str) -> Result<(), Self::Error> {
         #[derive(Serialize)]
         struct UpdateRef {
             sha: String,
@@ -444,7 +447,7 @@ impl Remote for GitHub {
         base: &str,
         title: &str,
         body: &str,
-    ) -> Result<u64, super::Error> {
+    ) -> Result<u64, Self::Error> {
         #[derive(Serialize)]
         struct NewPullRequest {
             title: String,
@@ -488,7 +491,7 @@ impl Remote for GitHub {
         body: &str,
         prerelease: bool,
         latest: bool,
-    ) -> Result<u64, super::Error> {
+    ) -> Result<u64, Self::Error> {
         #[derive(Serialize)]
         struct NewRelease {
             tag_name: String,
