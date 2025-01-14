@@ -56,9 +56,9 @@ impl Repository {
         match self {
             Self::Memory(memory) => Ok(Box::new(memory.get_file_index()?)),
             #[cfg(feature = "git")]
-            Self::Git(git) => git.get_file_index(),
+            Self::Git(git) => Ok(git.get_file_index()?),
             #[cfg(feature = "github")]
-            Self::GitHub(github) => github.get_file_index(),
+            Self::GitHub(github) => Ok(github.get_file_index()?),
         }
     }
 }

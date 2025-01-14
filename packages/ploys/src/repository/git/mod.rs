@@ -56,36 +56,31 @@ impl Git {
 
 impl Git {
     /// Gets the file at the given path.
-    pub fn get_file(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, [u8]>>, crate::project::Error> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Some(Cow::Owned(self.get_file_contents(path.as_ref())?)));
         }
 
-        self.cache
-            .get_or_try_insert_with(path.as_ref(), |path| match self.get_file_contents(path) {
-                Ok(bytes) => Ok(Some(bytes)),
-                Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
-                Err(err) => Err(err),
-            })
-            .map(|file| file.map(Cow::Borrowed))
+        Ok(self
+            .cache
+            .get_or_try_init(
+                path,
+                |path| self.get_file_contents(path),
+                || self.get_files(),
+            )?
+            .map(Cow::Borrowed))
     }
 
     /// Gets the file index.
-    pub fn get_file_index(
-        &self,
-    ) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, crate::project::Error> {
+    pub fn get_file_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Box::new(self.get_files()?.into_iter().map(Cow::Owned)));
         }
 
         Ok(Box::new(
             self.cache
-                .get_or_try_index_with(|| self.get_files())
-                .iter()
-                .map(|path| Cow::Borrowed(path.as_path())),
+                .get_or_try_index(|| self.get_files())?
+                .map(Cow::Borrowed),
         ))
     }
 
