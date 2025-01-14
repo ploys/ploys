@@ -105,10 +105,7 @@ impl Git {
         Ok(entries)
     }
 
-    fn get_file_uncached<P>(&self, path: P) -> Result<Vec<u8>, Error>
-    where
-        P: AsRef<Path>,
-    {
+    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Vec<u8>, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
         let mut tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;

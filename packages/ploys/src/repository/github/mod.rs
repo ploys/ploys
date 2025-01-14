@@ -182,10 +182,7 @@ impl GitHub {
         Ok(entries)
     }
 
-    fn get_file_uncached<P>(&self, path: P) -> Result<Vec<u8>, Error>
-    where
-        P: AsRef<Path>,
-    {
+    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Vec<u8>, Error> {
         let mut response = self
             .repository
             .get(
