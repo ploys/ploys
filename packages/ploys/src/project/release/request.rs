@@ -43,19 +43,19 @@ impl ReleaseRequest {
 /// repository.
 pub struct ReleaseRequestBuilder<'a, T> {
     project: &'a Project<T>,
-    package: Package<T>,
+    package: Package<&'a T>,
     version: BumpOrVersion,
     options: Options,
 }
 
 impl<'a, T> ReleaseRequestBuilder<'a, T>
 where
-    T: Remote + Clone,
+    T: Remote,
 {
     /// Constructs a new release request builder.
     pub(crate) fn new(
         project: &'a Project<T>,
-        package: Package<T>,
+        package: Package<&'a T>,
         version: BumpOrVersion,
     ) -> Self {
         Self {

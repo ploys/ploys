@@ -281,13 +281,10 @@ where
     }
 }
 
-impl<T> Package<T>
-where
-    T: Clone,
-{
+impl<'a, T> Package<&'a T> {
     /// Constructs a package from a manifest.
     pub(super) fn from_manifest(
-        project: &Project<T>,
+        project: &'a Project<T>,
         path: impl Into<PathBuf>,
         manifest: Manifest,
     ) -> Option<Self> {
@@ -301,7 +298,7 @@ where
         };
 
         Some(Self {
-            repository: project.repository.clone(),
+            repository: &project.repository,
             manifest: manifest.clone(),
             path: path.into(),
             primary,

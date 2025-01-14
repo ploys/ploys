@@ -35,7 +35,7 @@ impl Release {
 /// The package release builder.
 pub struct ReleaseBuilder<'a, T> {
     project: &'a Project<T>,
-    package: Package<T>,
+    package: Package<&'a T>,
 }
 
 impl<'a, T> ReleaseBuilder<'a, T>
@@ -43,7 +43,7 @@ where
     T: Remote,
 {
     /// Constructs a new release builder.
-    pub(crate) fn new(project: &'a Project<T>, package: Package<T>) -> Self {
+    pub(crate) fn new(project: &'a Project<T>, package: Package<&'a T>) -> Self {
         Self { project, package }
     }
 

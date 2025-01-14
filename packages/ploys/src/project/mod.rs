@@ -195,10 +195,10 @@ impl<T> Project<T> {
 
 impl<T> Project<T>
 where
-    T: Repository + Clone,
+    T: Repository,
 {
     /// Gets a package with the given name.
-    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<T>> {
+    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<&'_ T>> {
         self.packages()
             .find(|package| package.name() == name.as_ref())
     }
@@ -211,7 +211,7 @@ where
 
 impl<T> Project<T>
 where
-    T: Remote + Clone,
+    T: Remote,
 {
     /// Constructs a new package release request builder.
     pub fn create_package_release_request(

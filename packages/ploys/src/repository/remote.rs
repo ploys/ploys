@@ -62,3 +62,67 @@ pub trait Remote: Repository {
         latest: bool,
     ) -> Result<u64, Self::Error>;
 }
+
+impl<T> Remote for &T
+where
+    T: Remote,
+{
+    fn sha(&self) -> Result<String, Self::Error> {
+        (*self).sha()
+    }
+
+    fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, Self::Error> {
+        (*self).commit(message, files)
+    }
+
+    fn request_package_release(
+        &self,
+        package: &str,
+        version: BumpOrVersion,
+    ) -> Result<(), Self::Error> {
+        (*self).request_package_release(package, version)
+    }
+
+    fn get_changelog_release(
+        &self,
+        package: &str,
+        version: &Version,
+        is_primary: bool,
+    ) -> Result<Release, Self::Error> {
+        (*self).get_changelog_release(package, version, is_primary)
+    }
+
+    fn get_default_branch(&self) -> Result<String, Self::Error> {
+        (*self).get_default_branch()
+    }
+
+    fn create_branch(&self, name: &str) -> Result<(), Self::Error> {
+        (*self).create_branch(name)
+    }
+
+    fn update_branch(&self, name: &str, sha: &str) -> Result<(), Self::Error> {
+        (*self).update_branch(name, sha)
+    }
+
+    fn create_pull_request(
+        &self,
+        head: &str,
+        base: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<u64, Self::Error> {
+        (*self).create_pull_request(head, base, title, body)
+    }
+
+    fn create_release(
+        &self,
+        tag: &str,
+        sha: &str,
+        name: &str,
+        body: &str,
+        prerelease: bool,
+        latest: bool,
+    ) -> Result<u64, Self::Error> {
+        (*self).create_release(tag, sha, name, body, prerelease, latest)
+    }
+}
