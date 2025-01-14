@@ -132,15 +132,15 @@ impl GitHub {
     /// Gets the file at the given path.
     pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Some(Cow::Owned(self.get_file_contents(path.as_ref())?)));
+            return Ok(Some(Cow::Owned(self.get_file_uncached(path.as_ref())?)));
         }
 
         Ok(self
             .cache
             .get_or_try_init(
                 path,
-                |path| self.get_file_contents(path),
-                || self.get_files(),
+                |path| self.get_file_uncached(path),
+                || self.get_index_uncached(),
             )?
             .map(Cow::Borrowed))
     }
@@ -148,17 +148,19 @@ impl GitHub {
     /// Gets the index.
     pub fn get_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Box::new(self.get_files()?.into_iter().map(Cow::Owned)));
+            return Ok(Box::new(
+                self.get_index_uncached()?.into_iter().map(Cow::Owned),
+            ));
         }
 
         Ok(Box::new(
             self.cache
-                .get_or_try_index(|| self.get_files())?
+                .get_or_try_index(|| self.get_index_uncached())?
                 .map(Cow::Borrowed),
         ))
     }
 
-    pub(crate) fn get_files(&self) -> Result<BTreeSet<PathBuf>, Error> {
+    fn get_index_uncached(&self) -> Result<BTreeSet<PathBuf>, Error> {
         let entries = self
             .repository
             .get(
@@ -180,7 +182,7 @@ impl GitHub {
         Ok(entries)
     }
 
-    fn get_file_contents<P>(&self, path: P) -> Result<Vec<u8>, Error>
+    fn get_file_uncached<P>(&self, path: P) -> Result<Vec<u8>, Error>
     where
         P: AsRef<Path>,
     {
