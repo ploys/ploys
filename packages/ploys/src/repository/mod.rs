@@ -49,16 +49,16 @@ impl Repository {
         }
     }
 
-    /// Gets the file index.
-    pub(crate) fn get_file_index(
+    /// Gets the index.
+    pub(crate) fn get_index(
         &self,
     ) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, crate::project::Error> {
         match self {
             Self::Memory(memory) => Ok(Box::new(memory.get_file_index()?)),
             #[cfg(feature = "git")]
-            Self::Git(git) => Ok(git.get_file_index()?),
+            Self::Git(git) => Ok(git.get_index()?),
             #[cfg(feature = "github")]
-            Self::GitHub(github) => Ok(github.get_file_index()?),
+            Self::GitHub(github) => Ok(github.get_index()?),
         }
     }
 }

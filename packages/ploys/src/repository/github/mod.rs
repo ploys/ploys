@@ -145,8 +145,8 @@ impl GitHub {
             .map(Cow::Borrowed))
     }
 
-    /// Gets the file index.
-    pub fn get_file_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
+    /// Gets the index.
+    pub fn get_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Box::new(self.get_files()?.into_iter().map(Cow::Owned)));
         }

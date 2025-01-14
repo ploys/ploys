@@ -42,7 +42,7 @@ impl Iterator for Packages<'_> {
 
                     if let Some(manifest) = manifest {
                         if let Ok(members) = manifest.members() {
-                            if let Ok(files) = project.repository.get_file_index() {
+                            if let Ok(files) = project.repository.get_index() {
                                 self.state = State::Manifest {
                                     packages: ManifestPackages {
                                         project,
@@ -69,7 +69,7 @@ impl Iterator for Packages<'_> {
 
                         if let Some(manifest) = manifest {
                             if let Ok(members) = manifest.members() {
-                                if let Ok(files) = packages.project.repository.get_file_index() {
+                                if let Ok(files) = packages.project.repository.get_index() {
                                     packages.manifest = manifest;
                                     packages.members = members;
                                     packages.files = files;
