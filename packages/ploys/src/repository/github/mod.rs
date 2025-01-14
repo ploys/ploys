@@ -19,7 +19,6 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
-use crate::file::File;
 use crate::package::BumpOrVersion;
 
 pub use self::error::Error;
@@ -135,11 +134,9 @@ impl GitHub {
     pub fn get_file(
         &self,
         path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, File>>, crate::project::Error> {
+    ) -> Result<Option<Cow<'_, [u8]>>, crate::project::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            let bytes = self.get_file_contents(path.as_ref())?;
-
-            return Ok(Some(Cow::Owned(File::from_bytes(bytes, path.as_ref())?)));
+            return Ok(Some(Cow::Owned(self.get_file_contents(path.as_ref())?)));
         }
 
         self.cache

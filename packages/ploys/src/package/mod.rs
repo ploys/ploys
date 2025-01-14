@@ -16,7 +16,6 @@ use semver::Version;
 use tracing::info;
 
 use crate::changelog::Changelog;
-use crate::file::File;
 use crate::project::Project;
 use crate::repository::memory::Memory;
 use crate::repository::Repository;
@@ -158,14 +157,13 @@ impl Package {
     /// Gets the package changelog.
     pub fn changelog(&self) -> Option<Changelog> {
         self.get_file("CHANGELOG.md")
-            .map(Cow::into_owned)
-            .and_then(File::try_as_changelog)
+            .and_then(|file| std::str::from_utf8(&file).ok()?.parse().ok())
     }
 }
 
 impl Package {
     /// Gets the file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Option<Cow<'_, File>> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Option<Cow<'_, [u8]>> {
         self.repository
             .get_file(self.path.join(path))
             .ok()

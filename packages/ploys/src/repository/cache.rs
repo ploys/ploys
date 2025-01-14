@@ -4,13 +4,12 @@ use std::sync::{Arc, OnceLock};
 
 use once_map::OnceMap;
 
-use super::File;
-
 /// The repository cache.
 #[derive(Clone, Debug)]
 pub struct Cache {
     index: Arc<OnceLock<BTreeSet<PathBuf>>>,
-    inner: Arc<OnceMap<PathBuf, Box<Option<File>>>>,
+    #[allow(clippy::type_complexity)]
+    inner: Arc<OnceMap<PathBuf, Box<Option<Box<[u8]>>>>>,
 }
 
 impl Cache {
@@ -27,7 +26,7 @@ impl Cache {
         &self,
         path: impl AsRef<Path>,
         with: F,
-    ) -> Result<Option<&File>, crate::project::Error>
+    ) -> Result<Option<&[u8]>, crate::project::Error>
     where
         F: FnOnce(&Path) -> Result<Option<Vec<u8>>, E>,
         E: Into<crate::project::Error>,
@@ -35,11 +34,11 @@ impl Cache {
         self.inner
             .try_insert(path.as_ref().to_owned(), |path| {
                 match with(path).map_err(Into::into)? {
-                    Some(bytes) => Ok(Box::new(Some(File::from_bytes(bytes, path)?))),
+                    Some(bytes) => Ok(Box::new(Some(bytes.into()))),
                     None => Ok(Box::new(None)),
                 }
             })
-            .map(Option::as_ref)
+            .map(|option| option.as_ref().map(AsRef::as_ref))
     }
 
     /// Gets or inserts the index.

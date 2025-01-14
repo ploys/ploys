@@ -20,8 +20,6 @@ pub mod revision;
 use std::borrow::Cow;
 use std::path::Path;
 
-use crate::file::File;
-
 pub use self::error::Error;
 pub(crate) use self::remote::Remote;
 pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
@@ -41,7 +39,7 @@ impl Repository {
     pub(crate) fn get_file(
         &self,
         path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, File>>, crate::project::Error> {
+    ) -> Result<Option<Cow<'_, [u8]>>, crate::project::Error> {
         match self {
             Self::Memory(memory) => Ok(memory.get_file(path)?),
             #[cfg(feature = "git")]

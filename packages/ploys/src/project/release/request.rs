@@ -1,11 +1,8 @@
-use std::borrow::Cow;
-
 use semver::Version;
 use tracing::{info, info_span};
 
 use crate::changelog::Release;
-use crate::file::File;
-use crate::package::{BumpOrVersion, Package};
+use crate::package::{BumpOrVersion, Lockfile, Package};
 use crate::project::Project;
 
 /// The release request.
@@ -152,14 +149,15 @@ impl<'a> ReleaseRequestBuilder<'a> {
 
         if self.options.update_lockfile {
             if let Some(path) = self.package.kind().lockfile_name() {
-                if let Ok(Some(File::Lockfile(lockfile))) = self
+                let lockfile = self
                     .project
                     .repository
                     .get_file(path)
-                    .map(|file| file.map(Cow::into_owned))
-                {
-                    let mut lockfile = lockfile.clone();
+                    .ok()
+                    .flatten()
+                    .and_then(|bytes| Lockfile::from_bytes(self.package.kind(), &bytes).ok());
 
+                if let Some(mut lockfile) = lockfile {
                     lockfile.set_package_version(self.package.name(), version.clone());
                     files.push((path.to_owned(), lockfile.to_string()));
                 }

@@ -4,7 +4,6 @@ use std::path::Path;
 
 use strum::IntoEnumIterator;
 
-use crate::file::File;
 use crate::package::manifest::Members;
 use crate::package::{Manifest, Package, PackageKind};
 
@@ -34,12 +33,14 @@ impl Iterator for Packages<'_> {
             match &mut self.state {
                 State::Initial { project } => {
                     let kind = self.kinds.next()?;
-
-                    if let Ok(Some(File::Manifest(manifest))) = project
+                    let manifest = project
                         .repository
                         .get_file(kind.file_name())
-                        .map(|file| file.map(Cow::into_owned))
-                    {
+                        .ok()
+                        .flatten()
+                        .and_then(|bytes| Manifest::from_bytes(kind, &bytes).ok());
+
+                    if let Some(manifest) = manifest {
                         if let Ok(members) = manifest.members() {
                             if let Ok(files) = project.repository.get_file_index() {
                                 self.state = State::Manifest {
@@ -58,13 +59,15 @@ impl Iterator for Packages<'_> {
                     Some(package) => break Some(package),
                     None => {
                         let kind = self.kinds.next()?;
-
-                        if let Ok(Some(File::Manifest(manifest))) = packages
+                        let manifest = packages
                             .project
                             .repository
                             .get_file(kind.file_name())
-                            .map(|file| file.map(Cow::into_owned))
-                        {
+                            .ok()
+                            .flatten()
+                            .and_then(|bytes| Manifest::from_bytes(kind, &bytes).ok());
+
+                        if let Some(manifest) = manifest {
                             if let Ok(members) = manifest.members() {
                                 if let Ok(files) = packages.project.repository.get_file_index() {
                                     packages.manifest = manifest;
@@ -115,12 +118,15 @@ impl Iterator for ManifestPackages<'_> {
                 continue;
             }
 
-            let Ok(Some(File::Manifest(manifest))) = self
+            let manifest = self
                 .project
                 .repository
                 .get_file(&path)
-                .map(|file| file.map(Cow::into_owned))
-            else {
+                .ok()
+                .flatten()
+                .and_then(|bytes| Manifest::from_bytes(self.manifest.package_kind(), &bytes).ok());
+
+            let Some(manifest) = manifest else {
                 continue;
             };
 
