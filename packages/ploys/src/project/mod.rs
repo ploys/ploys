@@ -40,7 +40,7 @@ mod packages;
 mod release;
 
 use crate::package::{BumpOrVersion, Package};
-use crate::repository::{RepoSpec, Repository};
+use crate::repository::{Remote, RepoSpec, Repository};
 
 pub use self::config::Config;
 pub use self::error::Error;
@@ -58,18 +58,20 @@ pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 /// description = "{project-description}"
 /// repository = "https://github.com/{project-owner}/{project-name}"
 /// ```
-pub struct Project {
-    pub(crate) repository: Repository,
+pub struct Project<T> {
+    pub(crate) repository: T,
     config: Config,
 }
 
-impl Project {
+impl<T> Project<T>
+where
+    T: Repository,
+{
     /// Opens an existing project from the given repository.
-    pub fn open(repository: impl Into<Repository>) -> Result<Self, Error> {
-        let repository = repository.into();
-
+    pub fn open(repository: T) -> Result<Self, Error<T::Error>> {
         let config = repository
-            .get_file("Ploys.toml")?
+            .get_file("Ploys.toml")
+            .map_err(Error::Repository)?
             .ok_or(self::config::Error::Missing)?;
 
         Ok(Self {
@@ -83,23 +85,23 @@ impl Project {
 mod git {
     use std::path::PathBuf;
 
-    use crate::repository::git::Git;
+    use crate::repository::git::{Error as GitError, Git};
     use crate::repository::revision::Revision;
 
     use super::{Error, Project};
 
     /// The [`Git`] repository constructors.
-    impl Project {
+    impl Project<Git> {
         /// Opens a project from a [`Git`] repository.
-        pub fn git<P>(path: P) -> Result<Self, Error>
+        pub fn git<P>(path: P) -> Result<Self, Error<GitError>>
         where
             P: Into<PathBuf>,
         {
-            Self::open(Git::open(path)?)
+            Self::open(Git::open(path).map_err(Error::Repository)?)
         }
 
         /// Opens a project from a [`Git`] repository and revision.
-        pub fn git_with_revision<P, V>(path: P, revision: V) -> Result<Self, Error>
+        pub fn git_with_revision<P, V>(path: P, revision: V) -> Result<Self, Error<GitError>>
         where
             P: Into<PathBuf>,
             V: Into<Revision>,
@@ -117,9 +119,9 @@ mod github {
     use super::{Error, Project};
 
     /// The [`GitHub`] repository constructors.
-    impl Project {
+    impl Project<GitHub> {
         /// Opens a project from a [`GitHub`] repository.
-        pub fn github<R>(repo: R) -> Result<Self, Error>
+        pub fn github<R>(repo: R) -> Result<Self, Error<GitHubError>>
         where
             R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
         {
@@ -127,7 +129,7 @@ mod github {
         }
 
         /// Opens a project from a [`GitHub`] repository and revision.
-        pub fn github_with_revision<R, V>(repo: R, revision: V) -> Result<Self, Error>
+        pub fn github_with_revision<R, V>(repo: R, revision: V) -> Result<Self, Error<GitHubError>>
         where
             R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
             V: Into<Revision>,
@@ -137,7 +139,10 @@ mod github {
 
         /// Opens a project from a [`GitHub`] repository and authentication
         /// token.
-        pub fn github_with_authentication_token<R, T>(repo: R, token: T) -> Result<Self, Error>
+        pub fn github_with_authentication_token<R, T>(
+            repo: R,
+            token: T,
+        ) -> Result<Self, Error<GitHubError>>
         where
             R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
             T: Into<String>,
@@ -155,7 +160,7 @@ mod github {
             repo: R,
             revision: V,
             token: T,
-        ) -> Result<Self, Error>
+        ) -> Result<Self, Error<GitHubError>>
         where
             R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
             V: Into<Revision>,
@@ -171,7 +176,7 @@ mod github {
     }
 }
 
-impl Project {
+impl<T> Project<T> {
     /// Gets the project name.
     pub fn name(&self) -> &str {
         self.config.project().name()
@@ -186,26 +191,34 @@ impl Project {
     pub fn repository(&self) -> Option<RepoSpec> {
         self.config.project().repository()
     }
+}
 
+impl<T> Project<T>
+where
+    T: Repository,
+{
     /// Gets a package with the given name.
-    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package> {
+    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<&'_ T>> {
         self.packages()
             .find(|package| package.name() == name.as_ref())
     }
 
     /// Gets an iterator over the project packages.
-    pub fn packages(&self) -> Packages<'_> {
+    pub fn packages(&self) -> Packages<'_, T> {
         Packages::new(self)
     }
 }
 
-impl Project {
+impl<T> Project<T>
+where
+    T: Remote,
+{
     /// Constructs a new package release request builder.
     pub fn create_package_release_request(
         &self,
         package: impl AsRef<str>,
         version: impl Into<BumpOrVersion>,
-    ) -> Result<ReleaseRequestBuilder<'_>, Error> {
+    ) -> Result<ReleaseRequestBuilder<'_, T>, Error<T::Error>> {
         let package = self.get_package(package.as_ref()).ok_or_else(|| {
             Error::Package(crate::package::Error::NotFound(
                 package.as_ref().to_string(),
@@ -219,7 +232,7 @@ impl Project {
     pub fn create_package_release(
         &self,
         package: impl AsRef<str>,
-    ) -> Result<ReleaseBuilder<'_>, Error> {
+    ) -> Result<ReleaseBuilder<'_, T>, Error<T::Error>> {
         let package = self.get_package(package.as_ref()).ok_or_else(|| {
             Error::Package(crate::package::Error::NotFound(
                 package.as_ref().to_string(),
@@ -230,17 +243,9 @@ impl Project {
     }
 }
 
-impl TryFrom<Repository> for Project {
-    type Error = Error;
-
-    fn try_from(repository: Repository) -> Result<Self, Self::Error> {
-        Self::open(repository)
-    }
-}
-
 #[cfg(feature = "git")]
-impl TryFrom<crate::repository::git::Git> for Project {
-    type Error = Error;
+impl TryFrom<crate::repository::git::Git> for Project<crate::repository::git::Git> {
+    type Error = Error<crate::repository::git::Error>;
 
     fn try_from(repository: crate::repository::git::Git) -> Result<Self, Self::Error> {
         Self::open(repository)
@@ -248,8 +253,8 @@ impl TryFrom<crate::repository::git::Git> for Project {
 }
 
 #[cfg(feature = "github")]
-impl TryFrom<crate::repository::github::GitHub> for Project {
-    type Error = Error;
+impl TryFrom<crate::repository::github::GitHub> for Project<crate::repository::github::GitHub> {
+    type Error = Error<crate::repository::github::Error>;
 
     fn try_from(repository: crate::repository::github::GitHub) -> Result<Self, Self::Error> {
         Self::open(repository)

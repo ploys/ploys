@@ -7,11 +7,11 @@ use time::OffsetDateTime;
 
 use crate::changelog::{Change, Changeset, Release};
 
-use super::{Error, Repository};
+use super::{Error, Repo};
 
 /// Gets the changelog release for the given package version.
 pub(super) fn get_release(
-    repository: &Repository,
+    repository: &Repo,
     package: &str,
     version: &Version,
     is_primary: bool,
@@ -109,7 +109,7 @@ query($owner: String!, $name: String!, $cursor: String) {
 "#;
 
 /// Gets all tags.
-fn get_all_tags(repository: &Repository, token: Option<&str>) -> Result<Vec<GitTag>, Error> {
+fn get_all_tags(repository: &Repo, token: Option<&str>) -> Result<Vec<GitTag>, Error> {
     let mut tags = Vec::new();
     let mut cursor = None;
 
@@ -219,7 +219,7 @@ query($owner: String!, $name: String!, $cursor: String) {
 "#;
 
 /// Gets all pull requests.
-fn all(repository: &Repository, token: Option<&str>) -> Result<Vec<PullRequest>, Error> {
+fn all(repository: &Repo, token: Option<&str>) -> Result<Vec<PullRequest>, Error> {
     let mut pull_requests = BTreeMap::<_, PullRequest>::new();
     let mut cursor = None;
 
@@ -303,7 +303,7 @@ query($owner: String!, $name: String!, $to: String!, $cursor: String) {
 
 /// Gets pull requests until the specified ref.
 fn until(
-    repository: &Repository,
+    repository: &Repo,
     to: &str,
     sha: &str,
     token: Option<&str>,
@@ -393,7 +393,7 @@ query($owner: String!, $name: String!, $from: String!, $to: String!, $cursor: St
 
 /// Gets pull requests between two refs.
 fn between(
-    repository: &Repository,
+    repository: &Repo,
     from: &str,
     to: &str,
     token: Option<&str>,

@@ -2,14 +2,14 @@ mod request;
 
 use tracing::{info, info_span};
 
+use crate::repository::Remote;
+
 pub use self::request::{ReleaseRequest, ReleaseRequestBuilder};
 
 use super::{Package, Project};
 
 /// The package release.
 pub struct Release {
-    #[allow(dead_code)]
-    package: Package,
     id: u64,
     name: String,
     notes: crate::changelog::Release,
@@ -33,24 +33,25 @@ impl Release {
 }
 
 /// The package release builder.
-pub struct ReleaseBuilder<'a> {
-    project: &'a Project,
-    package: Package,
+pub struct ReleaseBuilder<'a, T> {
+    project: &'a Project<T>,
+    package: Package<&'a T>,
 }
 
-impl<'a> ReleaseBuilder<'a> {
+impl<'a, T> ReleaseBuilder<'a, T> {
     /// Constructs a new release builder.
-    pub(crate) fn new(project: &'a Project, package: Package) -> Self {
+    pub(crate) fn new(project: &'a Project<T>, package: Package<&'a T>) -> Self {
         Self { project, package }
     }
+}
 
+impl<T> ReleaseBuilder<'_, T>
+where
+    T: Remote,
+{
     /// Finishes the release.
-    pub fn finish(self) -> Result<Release, crate::project::Error> {
-        let Some(remote) = self.project.repository.as_remote() else {
-            return Err(crate::project::Error::Unsupported);
-        };
-
-        let sha = remote.sha()?;
+    pub fn finish(self) -> Result<Release, T::Error> {
+        let sha = self.project.repository.sha()?;
 
         let version = self.package.version();
 
@@ -88,12 +89,14 @@ impl<'a> ReleaseBuilder<'a> {
             .collect::<Vec<_>>()
             .join("\n");
 
-        let id = remote.create_release(&tag, &sha, &name, &body, prerelease, latest)?;
+        let id = self
+            .project
+            .repository
+            .create_release(&tag, &sha, &name, &body, prerelease, latest)?;
 
         info!(id, "Created release");
 
         Ok(Release {
-            package: self.package,
             id,
             name,
             notes: release,

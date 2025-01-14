@@ -6,18 +6,19 @@ use strum::IntoEnumIterator;
 
 use crate::package::manifest::Members;
 use crate::package::{Manifest, Package, PackageKind};
+use crate::repository::Repository;
 
 use super::Project;
 
 /// An iterator over packages in a project.
-pub struct Packages<'a> {
+pub struct Packages<'a, T> {
     kinds: <PackageKind as IntoEnumIterator>::Iterator,
-    state: State<'a>,
+    state: State<'a, T>,
 }
 
-impl<'a> Packages<'a> {
+impl<'a, T> Packages<'a, T> {
     /// Constructs a new packages iterator.
-    pub(super) fn new(project: &'a Project) -> Self {
+    pub(super) fn new(project: &'a Project<T>) -> Self {
         Self {
             kinds: PackageKind::iter(),
             state: State::Initial { project },
@@ -25,8 +26,11 @@ impl<'a> Packages<'a> {
     }
 }
 
-impl Iterator for Packages<'_> {
-    type Item = Package;
+impl<'a, T> Iterator for Packages<'a, T>
+where
+    T: Repository,
+{
+    type Item = Package<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -48,7 +52,7 @@ impl Iterator for Packages<'_> {
                                         project,
                                         manifest,
                                         members,
-                                        files,
+                                        files: Box::new(files),
                                     },
                                 };
                             }
@@ -72,7 +76,7 @@ impl Iterator for Packages<'_> {
                                 if let Ok(files) = packages.project.repository.get_index() {
                                     packages.manifest = manifest;
                                     packages.members = members;
-                                    packages.files = files;
+                                    packages.files = Box::new(files);
                                 }
                             }
                         }
@@ -83,23 +87,27 @@ impl Iterator for Packages<'_> {
     }
 }
 
-impl FusedIterator for Packages<'_> {}
+impl<T> FusedIterator for Packages<'_, T> where T: Repository {}
 
-enum State<'a> {
-    Initial { project: &'a Project },
-    Manifest { packages: ManifestPackages<'a> },
+#[allow(clippy::large_enum_variant)]
+enum State<'a, T> {
+    Initial { project: &'a Project<T> },
+    Manifest { packages: ManifestPackages<'a, T> },
 }
 
 /// An iterator over packages in a package manifest.
-struct ManifestPackages<'a> {
-    project: &'a Project,
+struct ManifestPackages<'a, T> {
+    project: &'a Project<T>,
     manifest: Manifest,
     members: Members,
     files: Box<dyn Iterator<Item = Cow<'a, Path>> + 'a>,
 }
 
-impl Iterator for ManifestPackages<'_> {
-    type Item = Package;
+impl<'a, T> Iterator for ManifestPackages<'a, T>
+where
+    T: Repository,
+{
+    type Item = Package<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -139,4 +147,4 @@ impl Iterator for ManifestPackages<'_> {
     }
 }
 
-impl FusedIterator for ManifestPackages<'_> {}
+impl<T> FusedIterator for ManifestPackages<'_, T> where T: Repository {}

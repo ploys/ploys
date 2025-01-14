@@ -5,10 +5,10 @@ use crate::changelog::Release;
 use crate::package::{BumpOrVersion, Lockfile, Package};
 use crate::project::Project;
 
+use super::Remote;
+
 /// The release request.
 pub struct ReleaseRequest {
-    #[allow(dead_code)]
-    package: Package,
     id: u64,
     title: String,
     notes: Release,
@@ -41,16 +41,20 @@ impl ReleaseRequest {
 ///
 /// This configures the release request that will be generated on the remote
 /// repository.
-pub struct ReleaseRequestBuilder<'a> {
-    project: &'a Project,
-    package: Package,
+pub struct ReleaseRequestBuilder<'a, T> {
+    project: &'a Project<T>,
+    package: Package<&'a T>,
     version: BumpOrVersion,
     options: Options,
 }
 
-impl<'a> ReleaseRequestBuilder<'a> {
+impl<'a, T> ReleaseRequestBuilder<'a, T> {
     /// Constructs a new release request builder.
-    pub(crate) fn new(project: &'a Project, package: Package, version: BumpOrVersion) -> Self {
+    pub(crate) fn new(
+        project: &'a Project<T>,
+        package: Package<&'a T>,
+        version: BumpOrVersion,
+    ) -> Self {
         Self {
             project,
             package,
@@ -58,7 +62,9 @@ impl<'a> ReleaseRequestBuilder<'a> {
             options: Options::default(),
         }
     }
+}
 
+impl<T> ReleaseRequestBuilder<'_, T> {
     /// Update the package manifest.
     pub fn update_package_manifest(mut self, enable: bool) -> Self {
         self.options.update_package_manifest = enable;
@@ -82,13 +88,14 @@ impl<'a> ReleaseRequestBuilder<'a> {
         self.options.update_changelog = enable;
         self
     }
+}
 
+impl<T> ReleaseRequestBuilder<'_, T>
+where
+    T: Remote,
+{
     /// Finishes the release request.
-    pub fn finish(mut self) -> Result<ReleaseRequest, crate::project::Error> {
-        let Some(remote) = self.project.repository.as_remote() else {
-            return Err(crate::project::Error::Unsupported);
-        };
-
+    pub fn finish(mut self) -> Result<ReleaseRequest, crate::project::Error<T::Error>> {
         let mut files = Vec::new();
 
         let version = match self.version {
@@ -164,7 +171,10 @@ impl<'a> ReleaseRequestBuilder<'a> {
             }
         }
 
-        let mut release = self.package.build_release_notes(&version)?;
+        let mut release = self
+            .package
+            .build_release_notes(&version)
+            .map_err(crate::project::Error::Repository)?;
 
         if self.options.update_changelog {
             let path = self.package.path().join("CHANGELOG.md");
@@ -194,20 +204,37 @@ impl<'a> ReleaseRequestBuilder<'a> {
             false => format!("release/{}-{version}", self.package.name()),
         };
 
-        let default_branch = remote.get_default_branch()?;
+        let default_branch = self
+            .project
+            .repository
+            .get_default_branch()
+            .map_err(crate::project::Error::Repository)?;
 
-        remote.create_branch(&branch)?;
+        self.project
+            .repository
+            .create_branch(&branch)
+            .map_err(crate::project::Error::Repository)?;
 
-        let sha = remote.commit(&title, files)?;
+        let sha = self
+            .project
+            .repository
+            .commit(&title, files)
+            .map_err(crate::project::Error::Repository)?;
 
-        remote.update_branch(&branch, &sha)?;
+        self.project
+            .repository
+            .update_branch(&branch, &sha)
+            .map_err(crate::project::Error::Repository)?;
 
-        let id = remote.create_pull_request(&branch, &default_branch, &title, &body)?;
+        let id = self
+            .project
+            .repository
+            .create_pull_request(&branch, &default_branch, &title, &body)
+            .map_err(crate::project::Error::Repository)?;
 
         info!(id, "Created release request");
 
         Ok(ReleaseRequest {
-            package: self.package,
             id,
             title,
             notes: release,

@@ -16,6 +16,7 @@ pub use self::error::Error;
 
 use super::cache::Cache;
 use super::revision::Revision;
+use super::Repository;
 
 /// The local Git repository.
 #[derive(Clone)]
@@ -54,9 +55,10 @@ impl Git {
     }
 }
 
-impl Git {
-    /// Gets the file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Error> {
+impl Repository for Git {
+    type Error = Error;
+
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Some(Cow::Owned(self.get_file_uncached(path.as_ref())?)));
         }
@@ -71,12 +73,12 @@ impl Git {
             .map(Cow::Borrowed))
     }
 
-    /// Gets the index.
-    pub fn get_index(&self) -> Result<Box<dyn Iterator<Item = Cow<'_, Path>> + '_>, Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Box::new(
-                self.get_index_uncached()?.into_iter().map(Cow::Owned),
-            ));
+            return Ok(
+                Box::new(self.get_index_uncached()?.into_iter().map(Cow::Owned))
+                    as Box<dyn Iterator<Item = Cow<'_, Path>>>,
+            );
         }
 
         Ok(Box::new(
@@ -85,7 +87,9 @@ impl Git {
                 .map(Cow::Borrowed),
         ))
     }
+}
 
+impl Git {
     fn get_index_uncached(&self) -> Result<BTreeSet<PathBuf>, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();

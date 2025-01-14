@@ -5,7 +5,7 @@ use ploys::repository::revision::Revision;
 
 #[test]
 #[ignore]
-fn test_valid_local_project() -> Result<(), Error> {
+fn test_valid_local_project() -> Result<(), Error<ploys::repository::git::Error>> {
     let project = Project::git("../..")?;
 
     assert_eq!(project.name(), "ploys");
@@ -34,7 +34,7 @@ fn test_valid_local_project() -> Result<(), Error> {
 
 #[test]
 #[ignore]
-fn test_valid_remote_project() -> Result<(), Error> {
+fn test_valid_remote_project() -> Result<(), Error<ploys::repository::github::Error>> {
     let revision = std::env::var("GITHUB_SHA")
         .map(Revision::Sha)
         .unwrap_or_default();

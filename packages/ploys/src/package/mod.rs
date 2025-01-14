@@ -18,7 +18,7 @@ use tracing::info;
 use crate::changelog::Changelog;
 use crate::project::Project;
 use crate::repository::memory::Memory;
-use crate::repository::Repository;
+use crate::repository::{Remote, Repository};
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 pub use self::error::Error;
@@ -29,18 +29,18 @@ use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 
 /// A project package.
 #[derive(Clone)]
-pub struct Package {
-    repository: Repository,
+pub struct Package<T> {
+    repository: T,
     manifest: Manifest,
     path: PathBuf,
     primary: bool,
 }
 
-impl Package {
+impl Package<Memory> {
     /// Constructs a new cargo package.
     pub fn new_cargo(name: impl Into<String>) -> Self {
         Self {
-            repository: Repository::Memory(Memory::new()),
+            repository: Memory::new(),
             manifest: Manifest::new_cargo(name),
             path: PathBuf::new(),
             primary: false,
@@ -48,7 +48,7 @@ impl Package {
     }
 }
 
-impl Package {
+impl<T> Package<T> {
     /// Gets the package name.
     pub fn name(&self) -> &str {
         match self.manifest() {
@@ -139,7 +139,7 @@ impl Package {
     }
 }
 
-impl Package {
+impl<T> Package<T> {
     /// Gets the package manifest.
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
@@ -153,15 +153,18 @@ impl Package {
     pub fn manifest_mut(&mut self) -> &mut Manifest {
         &mut self.manifest
     }
+}
 
+impl<T> Package<T>
+where
+    T: Repository,
+{
     /// Gets the package changelog.
     pub fn changelog(&self) -> Option<Changelog> {
         self.get_file("CHANGELOG.md")
             .and_then(|file| std::str::from_utf8(&file).ok()?.parse().ok())
     }
-}
 
-impl Package {
     /// Gets the file at the given path.
     pub fn get_file(&self, path: impl AsRef<Path>) -> Option<Cow<'_, [u8]>> {
         self.repository
@@ -171,7 +174,7 @@ impl Package {
     }
 }
 
-impl Package {
+impl<T> Package<T> {
     /// Gets the dependency with the given name.
     pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
         self.manifest().get_dependency(name)
@@ -193,7 +196,7 @@ impl Package {
     }
 }
 
-impl Package {
+impl<T> Package<T> {
     /// Gets the dev dependency with the given name.
     pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
         self.manifest().get_dev_dependency(name)
@@ -215,7 +218,7 @@ impl Package {
     }
 }
 
-impl Package {
+impl<T> Package<T> {
     /// Gets the build dependency with the given name.
     pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
         self.manifest().get_build_dependency(name)
@@ -237,15 +240,15 @@ impl Package {
     }
 }
 
-impl Package {
+impl<T> Package<T>
+where
+    T: Remote,
+{
     /// Requests the release of the specified package version.
     ///
     /// It does not yet support parallel release or hotfix branches and expects
     /// all development to be on the default branch in the repository settings.
-    pub fn request_release(
-        &self,
-        version: impl Into<BumpOrVersion>,
-    ) -> Result<(), crate::project::Error> {
+    pub fn request_release(&self, version: impl Into<BumpOrVersion>) -> Result<(), T::Error> {
         let version = version.into();
 
         info!(
@@ -256,8 +259,6 @@ impl Package {
         );
 
         self.repository
-            .as_remote()
-            .ok_or(crate::project::Error::Unsupported)?
             .request_package_release(self.name(), version)?;
 
         Ok(())
@@ -274,21 +275,16 @@ impl Package {
     pub fn build_release_notes(
         &self,
         version: impl Borrow<Version>,
-    ) -> Result<crate::changelog::Release, crate::project::Error> {
-        let release = self
-            .repository
-            .as_remote()
-            .ok_or(crate::project::Error::Unsupported)?
-            .get_changelog_release(self.name(), version.borrow(), self.is_primary())?;
-
-        Ok(release)
+    ) -> Result<crate::changelog::Release, T::Error> {
+        self.repository
+            .get_changelog_release(self.name(), version.borrow(), self.is_primary())
     }
 }
 
-impl Package {
+impl<'a, T> Package<&'a T> {
     /// Constructs a package from a manifest.
     pub(super) fn from_manifest(
-        project: &Project,
+        project: &'a Project<T>,
         path: impl Into<PathBuf>,
         manifest: Manifest,
     ) -> Option<Self> {
@@ -302,7 +298,7 @@ impl Package {
         };
 
         Some(Self {
-            repository: project.repository.clone(),
+            repository: &project.repository,
             manifest: manifest.clone(),
             path: path.into(),
             primary,

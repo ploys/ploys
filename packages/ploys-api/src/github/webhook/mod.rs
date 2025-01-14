@@ -108,7 +108,10 @@ fn create_release_sync(
         .ok_or(ploys::package::Error::NotFound(release))
         .map_err(ploys::project::Error::Package)?;
 
-    project.create_package_release(package.name())?.finish()?;
+    project
+        .create_package_release(package.name())?
+        .finish()
+        .map_err(ploys::project::Error::Repository)?;
 
     Ok(())
 }
