@@ -6,12 +6,12 @@ use super::{Error, GitHubRepoSpec};
 
 /// The GitHub repository information.
 #[derive(Clone, Debug)]
-pub struct Repository {
+pub struct Repo {
     spec: GitHubRepoSpec,
     client: Client,
 }
 
-impl Repository {
+impl Repo {
     /// Constructs a new repository.
     pub(crate) fn new(spec: impl Into<GitHubRepoSpec>) -> Result<Self, Error> {
         let mut headers = HeaderMap::new();
@@ -42,7 +42,7 @@ impl Repository {
     }
 }
 
-impl Repository {
+impl Repo {
     /// Gets the API endpoint.
     pub(super) fn endpoint<P>(&self, path: P) -> String
     where

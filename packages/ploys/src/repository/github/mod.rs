@@ -21,7 +21,7 @@ use crate::changelog::Release;
 use crate::package::BumpOrVersion;
 
 pub use self::error::Error;
-pub use self::repo::Repository;
+pub use self::repo::Repo;
 pub use self::spec::GitHubRepoSpec;
 
 use super::cache::Cache;
@@ -31,7 +31,7 @@ use super::Remote;
 /// The remote GitHub repository.
 #[derive(Clone, Debug)]
 pub struct GitHub {
-    repository: Repository,
+    repository: Repo,
     revision: Revision,
     token: Option<String>,
     cache: Cache,
@@ -48,7 +48,7 @@ impl GitHub {
         R: TryInto<GitHubRepoSpec, Error: Into<Error>>,
     {
         Ok(Self {
-            repository: Repository::new(repo.try_into().map_err(Into::into)?)?,
+            repository: Repo::new(repo.try_into().map_err(Into::into)?)?,
             revision: Revision::head(),
             token: None,
             cache: Cache::new(),
