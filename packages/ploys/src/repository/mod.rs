@@ -20,7 +20,7 @@ pub mod revision;
 use std::borrow::Cow;
 use std::path::Path;
 
-pub(crate) use self::remote::Remote;
+pub use self::remote::Remote;
 pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
 pub use self::vcs::GitLike;
 
