@@ -73,6 +73,13 @@ impl<T> From<crate::package::BumpError> for Error<T> {
     }
 }
 
+#[cfg(feature = "fs")]
+impl From<std::io::Error> for Error<std::io::Error> {
+    fn from(err: std::io::Error) -> Self {
+        Self::Repository(err)
+    }
+}
+
 #[cfg(feature = "git")]
 impl From<crate::repository::git::Error> for Error<crate::repository::git::Error> {
     fn from(err: crate::repository::git::Error) -> Self {

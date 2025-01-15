@@ -81,6 +81,33 @@ where
     }
 }
 
+#[cfg(feature = "fs")]
+mod fs {
+    use std::io::Error as IoError;
+    use std::path::PathBuf;
+
+    use crate::repository::fs::FileSystem;
+
+    use super::{Error, Project};
+
+    /// The [`FileSystem`] repository constructors.
+    impl Project<FileSystem> {
+        /// Opens a project from a [`FileSystem`] repository.
+        pub fn fs<P>(path: P) -> Result<Self, Error<IoError>>
+        where
+            P: Into<PathBuf>,
+        {
+            Self::open(FileSystem::open(path))
+        }
+
+        /// Opens a project from a [`FileSystem`] repository in the current
+        /// directory.
+        pub fn current_dir() -> Result<Self, Error<IoError>> {
+            Self::open(FileSystem::current_dir()?)
+        }
+    }
+}
+
 #[cfg(feature = "git")]
 mod git {
     use std::path::PathBuf;
