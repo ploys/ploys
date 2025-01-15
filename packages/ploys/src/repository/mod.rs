@@ -8,6 +8,9 @@ mod remote;
 mod spec;
 mod vcs;
 
+#[cfg(feature = "fs")]
+pub mod fs;
+
 #[cfg(feature = "git")]
 pub mod git;
 
