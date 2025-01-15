@@ -26,7 +26,7 @@ pub use self::spec::GitHubRepoSpec;
 
 use super::cache::Cache;
 use super::revision::Revision;
-use super::{Remote, Repository};
+use super::{GitLike, Remote, Repository};
 
 /// The remote GitHub repository.
 #[derive(Clone, Debug)]
@@ -213,7 +213,7 @@ impl GitHub {
     }
 }
 
-impl Remote for GitHub {
+impl GitLike for GitHub {
     fn sha(&self) -> Result<String, Self::Error> {
         self.sha()
     }
@@ -329,50 +329,6 @@ impl Remote for GitHub {
         Ok(commit_sha)
     }
 
-    fn request_package_release(
-        &self,
-        package: &str,
-        version: BumpOrVersion,
-    ) -> Result<(), Self::Error> {
-        #[derive(Serialize)]
-        struct ClientPayload {
-            package: String,
-            version: String,
-        }
-
-        self.repository
-            .post("dispatches", self.token.as_deref())
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .json(&RepositoryDispatchEvent {
-                event_type: String::from("ploys-package-release-request"),
-                client_payload: ClientPayload {
-                    package: package.to_owned(),
-                    version: version.to_string(),
-                },
-            })
-            .send()
-            .map_err(Error::from)?
-            .error_for_status()
-            .map_err(Error::from)?;
-
-        Ok(())
-    }
-
-    fn get_changelog_release(
-        &self,
-        package: &str,
-        version: &Version,
-        is_primary: bool,
-    ) -> Result<Release, Self::Error> {
-        self::changelog::get_release(
-            &self.repository,
-            package,
-            version,
-            is_primary,
-            self.token.as_deref(),
-        )
-    }
-
     fn get_default_branch(&self) -> Result<String, Self::Error> {
         #[derive(Deserialize)]
         struct RepoResponse {
@@ -439,6 +395,52 @@ impl Remote for GitHub {
             .map_err(Error::from)?;
 
         Ok(())
+    }
+}
+
+impl Remote for GitHub {
+    fn request_package_release(
+        &self,
+        package: &str,
+        version: BumpOrVersion,
+    ) -> Result<(), Self::Error> {
+        #[derive(Serialize)]
+        struct ClientPayload {
+            package: String,
+            version: String,
+        }
+
+        self.repository
+            .post("dispatches", self.token.as_deref())
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&RepositoryDispatchEvent {
+                event_type: String::from("ploys-package-release-request"),
+                client_payload: ClientPayload {
+                    package: package.to_owned(),
+                    version: version.to_string(),
+                },
+            })
+            .send()
+            .map_err(Error::from)?
+            .error_for_status()
+            .map_err(Error::from)?;
+
+        Ok(())
+    }
+
+    fn get_changelog_release(
+        &self,
+        package: &str,
+        version: &Version,
+        is_primary: bool,
+    ) -> Result<Release, Self::Error> {
+        self::changelog::get_release(
+            &self.repository,
+            package,
+            version,
+            is_primary,
+            self.token.as_deref(),
+        )
     }
 
     fn create_pull_request(
