@@ -109,6 +109,14 @@ mod git {
             Self::open(Git::open(path)?.with_revision(revision))
         }
     }
+
+    impl TryFrom<Git> for Project<Git> {
+        type Error = Error<GitError>;
+
+        fn try_from(repository: Git) -> Result<Self, Self::Error> {
+            Self::open(repository)
+        }
+    }
 }
 
 #[cfg(feature = "github")]
@@ -172,6 +180,14 @@ mod github {
                     .with_authentication_token(token)
                     .validated()?,
             )
+        }
+    }
+
+    impl TryFrom<GitHub> for Project<GitHub> {
+        type Error = Error<GitHubError>;
+
+        fn try_from(repository: GitHub) -> Result<Self, Self::Error> {
+            Self::open(repository)
         }
     }
 }
@@ -240,24 +256,6 @@ where
         })?;
 
         Ok(ReleaseBuilder::new(self, package))
-    }
-}
-
-#[cfg(feature = "git")]
-impl TryFrom<crate::repository::git::Git> for Project<crate::repository::git::Git> {
-    type Error = Error<crate::repository::git::Error>;
-
-    fn try_from(repository: crate::repository::git::Git) -> Result<Self, Self::Error> {
-        Self::open(repository)
-    }
-}
-
-#[cfg(feature = "github")]
-impl TryFrom<crate::repository::github::GitHub> for Project<crate::repository::github::GitHub> {
-    type Error = Error<crate::repository::github::Error>;
-
-    fn try_from(repository: crate::repository::github::GitHub) -> Result<Self, Self::Error> {
-        Self::open(repository)
     }
 }
 
