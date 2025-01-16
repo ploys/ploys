@@ -36,3 +36,4 @@ optional = true
 [dev-dependencies]
 indoc = "2.0.5"
 pretty_assertions = "1.4.1"
+tempfile = "3.15.0"

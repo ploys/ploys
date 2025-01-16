@@ -83,10 +83,12 @@ where
 
 #[cfg(feature = "fs")]
 mod fs {
-    use std::io::Error as IoError;
+    use std::io::{Error as IoError, ErrorKind};
     use std::path::PathBuf;
 
     use crate::repository::fs::FileSystem;
+    use crate::repository::memory::Memory;
+    use crate::repository::Repository;
 
     use super::{Error, Project};
 
@@ -104,6 +106,61 @@ mod fs {
         /// directory.
         pub fn current_dir() -> Result<Self, Error<IoError>> {
             Self::open(FileSystem::current_dir()?)
+        }
+    }
+
+    impl Project<Memory> {
+        /// Writes the project to the file system.
+        ///
+        /// This method upgrades the project to use a [`FileSystem`] repository
+        /// by writing the contents of the [`Memory`] repository to the file
+        /// system. This includes the current project configuration stored in
+        /// the project and not the original configuration from the repository.
+        pub fn write<P>(self, path: P, force: bool) -> Result<Project<FileSystem>, Error<IoError>>
+        where
+            P: Into<PathBuf>,
+        {
+            let path = path.into();
+            let meta = path.metadata()?;
+
+            if !meta.is_dir() {
+                return Err(Error::Repository(IoError::new(
+                    ErrorKind::NotADirectory,
+                    "Expected a directory",
+                )));
+            }
+
+            let repository = FileSystem::open(&path);
+
+            if !force && repository.get_index()?.count() > 0 {
+                return Err(Error::Repository(IoError::new(
+                    ErrorKind::DirectoryNotEmpty,
+                    "Expected an empty directory",
+                )));
+            }
+
+            std::fs::write(path.join("Ploys.toml"), self.config.to_string())?;
+
+            for file in self.repository.get_index()? {
+                if file.as_os_str() == "Ploys.toml" {
+                    continue;
+                }
+
+                let path = path.join(&file);
+
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+
+                let file = self.repository.get_file(&file)?.expect("indexed");
+
+                std::fs::write(path, file)?;
+            }
+
+            Ok(Project {
+                repository,
+                config: self.config,
+            })
         }
     }
 }
