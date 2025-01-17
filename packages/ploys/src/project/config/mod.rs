@@ -38,6 +38,11 @@ impl Config {
         Self(document)
     }
 
+    /// Gets the project name.
+    pub fn name(&self) -> &str {
+        self.project().name()
+    }
+
     /// Gets the project description.
     pub fn description(&self) -> Option<&str> {
         self.project().description()
