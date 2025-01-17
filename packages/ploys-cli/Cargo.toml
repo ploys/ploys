@@ -12,6 +12,7 @@ edition = "2021"
 anyhow = "1.0.72"
 clap = { version = "4.3.21", features = ["derive", "env"] }
 console = "0.15.7"
+dialoguer = "0.11.0"
 ploys = { version = "0.3.0", path = "../ploys" }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
@@ -25,6 +26,7 @@ default-features = false
 [dev-dependencies]
 assert_cmd = "2.0.12"
 predicates = { version = "3.0.3", features = ["regex"] }
+tempfile = "3.15.0"
 
 [[bin]]
 name = "ploys"
