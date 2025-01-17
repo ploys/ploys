@@ -381,8 +381,23 @@ where
 #[cfg(test)]
 mod tests {
     use crate::repository::memory::Memory;
+    use crate::repository::RepoSpec;
 
     use super::Project;
+
+    #[test]
+    fn test_builder() {
+        let project = Project::new("example")
+            .with_description("An example project.")
+            .with_repository("ploys/example".parse::<RepoSpec>().unwrap());
+
+        assert_eq!(project.name(), "example");
+        assert_eq!(project.description().unwrap(), "An example project.");
+        assert_eq!(
+            project.repository().unwrap(),
+            "ploys/example".parse::<RepoSpec>().unwrap()
+        );
+    }
 
     #[test]
     fn test_project_memory_repository() {
