@@ -151,13 +151,10 @@ mod tests {
             .with_description("An example repository.")
             .with_repository("ploys/example".parse::<RepoSpec>().unwrap());
 
-        assert_eq!(config.project().name(), "example");
+        assert_eq!(config.name(), "example");
+        assert_eq!(config.description().unwrap(), "An example repository.");
         assert_eq!(
-            config.project().description().unwrap(),
-            "An example repository."
-        );
-        assert_eq!(
-            config.project().repository().unwrap(),
+            config.repository().unwrap(),
             "ploys/example".parse::<RepoSpec>().unwrap()
         );
 
