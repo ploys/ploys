@@ -40,6 +40,7 @@ mod packages;
 mod release;
 
 use crate::package::{BumpOrVersion, Package};
+use crate::repository::memory::Memory;
 use crate::repository::{Remote, RepoSpec, Repository};
 
 pub use self::config::Config;
@@ -58,9 +59,19 @@ pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 /// description = "{project-description}"
 /// repository = "https://github.com/{project-owner}/{project-name}"
 /// ```
-pub struct Project<T> {
+pub struct Project<T = Memory> {
     pub(crate) repository: T,
     config: Config,
+}
+
+impl Project {
+    /// Creates a new project.
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            repository: Memory::new(),
+            config: Config::new(name),
+        }
+    }
 }
 
 impl<T> Project<T>
@@ -284,12 +295,36 @@ impl<T> Project<T> {
 
     /// Gets the project description.
     pub fn description(&self) -> Option<&str> {
-        self.config.project().description()
+        self.config.description()
+    }
+
+    /// Sets the project description.
+    pub fn set_description(&mut self, description: impl Into<String>) -> &mut Self {
+        self.config.set_description(description);
+        self
+    }
+
+    /// Builds the project with the given description.
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.set_description(description);
+        self
     }
 
     /// Gets the project repository.
     pub fn repository(&self) -> Option<RepoSpec> {
-        self.config.project().repository()
+        self.config.repository()
+    }
+
+    /// Sets the project repository.
+    pub fn set_repository(&mut self, repository: impl Into<RepoSpec>) -> &mut Self {
+        self.config.set_repository(repository);
+        self
+    }
+
+    /// Builds the project with the given repository.
+    pub fn with_repository(mut self, repository: impl Into<RepoSpec>) -> Self {
+        self.set_repository(repository);
+        self
     }
 }
 
