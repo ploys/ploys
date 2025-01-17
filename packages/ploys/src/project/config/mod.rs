@@ -161,7 +161,7 @@ mod tests {
         let expected = indoc::indoc! {r#"
             [project]
             name = "example"
-            description = "An example repository."
+            description = "An example project."
             repository = "ploys/example"
         "#};
 
