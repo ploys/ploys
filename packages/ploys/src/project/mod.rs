@@ -295,12 +295,12 @@ impl<T> Project<T> {
 
     /// Gets the project description.
     pub fn description(&self) -> Option<&str> {
-        self.config.description()
+        self.config.project_description()
     }
 
     /// Sets the project description.
     pub fn set_description(&mut self, description: impl Into<String>) -> &mut Self {
-        self.config.set_description(description);
+        self.config.set_project_description(description);
         self
     }
 
@@ -312,12 +312,12 @@ impl<T> Project<T> {
 
     /// Gets the project repository.
     pub fn repository(&self) -> Option<RepoSpec> {
-        self.config.repository()
+        self.config.project_repository()
     }
 
     /// Sets the project repository.
     pub fn set_repository(&mut self, repository: impl Into<RepoSpec>) -> &mut Self {
-        self.config.set_repository(repository);
+        self.config.set_project_repository(repository);
         self
     }
 

@@ -38,37 +38,42 @@ impl Config {
         Self(document)
     }
 
+    /// Gets the project name.
+    pub fn project_name(&self) -> &str {
+        self.project().name()
+    }
+
     /// Gets the project description.
-    pub fn description(&self) -> Option<&str> {
+    pub fn project_description(&self) -> Option<&str> {
         self.project().description()
     }
 
     /// Sets the project description.
-    pub fn set_description(&mut self, description: impl Into<String>) -> &mut Self {
+    pub fn set_project_description(&mut self, description: impl Into<String>) -> &mut Self {
         self.project_mut().set_description(description);
         self
     }
 
-    /// Builds the config with the given description.
-    pub fn with_description(mut self, description: impl Into<String>) -> Self {
-        self.set_description(description);
+    /// Builds the config with the given project description.
+    pub fn with_project_description(mut self, description: impl Into<String>) -> Self {
+        self.set_project_description(description);
         self
     }
 
     /// Gets the project repository.
-    pub fn repository(&self) -> Option<RepoSpec> {
+    pub fn project_repository(&self) -> Option<RepoSpec> {
         self.project().repository()
     }
 
     /// Sets the project repository.
-    pub fn set_repository(&mut self, repository: impl Into<RepoSpec>) -> &mut Self {
+    pub fn set_project_repository(&mut self, repository: impl Into<RepoSpec>) -> &mut Self {
         self.project_mut().set_repository(repository);
         self
     }
 
-    /// Builds the config with the given repository.
-    pub fn with_repository(mut self, repository: impl Into<RepoSpec>) -> Self {
-        self.set_repository(repository);
+    /// Builds the config with the given project repository.
+    pub fn with_project_repository(mut self, repository: impl Into<RepoSpec>) -> Self {
+        self.set_project_repository(repository);
         self
     }
 
@@ -143,23 +148,20 @@ mod tests {
     #[test]
     fn test_builder() {
         let config = Config::new("example")
-            .with_description("An example repository.")
-            .with_repository("ploys/example".parse::<RepoSpec>().unwrap());
+            .with_project_description("An example project.")
+            .with_project_repository("ploys/example".parse::<RepoSpec>().unwrap());
 
-        assert_eq!(config.project().name(), "example");
+        assert_eq!(config.project_name(), "example");
+        assert_eq!(config.project_description().unwrap(), "An example project.");
         assert_eq!(
-            config.project().description().unwrap(),
-            "An example repository."
-        );
-        assert_eq!(
-            config.project().repository().unwrap(),
+            config.project_repository().unwrap(),
             "ploys/example".parse::<RepoSpec>().unwrap()
         );
 
         let expected = indoc::indoc! {r#"
             [project]
             name = "example"
-            description = "An example repository."
+            description = "An example project."
             repository = "ploys/example"
         "#};
 
