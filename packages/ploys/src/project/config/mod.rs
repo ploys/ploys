@@ -148,11 +148,11 @@ mod tests {
     #[test]
     fn test_builder() {
         let config = Config::new("example")
-            .with_description("An example repository.")
+            .with_description("An example project.")
             .with_repository("ploys/example".parse::<RepoSpec>().unwrap());
 
         assert_eq!(config.name(), "example");
-        assert_eq!(config.description().unwrap(), "An example repository.");
+        assert_eq!(config.description().unwrap(), "An example project.");
         assert_eq!(
             config.repository().unwrap(),
             "ploys/example".parse::<RepoSpec>().unwrap()
