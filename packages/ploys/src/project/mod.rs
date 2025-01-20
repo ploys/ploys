@@ -298,7 +298,6 @@ mod fs {
 mod git {
     use std::path::PathBuf;
 
-    use crate::repository::fs::FileSystem;
     use crate::repository::git::{Error as GitError, Git};
     use crate::repository::revision::Revision;
 
@@ -324,40 +323,11 @@ mod git {
         }
     }
 
-    impl Project<FileSystem> {
-        /// Upgrades to a [`Git`] repository without changing configuration.
-        ///
-        /// This method opens a [`Git`] repository at the same path as the
-        /// [`FileSystem`] repository, keeping the project configuration from
-        /// the current repository. Any changes to files that have not been
-        /// committed to the target revision will not be accessible. This could
-        /// lead to an invalid configuration state so the [`Project::reload`]
-        /// and [`Project::reloaded`] methods are available to reload the
-        /// configuration.
-        pub fn into_git(
-            self,
-            revision: impl Into<Revision>,
-        ) -> Result<Project<Git>, Error<GitError>> {
-            Ok(Project {
-                repository: Git::open(self.repository.path())?.with_revision(revision),
-                config: self.config,
-            })
-        }
-    }
-
     impl TryFrom<Git> for Project<Git> {
         type Error = Error<GitError>;
 
         fn try_from(repository: Git) -> Result<Self, Self::Error> {
             Self::open(repository)
-        }
-    }
-
-    impl TryFrom<Project<FileSystem>> for Project<Git> {
-        type Error = Error<GitError>;
-
-        fn try_from(project: Project<FileSystem>) -> Result<Self, Self::Error> {
-            project.into_git(Revision::head())
         }
     }
 }
@@ -431,6 +401,44 @@ mod github {
 
         fn try_from(repository: GitHub) -> Result<Self, Self::Error> {
             Self::open(repository)
+        }
+    }
+}
+
+#[cfg(all(feature = "fs", feature = "git"))]
+mod fs_git {
+    use crate::repository::fs::FileSystem;
+    use crate::repository::git::{Error as GitError, Git};
+    use crate::repository::revision::Revision;
+
+    use super::{Error, Project};
+
+    impl Project<FileSystem> {
+        /// Upgrades to a [`Git`] repository without changing configuration.
+        ///
+        /// This method opens a [`Git`] repository at the same path as the
+        /// [`FileSystem`] repository, keeping the project configuration from
+        /// the current repository. Any changes to files that have not been
+        /// committed to the target revision will not be accessible. This could
+        /// lead to an invalid configuration state so the [`Project::reload`]
+        /// and [`Project::reloaded`] methods are available to reload the
+        /// configuration.
+        pub fn into_git(
+            self,
+            revision: impl Into<Revision>,
+        ) -> Result<Project<Git>, Error<GitError>> {
+            Ok(Project {
+                repository: Git::open(self.repository.path())?.with_revision(revision),
+                config: self.config,
+            })
+        }
+    }
+
+    impl TryFrom<Project<FileSystem>> for Project<Git> {
+        type Error = Error<GitError>;
+
+        fn try_from(project: Project<FileSystem>) -> Result<Self, Self::Error> {
+            project.into_git(Revision::head())
         }
     }
 }
