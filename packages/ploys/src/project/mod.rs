@@ -261,6 +261,14 @@ mod git {
             Self::open(repository)
         }
     }
+
+    impl TryFrom<Project<FileSystem>> for Project<Git> {
+        type Error = Error<GitError>;
+
+        fn try_from(project: Project<FileSystem>) -> Result<Self, Self::Error> {
+            project.into_git(Revision::head())
+        }
+    }
 }
 
 #[cfg(feature = "github")]
