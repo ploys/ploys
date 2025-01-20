@@ -67,9 +67,11 @@ pub struct Project<T = Memory> {
 impl Project {
     /// Creates a new project.
     pub fn new(name: impl Into<String>) -> Self {
+        let config = Config::new(name);
+
         Self {
-            repository: Memory::new(),
-            config: Config::new(name),
+            repository: Memory::new().with_file("Ploys.toml", config.to_string().into_bytes()),
+            config,
         }
     }
 }
@@ -422,6 +424,12 @@ mod tests {
             project.repository().unwrap(),
             "ploys/example".parse::<RepoSpec>().unwrap()
         );
+
+        let project = project.reloaded().unwrap();
+
+        assert_eq!(project.name(), "example");
+        assert_eq!(project.description(), None);
+        assert_eq!(project.repository(), None);
     }
 
     #[test]
