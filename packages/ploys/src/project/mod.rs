@@ -67,9 +67,11 @@ pub struct Project<T = Memory> {
 impl Project {
     /// Creates a new project.
     pub fn new(name: impl Into<String>) -> Self {
+        let config = Config::new(name);
+
         Self {
-            repository: Memory::new(),
-            config: Config::new(name),
+            repository: Memory::new().with_file("Ploys.toml", config.to_string().into_bytes()),
+            config,
         }
     }
 }
@@ -89,6 +91,31 @@ where
             config: Config::from_bytes(&config)?,
             repository,
         })
+    }
+}
+
+impl<T> Project<T>
+where
+    T: Repository,
+{
+    /// Reloads the project configuration.
+    pub fn reload(&mut self) -> Result<&mut Self, Error<T::Error>> {
+        let config = self
+            .repository
+            .get_file("Ploys.toml")
+            .map_err(Error::Repository)?
+            .ok_or(self::config::Error::Missing)?;
+
+        self.config = Config::from_bytes(&config)?;
+
+        Ok(self)
+    }
+
+    /// Builds the project with reloaded project configuration.
+    pub fn reloaded(mut self) -> Result<Self, Error<T::Error>> {
+        self.reload()?;
+
+        Ok(self)
     }
 }
 
@@ -397,13 +424,29 @@ mod tests {
             project.repository().unwrap(),
             "ploys/example".parse::<RepoSpec>().unwrap()
         );
+
+        let project = project.reloaded().unwrap();
+
+        assert_eq!(project.name(), "example");
+        assert_eq!(project.description(), None);
+        assert_eq!(project.repository(), None);
     }
 
     #[test]
     fn test_project_memory_repository() {
         let repository = Memory::new().with_file("Ploys.toml", b"[project]\nname = \"example\"");
-        let project = Project::open(repository).unwrap();
+        let mut project = Project::open(repository).unwrap();
 
         assert_eq!(project.name(), "example");
+        assert_eq!(project.description(), None);
+
+        project.set_description("An example project.");
+
+        assert_eq!(project.description(), Some("An example project."));
+
+        let project = project.reloaded().unwrap();
+
+        assert_eq!(project.name(), "example");
+        assert_eq!(project.description(), None);
     }
 }
