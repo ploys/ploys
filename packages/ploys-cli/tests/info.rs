@@ -4,13 +4,26 @@ use assert_cmd::prelude::*;
 use predicates::prelude::*;
 
 #[test]
-#[ignore]
+fn test_project_info_command_fs_output() {
+    Command::cargo_bin("ploys")
+        .unwrap()
+        .current_dir("../..")
+        .arg("project")
+        .arg("info")
+        .assert()
+        .success()
+        .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())
+        .stdout(predicate::str::is_match(r#"Repository:.*github\.com/ploys/ploys"#).unwrap());
+}
+
+#[test]
 fn test_project_info_command_git_output() {
     Command::cargo_bin("ploys")
         .unwrap()
         .current_dir("../..")
         .arg("project")
         .arg("info")
+        .arg("--head")
         .assert()
         .success()
         .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())
