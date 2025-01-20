@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use anyhow::{bail, Context, Error};
 use clap::Args;
 use ploys::package::BumpOrVersion;
@@ -40,7 +42,7 @@ impl Release {
 
         project
             .get_package(&self.package)
-            .ok_or(ploys::package::Error::NotFound(self.package))?
+            .ok_or(ploys::package::Error::<Infallible>::NotFound(self.package))?
             .request_release(self.version)?;
 
         Ok(())

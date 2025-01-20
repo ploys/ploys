@@ -3,7 +3,6 @@ use std::fmt::{self, Display};
 
 /// The project error.
 #[derive(Debug)]
-#[non_exhaustive]
 pub enum Error<T> {
     /// The configuration error.
     Config(super::config::Error),
@@ -12,7 +11,9 @@ pub enum Error<T> {
     /// The repository error.
     Repository(T),
     /// The package error.
-    Package(crate::package::Error),
+    Package(crate::package::Error<T>),
+    /// A UTF-8 error.
+    Utf8(std::str::Utf8Error),
 }
 
 impl<T> Display for Error<T>
@@ -25,6 +26,7 @@ where
             Self::Config(err) => Display::fmt(err, f),
             Self::Repository(err) => Display::fmt(err, f),
             Self::Package(err) => Display::fmt(err, f),
+            Self::Utf8(err) => Display::fmt(err, f),
         }
     }
 }
@@ -39,6 +41,7 @@ where
             Self::Config(err) => Some(err),
             Self::Repository(err) => Some(err),
             Self::Package(err) => Some(err),
+            Self::Utf8(err) => Some(err),
         }
     }
 }
@@ -61,8 +64,8 @@ impl<T> From<crate::changelog::Error> for Error<T> {
     }
 }
 
-impl<T> From<crate::package::Error> for Error<T> {
-    fn from(err: crate::package::Error) -> Self {
+impl<T> From<crate::package::Error<T>> for Error<T> {
+    fn from(err: crate::package::Error<T>) -> Self {
         Self::Package(err)
     }
 }

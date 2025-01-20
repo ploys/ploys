@@ -39,6 +39,12 @@ mod error;
 mod packages;
 mod release;
 
+use std::borrow::Cow;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+
+use either::Either;
+
 use crate::package::{BumpOrVersion, Package};
 use crate::repository::memory::Memory;
 use crate::repository::{Remote, RepoSpec, Repository};
@@ -132,6 +138,63 @@ impl<T> Project<T> {
     pub fn with_repository(mut self, repository: impl Into<RepoSpec>) -> Self {
         self.set_repository(repository);
         self
+    }
+}
+
+impl Project<Memory> {
+    /// Adds a file to the project.
+    pub fn add_file(
+        &mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Cow<'static, [u8]>>,
+    ) -> &mut Self {
+        self.repository.insert_file(path, file);
+        self
+    }
+
+    /// Builds the project with the given file.
+    pub fn with_file(
+        mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Cow<'static, [u8]>>,
+    ) -> Self {
+        self.add_file(path, file);
+        self
+    }
+}
+
+impl<T> Project<T>
+where
+    T: Repository,
+{
+    /// Gets a file at the given path.
+    pub fn get_file(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Option<Cow<'_, [u8]>>, Error<T::Error>> {
+        if path.as_ref() == Path::new("Ploys.toml") {
+            return Ok(Some(Cow::Owned(self.config.to_string().into_bytes())));
+        }
+
+        self.repository.get_file(path).map_err(Error::Repository)
+    }
+
+    /// Gets a file at the given path in the specified format.
+    #[allow(clippy::type_complexity)]
+    pub fn get_file_as<U>(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Option<U>, Either<Error<T::Error>, U::Err>>
+    where
+        U: FromStr,
+    {
+        match self.get_file(path).map_err(Either::Left)? {
+            Some(bytes) => match std::str::from_utf8(&bytes) {
+                Ok(str) => str.parse().map(Some).map_err(Either::Right),
+                Err(err) => Err(Either::Left(Error::Utf8(err))),
+            },
+            None => Ok(None),
+        }
     }
 }
 
@@ -482,9 +545,15 @@ mod tests {
 
         assert_eq!(project.description(), Some("An example project."));
 
-        let project = project.reloaded().unwrap();
+        let mut project = project.reloaded().unwrap();
 
         assert_eq!(project.name(), "example");
         assert_eq!(project.description(), None);
+
+        project.add_file("hello-world.txt", b"Hello World!");
+
+        let txt = project.get_file("hello-world.txt").unwrap();
+
+        assert_eq!(txt, Some(b"Hello World!".into()));
     }
 }
