@@ -24,6 +24,11 @@ impl FileSystem {
             path: std::env::current_dir()?,
         })
     }
+
+    /// Gets the file system path.
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 impl Repository for FileSystem {

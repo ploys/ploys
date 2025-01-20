@@ -207,6 +207,7 @@ mod fs {
 mod git {
     use std::path::PathBuf;
 
+    use crate::repository::fs::FileSystem;
     use crate::repository::git::{Error as GitError, Git};
     use crate::repository::revision::Revision;
 
@@ -229,6 +230,27 @@ mod git {
             V: Into<Revision>,
         {
             Self::open(Git::open(path)?.with_revision(revision))
+        }
+    }
+
+    impl Project<FileSystem> {
+        /// Upgrades to a [`Git`] repository without changing configuration.
+        ///
+        /// This method opens a [`Git`] repository at the same path as the
+        /// [`FileSystem`] repository, keeping the project configuration from
+        /// the current repository. Any changes to files that have not been
+        /// committed to the target revision will not be accessible. This could
+        /// lead to an invalid configuration state so the [`Project::reload`]
+        /// and [`Project::reloaded`] methods are available to reload the
+        /// configuration.
+        pub fn into_git(
+            self,
+            revision: impl Into<Revision>,
+        ) -> Result<Project<Git>, Error<GitError>> {
+            Ok(Project {
+                repository: Git::open(self.repository.path())?.with_revision(revision),
+                config: self.config,
+            })
         }
     }
 
