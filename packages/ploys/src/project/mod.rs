@@ -94,6 +94,63 @@ where
     }
 }
 
+impl<T> Project<T> {
+    /// Gets the project name.
+    pub fn name(&self) -> &str {
+        self.config.project().name()
+    }
+
+    /// Gets the project description.
+    pub fn description(&self) -> Option<&str> {
+        self.config.project_description()
+    }
+
+    /// Sets the project description.
+    pub fn set_description(&mut self, description: impl Into<String>) -> &mut Self {
+        self.config.set_project_description(description);
+        self
+    }
+
+    /// Builds the project with the given description.
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.set_description(description);
+        self
+    }
+
+    /// Gets the project repository.
+    pub fn repository(&self) -> Option<RepoSpec> {
+        self.config.project_repository()
+    }
+
+    /// Sets the project repository.
+    pub fn set_repository(&mut self, repository: impl Into<RepoSpec>) -> &mut Self {
+        self.config.set_project_repository(repository);
+        self
+    }
+
+    /// Builds the project with the given repository.
+    pub fn with_repository(mut self, repository: impl Into<RepoSpec>) -> Self {
+        self.set_repository(repository);
+        self
+    }
+}
+
+impl<T> Project<T>
+where
+    T: Repository,
+{
+    /// Gets a package with the given name.
+    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<&'_ T>> {
+        self.packages()
+            .find(|package| package.name() == name.as_ref())
+    }
+
+    /// Gets an iterator over the project packages.
+    pub fn packages(&self) -> Packages<'_, T> {
+        Packages::new(self)
+    }
+}
+
 impl<T> Project<T>
 where
     T: Repository,
@@ -116,6 +173,40 @@ where
         self.reload()?;
 
         Ok(self)
+    }
+}
+
+impl<T> Project<T>
+where
+    T: Remote,
+{
+    /// Constructs a new package release request builder.
+    pub fn create_package_release_request(
+        &self,
+        package: impl AsRef<str>,
+        version: impl Into<BumpOrVersion>,
+    ) -> Result<ReleaseRequestBuilder<'_, T>, Error<T::Error>> {
+        let package = self.get_package(package.as_ref()).ok_or_else(|| {
+            Error::Package(crate::package::Error::NotFound(
+                package.as_ref().to_string(),
+            ))
+        })?;
+
+        Ok(ReleaseRequestBuilder::new(self, package, version.into()))
+    }
+
+    /// Constructs a new package release builder.
+    pub fn create_package_release(
+        &self,
+        package: impl AsRef<str>,
+    ) -> Result<ReleaseBuilder<'_, T>, Error<T::Error>> {
+        let package = self.get_package(package.as_ref()).ok_or_else(|| {
+            Error::Package(crate::package::Error::NotFound(
+                package.as_ref().to_string(),
+            ))
+        })?;
+
+        Ok(ReleaseBuilder::new(self, package))
     }
 }
 
@@ -341,97 +432,6 @@ mod github {
         fn try_from(repository: GitHub) -> Result<Self, Self::Error> {
             Self::open(repository)
         }
-    }
-}
-
-impl<T> Project<T> {
-    /// Gets the project name.
-    pub fn name(&self) -> &str {
-        self.config.project().name()
-    }
-
-    /// Gets the project description.
-    pub fn description(&self) -> Option<&str> {
-        self.config.project_description()
-    }
-
-    /// Sets the project description.
-    pub fn set_description(&mut self, description: impl Into<String>) -> &mut Self {
-        self.config.set_project_description(description);
-        self
-    }
-
-    /// Builds the project with the given description.
-    pub fn with_description(mut self, description: impl Into<String>) -> Self {
-        self.set_description(description);
-        self
-    }
-
-    /// Gets the project repository.
-    pub fn repository(&self) -> Option<RepoSpec> {
-        self.config.project_repository()
-    }
-
-    /// Sets the project repository.
-    pub fn set_repository(&mut self, repository: impl Into<RepoSpec>) -> &mut Self {
-        self.config.set_project_repository(repository);
-        self
-    }
-
-    /// Builds the project with the given repository.
-    pub fn with_repository(mut self, repository: impl Into<RepoSpec>) -> Self {
-        self.set_repository(repository);
-        self
-    }
-}
-
-impl<T> Project<T>
-where
-    T: Repository,
-{
-    /// Gets a package with the given name.
-    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<&'_ T>> {
-        self.packages()
-            .find(|package| package.name() == name.as_ref())
-    }
-
-    /// Gets an iterator over the project packages.
-    pub fn packages(&self) -> Packages<'_, T> {
-        Packages::new(self)
-    }
-}
-
-impl<T> Project<T>
-where
-    T: Remote,
-{
-    /// Constructs a new package release request builder.
-    pub fn create_package_release_request(
-        &self,
-        package: impl AsRef<str>,
-        version: impl Into<BumpOrVersion>,
-    ) -> Result<ReleaseRequestBuilder<'_, T>, Error<T::Error>> {
-        let package = self.get_package(package.as_ref()).ok_or_else(|| {
-            Error::Package(crate::package::Error::NotFound(
-                package.as_ref().to_string(),
-            ))
-        })?;
-
-        Ok(ReleaseRequestBuilder::new(self, package, version.into()))
-    }
-
-    /// Constructs a new package release builder.
-    pub fn create_package_release(
-        &self,
-        package: impl AsRef<str>,
-    ) -> Result<ReleaseBuilder<'_, T>, Error<T::Error>> {
-        let package = self.get_package(package.as_ref()).ok_or_else(|| {
-            Error::Package(crate::package::Error::NotFound(
-                package.as_ref().to_string(),
-            ))
-        })?;
-
-        Ok(ReleaseBuilder::new(self, package))
     }
 }
 
