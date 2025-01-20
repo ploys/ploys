@@ -11,7 +11,9 @@ pub mod manifest;
 
 use std::borrow::{Borrow, Cow};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
+use either::Either;
 use semver::Version;
 use tracing::info;
 
@@ -161,16 +163,66 @@ where
 {
     /// Gets the package changelog.
     pub fn changelog(&self) -> Option<Changelog> {
-        self.get_file("CHANGELOG.md")
-            .and_then(|file| std::str::from_utf8(&file).ok()?.parse().ok())
+        self.get_file_as("CHANGELOG.md").ok().flatten()
+    }
+}
+
+impl Package<Memory> {
+    /// Adds a file to the package.
+    pub fn add_file(
+        &mut self,
+        path: impl AsRef<Path>,
+        file: impl Into<Cow<'static, [u8]>>,
+    ) -> &mut Self {
+        self.repository.insert_file(self.path.join(path), file);
+        self
     }
 
-    /// Gets the file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Option<Cow<'_, [u8]>> {
-        self.repository
-            .get_file(self.path.join(path))
-            .ok()
-            .flatten()
+    /// Builds the package with the given file.
+    pub fn with_file(
+        mut self,
+        path: impl AsRef<Path>,
+        file: impl Into<Cow<'static, [u8]>>,
+    ) -> Self {
+        self.add_file(path, file);
+        self
+    }
+}
+
+impl<T> Package<T>
+where
+    T: Repository,
+{
+    /// Gets a file at the given path.
+    pub fn get_file(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Option<Cow<'_, [u8]>>, Error<T::Error>> {
+        let path = self.path.join(path);
+
+        if path == self.manifest_path() {
+            return Ok(Some(Cow::Owned(self.manifest.to_string().into_bytes())));
+        }
+
+        self.repository.get_file(path).map_err(Error::Repository)
+    }
+
+    /// Gets a file at the given path in the specified format.
+    #[allow(clippy::type_complexity)]
+    pub fn get_file_as<U>(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Option<U>, Either<Error<T::Error>, U::Err>>
+    where
+        U: FromStr,
+    {
+        match self.get_file(path).map_err(Either::Left)? {
+            Some(bytes) => match std::str::from_utf8(&bytes) {
+                Ok(str) => str.parse().map(Some).map_err(Either::Right),
+                Err(err) => Err(Either::Left(Error::Utf8(err))),
+            },
+            None => Ok(None),
+        }
     }
 }
 
@@ -331,5 +383,11 @@ mod tests {
 
         assert_eq!(package.version().to_string(), "0.1.0");
         assert_eq!(package.changelog(), None);
+
+        package.add_file("hello-world.txt", b"Hello World!");
+
+        let txt = package.get_file("hello-world.txt").unwrap();
+
+        assert_eq!(txt, Some(b"Hello World!".into()));
     }
 }
