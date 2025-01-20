@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{bail, Error};
 use clap::Args;
 use console::style;
@@ -8,24 +10,32 @@ use ploys::repository::{RepoSpec, Repository};
 /// Gets the project information.
 #[derive(Args)]
 pub struct Info {
+    /// The target path.
+    #[arg(default_value = ".", conflicts_with_all = ["remote"])]
+    path: PathBuf,
+
     /// The remote repository specification.
-    #[clap(long)]
+    #[arg(long, conflicts_with_all = ["path"])]
     remote: Option<RepoSpec>,
 
+    /// The repository head.
+    #[arg(long)]
+    head: bool,
+
     /// The target branch name.
-    #[arg(long, conflicts_with_all = ["tag", "sha"])]
+    #[arg(long, conflicts_with_all = ["head", "tag", "sha"])]
     branch: Option<String>,
 
     /// The target tag name.
-    #[arg(long, conflicts_with_all = ["branch", "sha"])]
+    #[arg(long, conflicts_with_all = ["head", "branch", "sha"])]
     tag: Option<String>,
 
     /// The target commit SHA.
-    #[arg(long, conflicts_with_all = ["branch", "tag"])]
+    #[arg(long, conflicts_with_all = ["head", "branch", "tag"])]
     sha: Option<String>,
 
     /// The authentication token for GitHub API access.
-    #[clap(long, env = "GITHUB_TOKEN", hide_env_values = true)]
+    #[arg(long, env = "GITHUB_TOKEN", hide_env_values = true)]
     token: Option<String>,
 }
 
@@ -38,30 +48,43 @@ impl Info {
                     bail!("Unsupported remote repository: {remote}");
                 };
 
-                match &self.token {
-                    Some(token) => {
-                        self.print(Project::github_with_revision_and_authentication_token(
-                            github,
-                            self.revision(),
-                            token,
-                        )?)
-                    }
-                    None => self.print(Project::github_with_revision(github, self.revision())?),
-                }
+                let revision = self.revision().unwrap_or_else(Revision::head);
+                let project = match &self.token {
+                    Some(token) => Project::github_with_revision_and_authentication_token(
+                        github, revision, token,
+                    )?,
+                    None => Project::github_with_revision(github, revision)?,
+                };
+
+                self.print(project)?;
+
+                Ok(())
             }
-            None => self.print(Project::git_with_revision(".", self.revision())?),
+            None => {
+                if let Some(revision) = self.revision() {
+                    let project = Project::git_with_revision(&self.path, revision)?;
+
+                    self.print(project)?;
+                } else {
+                    let project = Project::fs(&self.path)?;
+
+                    self.print(project)?;
+                }
+
+                Ok(())
+            }
         }
     }
 
     /// Gets the Git revision.
-    pub fn revision(&self) -> Revision {
-        match &self.branch {
-            Some(branch) => Revision::branch(branch),
-            None => match &self.tag {
-                Some(tag) => Revision::tag(tag),
-                None => match &self.sha {
-                    Some(sha) => Revision::sha(sha),
-                    None => Revision::head(),
+    pub fn revision(&self) -> Option<Revision> {
+        match self.head {
+            true => Some(Revision::head()),
+            false => match &self.branch {
+                Some(branch) => Some(Revision::branch(branch)),
+                None => match &self.tag {
+                    Some(tag) => Some(Revision::tag(tag)),
+                    None => self.sha.as_ref().map(Revision::sha),
                 },
             },
         }
