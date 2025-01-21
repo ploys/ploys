@@ -141,7 +141,7 @@ impl<T> Project<T> {
     }
 }
 
-impl Project<Memory> {
+impl Project {
     /// Adds a file to the project.
     pub fn add_file(
         &mut self,
