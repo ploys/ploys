@@ -6,6 +6,7 @@ mod workspace;
 
 use std::fmt::{self, Display};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use globset::{Glob, GlobSetBuilder};
 use toml_edit::{DocumentMut, Item, Table, Value};
@@ -100,7 +101,7 @@ impl CargoManifest {
 
     /// Creates a manifest from the given bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        Ok(Self(std::str::from_utf8(bytes)?.parse()?))
+        std::str::from_utf8(bytes)?.parse()
     }
 }
 
@@ -201,6 +202,14 @@ impl PartialEq for CargoManifest {
 }
 
 impl Eq for CargoManifest {}
+
+impl FromStr for CargoManifest {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
 
 #[cfg(test)]
 mod tests {

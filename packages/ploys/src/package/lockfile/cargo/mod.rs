@@ -3,6 +3,7 @@
 mod package;
 
 use std::fmt::{self, Display};
+use std::str::FromStr;
 
 use semver::Version;
 use toml_edit::{DocumentMut, Item};
@@ -46,7 +47,7 @@ impl CargoLockfile {
 impl CargoLockfile {
     /// Creates a manifest from the given bytes.
     pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        Ok(Self(std::str::from_utf8(bytes)?.parse()?))
+        std::str::from_utf8(bytes)?.parse()
     }
 }
 
@@ -63,6 +64,14 @@ impl PartialEq for CargoLockfile {
 }
 
 impl Eq for CargoLockfile {}
+
+impl FromStr for CargoLockfile {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
 
 #[cfg(test)]
 mod tests {
