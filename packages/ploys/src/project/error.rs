@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 
 /// The project error.
 #[derive(Debug)]
-pub enum Error<T> {
+pub enum Error<T = Infallible> {
     /// The configuration error.
     Config(super::config::Error),
     /// The changelog error.

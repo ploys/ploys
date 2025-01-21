@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 
 /// The package error.
 #[derive(Debug)]
-pub enum Error<T> {
+pub enum Error<T = Infallible> {
     /// The repository error.
     Repository(T),
     /// A package manifest error.

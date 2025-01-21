@@ -31,14 +31,14 @@ use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
 
 /// A project package.
 #[derive(Clone)]
-pub struct Package<T> {
+pub struct Package<T = Memory> {
     repository: T,
     manifest: Manifest,
     path: PathBuf,
     primary: bool,
 }
 
-impl Package<Memory> {
+impl Package {
     /// Constructs a new cargo package.
     pub fn new_cargo(name: impl Into<String>) -> Self {
         Self {
@@ -167,7 +167,7 @@ where
     }
 }
 
-impl Package<Memory> {
+impl Package {
     /// Adds a file to the package.
     pub fn add_file(
         &mut self,
