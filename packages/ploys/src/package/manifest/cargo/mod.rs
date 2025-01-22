@@ -13,7 +13,9 @@ use toml_edit::{DocumentMut, Item, Table, Value};
 
 use crate::package::manifest::Members;
 
-pub use self::dependency::{Dependencies, DependenciesMut, DependencyMut, DependencyRef};
+pub use self::dependency::{
+    Dependencies, DependenciesMut, Dependency, DependencyMut, DependencyRef,
+};
 pub use self::package::{Package, PackageMut};
 pub use self::workspace::{Workspace, WorkspaceExclude, WorkspaceMembers};
 
@@ -106,6 +108,18 @@ impl CargoManifest {
 }
 
 impl CargoManifest {
+    /// Adds a new dependency to the manifest.
+    pub fn add_dependency(&mut self, dependency: impl Into<Dependency>) -> &mut Self {
+        self.dependencies_mut().insert(dependency);
+        self
+    }
+
+    /// Builds the manifest with the given dependency.
+    pub fn with_dependency(mut self, dependency: impl Into<Dependency>) -> Self {
+        self.add_dependency(dependency);
+        self
+    }
+
     /// Gets the dependency with the given name.
     pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.dependencies().get(name)
@@ -126,14 +140,23 @@ impl CargoManifest {
 
     /// Gets the mutable dependencies table.
     pub fn dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        self.0
-            .get_mut("dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
+        DependenciesMut::new(self.0.entry("dependencies"))
     }
 }
 
 impl CargoManifest {
+    /// Adds a new dev dependency to the manifest.
+    pub fn add_dev_dependency(&mut self, dependency: impl Into<Dependency>) -> &mut Self {
+        self.dev_dependencies_mut().insert(dependency);
+        self
+    }
+
+    /// Builds the manifest with the given dev dependency.
+    pub fn with_dev_dependency(mut self, dependency: impl Into<Dependency>) -> Self {
+        self.add_dev_dependency(dependency);
+        self
+    }
+
     /// Gets the dev dependency with the given name.
     pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.dev_dependencies().get(name)
@@ -154,14 +177,23 @@ impl CargoManifest {
 
     /// Gets the mutable dev dependencies table.
     pub fn dev_dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        self.0
-            .get_mut("dev-dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
+        DependenciesMut::new(self.0.entry("dev-dependencies"))
     }
 }
 
 impl CargoManifest {
+    /// Adds a new build dependency to the manifest.
+    pub fn add_build_dependency(&mut self, dependency: impl Into<Dependency>) -> &mut Self {
+        self.build_dependencies_mut().insert(dependency);
+        self
+    }
+
+    /// Builds the manifest with the given build dependency.
+    pub fn with_build_dependency(mut self, dependency: impl Into<Dependency>) -> Self {
+        self.add_build_dependency(dependency);
+        self
+    }
+
     /// Gets the build dependency with the given name.
     pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.build_dependencies().get(name)
@@ -182,10 +214,7 @@ impl CargoManifest {
 
     /// Gets the mutable build dependencies table.
     pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
-        self.0
-            .get_mut("build-dependencies")
-            .map(Into::into)
-            .unwrap_or_default()
+        DependenciesMut::new(self.0.entry("build-dependencies"))
     }
 }
 
@@ -216,6 +245,8 @@ mod tests {
     use semver::Version;
     use toml_edit::{value, DocumentMut};
 
+    use crate::package::manifest::cargo::Dependency;
+
     use super::CargoManifest;
 
     #[test]
@@ -241,5 +272,52 @@ mod tests {
             .set_version(Version::new(0, 2, 0));
 
         assert_eq!(manifest.package().unwrap().version(), Version::new(0, 2, 0));
+    }
+
+    #[test]
+    fn test_dependencies() {
+        let mut manifest = CargoManifest::new_package("example");
+
+        assert_eq!(manifest.dependencies().into_iter().count(), 0);
+        assert_eq!(manifest.dependencies_mut().into_iter().count(), 0);
+
+        assert!(manifest.0.get("dependencies").is_none());
+
+        manifest.add_dependency(Dependency::new("example-one").with_version(Version::new(0, 1, 0)));
+
+        assert_eq!(manifest.dependencies().into_iter().count(), 1);
+        assert_eq!(manifest.dependencies_mut().into_iter().count(), 1);
+
+        let one = manifest.get_dependency("example-one").unwrap();
+
+        assert_eq!(one.name(), "example-one");
+        assert_eq!(one.version(), Some("0.1.0"));
+        assert_eq!(one.path(), None);
+
+        manifest.add_dependency(Dependency::new("example-two").with_path("../example-two"));
+
+        assert_eq!(manifest.dependencies().into_iter().count(), 2);
+        assert_eq!(manifest.dependencies_mut().into_iter().count(), 2);
+
+        let two = manifest.get_dependency("example-two").unwrap();
+
+        assert_eq!(two.name(), "example-two");
+        assert_eq!(two.version(), None);
+        assert_eq!(two.path(), Some("../example-two"));
+
+        manifest.add_dependency(
+            Dependency::new("example-three")
+                .with_version(Version::new(0, 2, 0))
+                .with_path("../example-three"),
+        );
+
+        assert_eq!(manifest.dependencies().into_iter().count(), 3);
+        assert_eq!(manifest.dependencies_mut().into_iter().count(), 3);
+
+        let three = manifest.get_dependency("example-three").unwrap();
+
+        assert_eq!(three.name(), "example-three");
+        assert_eq!(three.version(), Some("0.2.0"));
+        assert_eq!(three.path(), Some("../example-three"));
     }
 }
