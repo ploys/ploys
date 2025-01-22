@@ -5,7 +5,7 @@ mod package;
 mod workspace;
 
 use std::fmt::{self, Display};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use globset::{Glob, GlobSetBuilder};
@@ -17,7 +17,7 @@ pub use self::dependency::{
     Dependencies, DependenciesMut, Dependency, DependencyMut, DependencyRef,
 };
 pub use self::package::{Package, PackageMut};
-pub use self::workspace::{Workspace, WorkspaceExclude, WorkspaceMembers};
+pub use self::workspace::{Workspace, WorkspaceExclude, WorkspaceMembers, WorkspaceMut};
 
 use super::Error;
 
@@ -69,6 +69,23 @@ impl CargoManifest {
             Some(item) => item.as_table_like().map(Workspace),
             None => None,
         }
+    }
+
+    /// Gets the mutable workspace table.
+    pub fn workspace_mut(&mut self) -> WorkspaceMut<'_> {
+        WorkspaceMut::new(self.0.entry("workspace"))
+    }
+
+    /// Adds a new workspace member.
+    pub fn add_workspace_member(&mut self, path: impl AsRef<Path>) -> &mut Self {
+        self.workspace_mut().add_member(path);
+        self
+    }
+
+    /// Builds the workspace with the given member.
+    pub fn with_workspace_member(mut self, path: impl AsRef<Path>) -> Self {
+        self.add_workspace_member(path);
+        self
     }
 
     /// Gets the package table.
@@ -267,6 +284,8 @@ impl FromStr for CargoManifest {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use semver::Version;
     use toml_edit::{value, DocumentMut};
 
@@ -344,5 +363,27 @@ mod tests {
         assert_eq!(three.name(), "example-three");
         assert_eq!(three.version(), Some("0.2.0"));
         assert_eq!(three.path(), Some("../example-three"));
+    }
+
+    #[test]
+    fn test_members() {
+        let mut manifest = CargoManifest::new_workspace();
+
+        manifest.add_workspace_member("packages/*");
+        manifest.add_workspace_member("packages/example");
+        manifest.add_workspace_member("examples/example");
+
+        let members = manifest.members().unwrap();
+
+        assert!(members.includes(Path::new("packages/example")));
+        assert!(members.includes(Path::new("examples/example")));
+
+        let expected = indoc::indoc! {r#"
+            [workspace]
+            resolver = 2
+            members = ["packages/*", "examples/example"]
+        "#};
+
+        assert_eq!(manifest.to_string(), expected);
     }
 }
