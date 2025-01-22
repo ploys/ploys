@@ -13,7 +13,7 @@ use std::fmt::{self, Display};
 use strum::{EnumIs, EnumTryAs};
 
 pub use self::cargo::CargoManifest;
-pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
+pub use self::dependency::{Dependencies, DependenciesMut, DependencyMut, DependencyRef};
 pub use self::error::Error;
 pub use self::members::Members;
 
@@ -56,9 +56,9 @@ impl Manifest {
 
 impl Manifest {
     /// Gets the dependency with the given name.
-    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         match self {
-            Self::Cargo(cargo) => cargo.get_dependency(name).map(Dependency::Cargo),
+            Self::Cargo(cargo) => cargo.get_dependency(name).map(DependencyRef::Cargo),
         }
     }
 
@@ -86,9 +86,9 @@ impl Manifest {
 
 impl Manifest {
     /// Gets the dev dependency with the given name.
-    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         match self {
-            Self::Cargo(cargo) => cargo.get_dev_dependency(name).map(Dependency::Cargo),
+            Self::Cargo(cargo) => cargo.get_dev_dependency(name).map(DependencyRef::Cargo),
         }
     }
 
@@ -116,9 +116,9 @@ impl Manifest {
 
 impl Manifest {
     /// Gets the build dependency with the given name.
-    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         match self {
-            Self::Cargo(cargo) => cargo.get_build_dependency(name).map(Dependency::Cargo),
+            Self::Cargo(cargo) => cargo.get_build_dependency(name).map(DependencyRef::Cargo),
         }
     }
 

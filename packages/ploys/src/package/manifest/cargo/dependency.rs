@@ -5,13 +5,13 @@ use toml_edit::{Item, KeyMut, TableLike, Value};
 
 /// The cargo package dependency.
 #[derive(Clone)]
-pub struct Dependency<'a> {
+pub struct DependencyRef<'a> {
     name: &'a str,
     version: Option<&'a str>,
     table: Option<&'a dyn TableLike>,
 }
 
-impl<'a> Dependency<'a> {
+impl<'a> DependencyRef<'a> {
     /// Gets the dependency name.
     pub fn name(&self) -> &'a str {
         self.name
@@ -43,9 +43,9 @@ impl<'a> Dependency<'a> {
     }
 }
 
-impl Debug for Dependency<'_> {
+impl Debug for DependencyRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Dependency")
+        f.debug_struct("DependencyRef")
             .field("name", &self.name())
             .field("version", &self.version())
             .field("path", &self.path())
@@ -53,7 +53,7 @@ impl Debug for Dependency<'_> {
     }
 }
 
-impl<'a> From<(&'a str, &'a Item)> for Dependency<'a> {
+impl<'a> From<(&'a str, &'a Item)> for DependencyRef<'a> {
     fn from((name, item): (&'a str, &'a Item)) -> Self {
         Self {
             name,
@@ -71,7 +71,7 @@ pub struct Dependencies<'a> {
 
 impl<'a> Dependencies<'a> {
     /// Gets the dependency with the given name.
-    pub fn get(&self, name: impl AsRef<str>) -> Option<Dependency<'a>> {
+    pub fn get(&self, name: impl AsRef<str>) -> Option<DependencyRef<'a>> {
         self.clone()
             .into_iter()
             .find(|dependency| dependency.name() == name.as_ref())
@@ -79,8 +79,8 @@ impl<'a> Dependencies<'a> {
 }
 
 impl<'a> IntoIterator for Dependencies<'a> {
-    type Item = Dependency<'a>;
-    type IntoIter = Box<dyn Iterator<Item = Dependency<'a>> + 'a>;
+    type Item = DependencyRef<'a>;
+    type IntoIter = Box<dyn Iterator<Item = DependencyRef<'a>> + 'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self.table {

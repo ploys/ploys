@@ -27,7 +27,7 @@ pub use self::error::Error;
 pub use self::kind::PackageKind;
 pub use self::lockfile::Lockfile;
 pub use self::manifest::Manifest;
-use self::manifest::{Dependencies, DependenciesMut, Dependency, DependencyMut};
+use self::manifest::{Dependencies, DependenciesMut, DependencyMut, DependencyRef};
 
 /// A project package.
 #[derive(Clone)]
@@ -228,7 +228,7 @@ where
 
 impl<T> Package<T> {
     /// Gets the dependency with the given name.
-    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.manifest().get_dependency(name)
     }
 
@@ -250,7 +250,7 @@ impl<T> Package<T> {
 
 impl<T> Package<T> {
     /// Gets the dev dependency with the given name.
-    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.manifest().get_dev_dependency(name)
     }
 
@@ -272,7 +272,7 @@ impl<T> Package<T> {
 
 impl<T> Package<T> {
     /// Gets the build dependency with the given name.
-    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.manifest().get_build_dependency(name)
     }
 

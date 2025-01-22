@@ -13,7 +13,7 @@ use toml_edit::{DocumentMut, Item, Table, Value};
 
 use crate::package::manifest::Members;
 
-pub use self::dependency::{Dependencies, DependenciesMut, Dependency, DependencyMut};
+pub use self::dependency::{Dependencies, DependenciesMut, DependencyMut, DependencyRef};
 pub use self::package::{Package, PackageMut};
 pub use self::workspace::{Workspace, WorkspaceExclude, WorkspaceMembers};
 
@@ -107,7 +107,7 @@ impl CargoManifest {
 
 impl CargoManifest {
     /// Gets the dependency with the given name.
-    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.dependencies().get(name)
     }
 
@@ -135,7 +135,7 @@ impl CargoManifest {
 
 impl CargoManifest {
     /// Gets the dev dependency with the given name.
-    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_dev_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.dev_dependencies().get(name)
     }
 
@@ -163,7 +163,7 @@ impl CargoManifest {
 
 impl CargoManifest {
     /// Gets the build dependency with the given name.
-    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<Dependency<'_>> {
+    pub fn get_build_dependency(&self, name: impl AsRef<str>) -> Option<DependencyRef<'_>> {
         self.build_dependencies().get(name)
     }
 
