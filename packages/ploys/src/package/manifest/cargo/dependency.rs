@@ -1,17 +1,76 @@
 use std::fmt::{self, Debug};
+use std::path::{Path, PathBuf};
 
+use either::Either;
 use semver::Version;
-use toml_edit::{Item, KeyMut, TableLike, Value};
+use toml_edit::{value, Entry, InlineTable, Item, KeyMut, Table, TableLike, Value};
+
+/// A *Cargo* package dependency.
+pub struct Dependency {
+    name: String,
+    version: Option<Version>,
+    path: Option<PathBuf>,
+}
+
+impl Dependency {
+    /// Creates a new dependency.
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            version: None,
+            path: None,
+        }
+    }
+
+    /// Gets the dependency name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Gets the dependency version.
+    pub fn version(&self) -> Option<&Version> {
+        self.version.as_ref()
+    }
+
+    /// Sets the dependency version.
+    pub fn set_version(&mut self, version: impl Into<Version>) -> &mut Self {
+        self.version = Some(version.into());
+        self
+    }
+
+    /// Builds the dependency with the given version.
+    pub fn with_version(mut self, version: impl Into<Version>) -> Self {
+        self.set_version(version);
+        self
+    }
+
+    /// Gets the dependency path.
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_deref()
+    }
+
+    /// Sets the dependency path.
+    pub fn set_path(&mut self, path: impl Into<PathBuf>) -> &mut Self {
+        self.path = Some(path.into());
+        self
+    }
+
+    /// Builds the dependency with the given path.
+    pub fn with_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.set_path(path);
+        self
+    }
+}
 
 /// The cargo package dependency.
 #[derive(Clone)]
-pub struct Dependency<'a> {
+pub struct DependencyRef<'a> {
     name: &'a str,
     version: Option<&'a str>,
     table: Option<&'a dyn TableLike>,
 }
 
-impl<'a> Dependency<'a> {
+impl<'a> DependencyRef<'a> {
     /// Gets the dependency name.
     pub fn name(&self) -> &'a str {
         self.name
@@ -43,9 +102,9 @@ impl<'a> Dependency<'a> {
     }
 }
 
-impl Debug for Dependency<'_> {
+impl Debug for DependencyRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Dependency")
+        f.debug_struct("DependencyRef")
             .field("name", &self.name())
             .field("version", &self.version())
             .field("path", &self.path())
@@ -53,7 +112,7 @@ impl Debug for Dependency<'_> {
     }
 }
 
-impl<'a> From<(&'a str, &'a Item)> for Dependency<'a> {
+impl<'a> From<(&'a str, &'a Item)> for DependencyRef<'a> {
     fn from((name, item): (&'a str, &'a Item)) -> Self {
         Self {
             name,
@@ -71,7 +130,7 @@ pub struct Dependencies<'a> {
 
 impl<'a> Dependencies<'a> {
     /// Gets the dependency with the given name.
-    pub fn get(&self, name: impl AsRef<str>) -> Option<Dependency<'a>> {
+    pub fn get(&self, name: impl AsRef<str>) -> Option<DependencyRef<'a>> {
         self.clone()
             .into_iter()
             .find(|dependency| dependency.name() == name.as_ref())
@@ -79,8 +138,8 @@ impl<'a> Dependencies<'a> {
 }
 
 impl<'a> IntoIterator for Dependencies<'a> {
-    type Item = Dependency<'a>;
-    type IntoIter = Box<dyn Iterator<Item = Dependency<'a>> + 'a>;
+    type Item = DependencyRef<'a>;
+    type IntoIter = Box<dyn Iterator<Item = DependencyRef<'a>> + 'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self.table {
@@ -164,16 +223,22 @@ impl<'a> From<(KeyMut<'a>, &'a mut Item)> for DependencyMut<'a> {
 }
 
 /// The mutable cargo package dependencies.
-#[derive(Default)]
 pub struct DependenciesMut<'a> {
-    pub(super) table: Option<&'a mut dyn TableLike>,
+    table: Either<&'a mut dyn TableLike, Option<Entry<'a>>>,
+}
+
+impl<'a> DependenciesMut<'a> {
+    pub(super) fn new(entry: Entry<'a>) -> Self {
+        Self {
+            table: Either::Right(Some(entry)),
+        }
+    }
 }
 
 impl<'a> DependenciesMut<'a> {
     /// Gets the mutable dependency with the given name.
     pub fn get_mut(&mut self, name: impl AsRef<str>) -> Option<DependencyMut<'_>> {
-        self.table
-            .as_mut()?
+        self.table(false)?
             .iter_mut()
             .map(Into::<DependencyMut>::into)
             .find(|dependency| dependency.name() == name.as_ref())
@@ -181,10 +246,81 @@ impl<'a> DependenciesMut<'a> {
 
     /// Gets the mutable dependency with the given name.
     pub fn into_get_mut(self, name: impl AsRef<str>) -> Option<DependencyMut<'a>> {
-        self.table?
+        self.into_table(false)?
             .iter_mut()
             .map(Into::<DependencyMut>::into)
             .find(|dependency| dependency.name() == name.as_ref())
+    }
+
+    /// Inserts a dependency.
+    pub fn insert(&mut self, dependency: impl Into<Dependency>) {
+        let dependency = dependency.into();
+        let dependencies = self.table(true).expect("table");
+        let is_table = dependency.path().is_some();
+
+        dependencies.remove(dependency.name());
+
+        if is_table {
+            let mut table = InlineTable::new();
+
+            if let Some(version) = dependency.version() {
+                table.insert("version", Value::from(version.to_string()));
+            }
+
+            if let Some(path) = dependency.path() {
+                table.insert("path", Value::from(path.display().to_string()));
+            }
+
+            dependencies.insert(dependency.name(), Item::Value(Value::InlineTable(table)));
+        } else if let Some(version) = dependency.version() {
+            dependencies.insert(dependency.name(), value(version.to_string()));
+        }
+    }
+}
+
+impl<'a> DependenciesMut<'a> {
+    fn init_table(&mut self, overwrite: bool) -> Option<()> {
+        if let Either::Right(option) = &mut self.table {
+            match option.take().expect("some") {
+                Entry::Occupied(entry) if entry.get().as_table_like().is_some() => {
+                    self.table = Either::Left(entry.into_mut().as_table_like_mut().expect("table"));
+                }
+                Entry::Occupied(mut entry) if overwrite => {
+                    *entry.get_mut() = Item::Table(Table::new());
+
+                    self.table = Either::Left(entry.into_mut().as_table_like_mut().expect("table"));
+                }
+                Entry::Vacant(entry) if overwrite => {
+                    self.table = Either::Left(
+                        entry
+                            .insert(Item::Table(Table::new()))
+                            .as_table_like_mut()
+                            .expect("table"),
+                    );
+                }
+                entry => {
+                    option.replace(entry);
+
+                    return None;
+                }
+            }
+        }
+
+        Some(())
+    }
+
+    fn table(&mut self, overwrite: bool) -> Option<&mut dyn TableLike> {
+        self.init_table(overwrite)?;
+
+        match self.table.as_mut().left() {
+            Some(table) => Some(*table),
+            None => None,
+        }
+    }
+
+    fn into_table(mut self, overwrite: bool) -> Option<&'a mut dyn TableLike> {
+        self.init_table(overwrite)?;
+        self.table.left()
     }
 }
 
@@ -193,7 +329,7 @@ impl<'a> IntoIterator for DependenciesMut<'a> {
     type IntoIter = Box<dyn Iterator<Item = DependencyMut<'a>> + 'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        match self.table {
+        match self.into_table(false) {
             Some(table) => Box::new(table.iter_mut().map(Into::into)),
             None => Box::new(std::iter::empty()),
         }
@@ -203,21 +339,13 @@ impl<'a> IntoIterator for DependenciesMut<'a> {
 impl Debug for DependenciesMut<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.table {
-            Some(table) => f
+            Either::Left(table) => f
                 .debug_list()
                 .entries(Dependencies {
                     table: Some(&**table),
                 })
                 .finish(),
-            None => f.debug_list().finish(),
-        }
-    }
-}
-
-impl<'a> From<&'a mut Item> for DependenciesMut<'a> {
-    fn from(item: &'a mut Item) -> Self {
-        Self {
-            table: item.as_table_like_mut(),
+            Either::Right(_) => f.debug_list().finish(),
         }
     }
 }

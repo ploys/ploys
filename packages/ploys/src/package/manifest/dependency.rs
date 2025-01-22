@@ -2,17 +2,17 @@ use semver::Version;
 
 use super::cargo::{
     Dependencies as CargoDependencies, DependenciesMut as CargoDependenciesMut,
-    Dependency as CargoDependency, DependencyMut as CargoDependencyMut,
+    DependencyMut as CargoDependencyMut, DependencyRef as CargoDependencyRef,
 };
 
 /// The package dependency.
 #[derive(Clone, Debug)]
-pub enum Dependency<'a> {
+pub enum DependencyRef<'a> {
     /// A cargo package dependency.
-    Cargo(CargoDependency<'a>),
+    Cargo(CargoDependencyRef<'a>),
 }
 
-impl<'a> Dependency<'a> {
+impl<'a> DependencyRef<'a> {
     /// Gets the dependency name.
     pub fn name(&self) -> &'a str {
         match self {
@@ -43,20 +43,22 @@ pub enum Dependencies<'a> {
 
 impl<'a> Dependencies<'a> {
     /// Gets the dependency with the given name.
-    pub fn get(&self, name: impl AsRef<str>) -> Option<Dependency<'a>> {
+    pub fn get(&self, name: impl AsRef<str>) -> Option<DependencyRef<'a>> {
         match self {
-            Self::Cargo(dependencies) => dependencies.get(name).map(Dependency::Cargo),
+            Self::Cargo(dependencies) => dependencies.get(name).map(DependencyRef::Cargo),
         }
     }
 }
 
 impl<'a> IntoIterator for Dependencies<'a> {
-    type Item = Dependency<'a>;
-    type IntoIter = Box<dyn Iterator<Item = Dependency<'a>> + 'a>;
+    type Item = DependencyRef<'a>;
+    type IntoIter = Box<dyn Iterator<Item = DependencyRef<'a>> + 'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Self::Cargo(dependencies) => Box::new(dependencies.into_iter().map(Dependency::Cargo)),
+            Self::Cargo(dependencies) => {
+                Box::new(dependencies.into_iter().map(DependencyRef::Cargo))
+            }
         }
     }
 }
