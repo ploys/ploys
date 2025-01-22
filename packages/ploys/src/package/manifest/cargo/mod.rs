@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use globset::{Glob, GlobSetBuilder};
-use toml_edit::{DocumentMut, Item, Table, Value};
+use toml_edit::{value, Array, DocumentMut, Item, Table, Value};
 
 use crate::package::manifest::Members;
 
@@ -37,6 +37,25 @@ impl CargoManifest {
                     let mut table = Table::new();
 
                     table.insert("name", Item::Value(Value::from(name.into())));
+                    table
+                }),
+            );
+            document
+        })
+    }
+
+    /// Constructs a new cargo workspace manifest.
+    pub fn new_workspace() -> Self {
+        Self({
+            let mut document = DocumentMut::new();
+
+            document.insert(
+                "workspace",
+                Item::Table({
+                    let mut table = Table::new();
+
+                    table.insert("resolver", value(2));
+                    table.insert("members", Item::Value(Value::Array(Array::new())));
                     table
                 }),
             );
@@ -215,6 +234,12 @@ impl CargoManifest {
     /// Gets the mutable build dependencies table.
     pub fn build_dependencies_mut(&mut self) -> DependenciesMut<'_> {
         DependenciesMut::new(self.0.entry("build-dependencies"))
+    }
+}
+
+impl Default for CargoManifest {
+    fn default() -> Self {
+        Self::new_workspace()
     }
 }
 
