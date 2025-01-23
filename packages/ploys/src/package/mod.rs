@@ -32,7 +32,7 @@ use self::manifest::{Dependencies, DependenciesMut, DependencyMut, DependencyRef
 /// A project package.
 #[derive(Clone)]
 pub struct Package<T = Memory> {
-    repository: T,
+    pub(crate) repository: T,
     manifest: Manifest,
     path: PathBuf,
     primary: bool,

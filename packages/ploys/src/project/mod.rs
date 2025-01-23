@@ -45,7 +45,9 @@ use std::str::FromStr;
 
 use either::Either;
 
-use crate::package::{BumpOrVersion, Package};
+use crate::package::lockfile::CargoLockfile;
+use crate::package::manifest::CargoManifest;
+use crate::package::{BumpOrVersion, Package, PackageKind};
 use crate::repository::memory::Memory;
 use crate::repository::{Remote, RepoSpec, Repository};
 
@@ -195,6 +197,68 @@ where
             },
             None => Ok(None),
         }
+    }
+}
+
+impl Project {
+    /// Adds the given package to the project.
+    pub fn add_package(&mut self, package: impl Into<Package>) -> Result<&mut Self, Error> {
+        let package = package.into();
+        let base_path = Path::new("packages").join(package.name());
+
+        for path in package.repository.get_index()? {
+            if path == package.manifest_path() {
+                continue;
+            }
+
+            if let Some(file) = package.repository.get_file(&path)?.map(Cow::into_owned) {
+                self.add_file(base_path.join(path), file);
+            }
+        }
+
+        self.add_file(
+            base_path.join(package.manifest_path()),
+            package.manifest().to_string().into_bytes(),
+        );
+
+        match package.kind() {
+            PackageKind::Cargo => {
+                let mut manifest = self
+                    .get_file_as::<CargoManifest>("Cargo.toml")
+                    .map_err(|err| {
+                        err.map_right(crate::package::Error::Manifest)
+                            .map_right(Error::Package)
+                            .into_inner()
+                    })?
+                    .unwrap_or_default();
+
+                manifest.add_workspace_member("packages/*");
+                manifest.add_workspace_member(base_path.join(package.path()));
+
+                let mut lockfile = self
+                    .get_file_as::<CargoLockfile>("Cargo.lock")
+                    .map_err(|err| {
+                        err.map_right(crate::package::Error::Lockfile)
+                            .map_right(Error::Package)
+                            .into_inner()
+                    })?
+                    .unwrap_or_default();
+
+                lockfile.add_package(package.manifest().try_as_cargo_ref().expect("cargo"));
+
+                self.add_file("Cargo.toml", manifest.to_string().into_bytes());
+                self.add_file("Cargo.lock", lockfile.to_string().into_bytes());
+            }
+        }
+
+        Ok(self)
+    }
+
+    /// Builds the project with the given package.
+    pub fn with_package(mut self, package: impl Into<Package>) -> Result<Self, Error> {
+        self.add_package(package)?;
+
+        Ok(self)
     }
 }
 
@@ -508,6 +572,14 @@ mod fs_git {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
+    use semver::Version;
+
+    use crate::changelog::Changelog;
+    use crate::package::lockfile::CargoLockfile;
+    use crate::package::manifest::CargoManifest;
+    use crate::package::Package;
     use crate::repository::memory::Memory;
     use crate::repository::RepoSpec;
 
@@ -526,11 +598,57 @@ mod tests {
             "ploys/example".parse::<RepoSpec>().unwrap()
         );
 
-        let project = project.reloaded().unwrap();
+        let mut project = project.reloaded().unwrap();
 
         assert_eq!(project.name(), "example");
         assert_eq!(project.description(), None);
         assert_eq!(project.repository(), None);
+
+        let package_a = Package::new_cargo("example-one");
+        let package_b = Package::new_cargo("example-two")
+            .with_version(Version::new(0, 1, 0))
+            .with_file("CHANGELOG.md", Changelog::new().to_string().into_bytes());
+
+        project.add_package(package_a).unwrap();
+        project.add_package(package_b).unwrap();
+
+        let package_a = project.get_package("example-one").unwrap();
+        let package_b = project.get_package("example-two").unwrap();
+
+        assert_eq!(package_a.name(), "example-one");
+        assert_eq!(package_a.version(), Version::new(0, 0, 0));
+        assert_eq!(package_a.get_file("CHANGELOG.md").unwrap(), None);
+
+        assert_eq!(package_b.name(), "example-two");
+        assert_eq!(package_b.version(), Version::new(0, 1, 0));
+        assert_eq!(
+            package_b.get_file_as("CHANGELOG.md").unwrap(),
+            Some(Changelog::new())
+        );
+
+        let manifest = project
+            .get_file_as::<CargoManifest>("Cargo.toml")
+            .unwrap()
+            .unwrap();
+
+        let members = manifest.members().unwrap();
+
+        assert!(members.includes(Path::new("packages/example-one")));
+        assert!(members.includes(Path::new("packages/example-two")));
+
+        let lockfile = project
+            .get_file_as::<CargoLockfile>("Cargo.lock")
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            lockfile.get_package_version("example-one"),
+            Some(Version::new(0, 0, 0))
+        );
+        assert_eq!(
+            lockfile.get_package_version("example-two"),
+            Some(Version::new(0, 1, 0))
+        );
     }
 
     #[test]
