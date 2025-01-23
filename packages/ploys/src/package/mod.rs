@@ -16,6 +16,7 @@ use std::str::FromStr;
 use either::Either;
 use semver::Version;
 use tracing::info;
+use url::Url;
 
 use crate::changelog::Changelog;
 use crate::project::Project;
@@ -114,6 +115,33 @@ impl<T> Package<T> {
     /// Builds the package with the given version.
     pub fn with_version(mut self, version: impl Into<Version>) -> Self {
         self.set_version(version);
+        self
+    }
+
+    /// Gets the package repository.
+    pub fn repository(&self) -> Option<Url> {
+        match self.manifest() {
+            Manifest::Cargo(cargo) => cargo.package().expect("package").repository(),
+        }
+    }
+
+    /// Sets the package repository.
+    pub fn set_repository(&mut self, repository: impl Into<Url>) -> &mut Self {
+        match self.manifest_mut() {
+            Manifest::Cargo(cargo) => {
+                cargo
+                    .package_mut()
+                    .expect("package")
+                    .set_repository(repository);
+            }
+        }
+
+        self
+    }
+
+    /// Builds the package with the given repository.
+    pub fn with_repository(mut self, repository: impl Into<Url>) -> Self {
+        self.set_repository(repository);
         self
     }
 

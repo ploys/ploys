@@ -1,5 +1,6 @@
 use semver::Version;
 use toml_edit::{Item, TableLike, Value};
+use url::Url;
 
 /// The package table.
 pub struct Package<'a>(pub(super) &'a dyn TableLike);
@@ -28,6 +29,11 @@ impl<'a> Package<'a> {
             .unwrap_or("0.0.0")
             .parse()
             .expect("version should be valid semver")
+    }
+
+    /// Gets the package repository.
+    pub fn repository(&self) -> Option<Url> {
+        self.0.get("repository")?.as_str()?.parse().ok()
     }
 }
 
@@ -74,6 +80,20 @@ impl PackageMut<'_> {
         let item = self.0.entry("version").or_insert_with(Item::default);
 
         *item = Item::Value(Value::from(version.into().to_string()));
+
+        self
+    }
+
+    /// Gets the package repository.
+    pub fn repository(&self) -> Option<Url> {
+        self.0.get("repository")?.as_str()?.parse().ok()
+    }
+
+    /// Sets the package repository.
+    pub fn set_repository(&mut self, repository: impl Into<Url>) -> &mut Self {
+        let item = self.0.entry("repository").or_insert_with(Item::default);
+
+        *item = Item::Value(Value::from(repository.into().to_string()));
 
         self
     }
