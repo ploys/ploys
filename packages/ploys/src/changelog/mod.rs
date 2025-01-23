@@ -24,7 +24,7 @@ pub use self::text::{MultilineText, Text};
 /// This uses the [keep a changelog](https://keepachangelog.com) format to parse
 /// and generate changelogs. There is very limited support for deviation from
 /// this format so the changelog should not yet be manually edited.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq)]
 pub struct Changelog(Node);
 
 impl Changelog {
@@ -249,6 +249,12 @@ impl Display for Changelog {
         writeln!(f)?;
 
         Ok(())
+    }
+}
+
+impl PartialEq for Changelog {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_string() == other.to_string()
     }
 }
 
