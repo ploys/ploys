@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use globset::{Glob, GlobSetBuilder};
-use toml_edit::{value, Array, DocumentMut, Item, Table, Value};
+use toml_edit::{value, Array, DocumentMut, Item, Table};
 
 use crate::package::manifest::Members;
 
@@ -36,7 +36,9 @@ impl CargoManifest {
                 Item::Table({
                     let mut table = Table::new();
 
-                    table.insert("name", Item::Value(Value::from(name.into())));
+                    table.insert("name", value(name.into()));
+                    table.insert("version", value("0.0.0"));
+                    table.insert("edition", value("2021"));
                     table
                 }),
             );
@@ -55,7 +57,7 @@ impl CargoManifest {
                     let mut table = Table::new();
 
                     table.insert("resolver", value("2"));
-                    table.insert("members", Item::Value(Value::Array(Array::new())));
+                    table.insert("members", value(Array::new()));
                     table
                 }),
             );
