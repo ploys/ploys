@@ -54,7 +54,7 @@ impl CargoManifest {
                 Item::Table({
                     let mut table = Table::new();
 
-                    table.insert("resolver", value(2));
+                    table.insert("resolver", value("2"));
                     table.insert("members", Item::Value(Value::Array(Array::new())));
                     table
                 }),
@@ -380,7 +380,7 @@ mod tests {
 
         let expected = indoc::indoc! {r#"
             [workspace]
-            resolver = 2
+            resolver = "2"
             members = ["packages/*", "examples/example"]
         "#};
 
