@@ -1,5 +1,5 @@
 use std::io::IsTerminal;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Error};
 use clap::Args;
@@ -34,6 +34,11 @@ impl Init {
 
         let name = match self.name {
             Some(name) => name,
+            None if self.path != Path::new(".") => match self.path.file_name() {
+                Some(name) => name.to_string_lossy().to_string(),
+                None if !is_terminal => bail!("Expected a project name"),
+                None => Input::<String>::new().with_prompt("Name").interact_text()?,
+            },
             None if !is_terminal => bail!("Expected a project name"),
             None => Input::<String>::new().with_prompt("Name").interact_text()?,
         };
