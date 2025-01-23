@@ -1,7 +1,7 @@
 use std::io::IsTerminal;
 use std::path::PathBuf;
 
-use anyhow::{bail, Error};
+use anyhow::{bail, Context, Error};
 use clap::Args;
 use dialoguer::Input;
 use ploys::project::Project;
@@ -80,7 +80,24 @@ impl Init {
             project.set_repository(repository);
         }
 
-        project.write(self.path, false)?;
+        if !self.path.exists() {
+            if self.path.is_relative() {
+                std::fs::create_dir_all(&self.path).with_context(|| {
+                    format!("Could not create directory `{}`", self.path.display())
+                })?;
+            } else {
+                std::fs::create_dir(&self.path).with_context(|| {
+                    format!("Could not create directory `{}`", self.path.display())
+                })?;
+            }
+        }
+
+        project.write(&self.path, false).with_context(|| {
+            format!(
+                "Could not create project at directory `{}`",
+                self.path.display()
+            )
+        })?;
 
         Ok(())
     }
