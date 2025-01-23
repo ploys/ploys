@@ -2,10 +2,13 @@ use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Error};
-use clap::Args;
-use dialoguer::Input;
+use clap::{Args, ValueEnum};
+use dialoguer::{Input, Select};
+use ploys::changelog::Changelog;
+use ploys::package::Package;
 use ploys::project::Project;
 use ploys::repository::RepoSpec;
+use strum::{Display, VariantArray};
 
 /// Initializes a new project.
 #[derive(Args)]
@@ -25,6 +28,10 @@ pub struct Init {
     /// The project repository.
     #[arg(long)]
     repository: Option<RepoSpec>,
+
+    /// The project template.
+    #[arg(long, value_enum)]
+    template: Option<Template>,
 }
 
 impl Init {
@@ -75,6 +82,20 @@ impl Init {
             }
         };
 
+        let template = match self.template {
+            Some(template) => template,
+            None if !is_terminal => Template::None,
+            None => {
+                let selection = Select::new()
+                    .with_prompt("Template")
+                    .items(Template::VARIANTS)
+                    .default(0)
+                    .interact()?;
+
+                Template::VARIANTS[selection]
+            }
+        };
+
         let mut project = Project::new(&name);
 
         if let Some(description) = description {
@@ -83,6 +104,43 @@ impl Init {
 
         if let Some(repository) = repository {
             project.set_repository(repository);
+        }
+
+        match template {
+            Template::CargoBin => {
+                let mut package = Package::new_cargo(name);
+
+                if let Some(description) = project.description() {
+                    package.set_description(description);
+                }
+
+                if let Some(repository) = project.repository() {
+                    package.set_repository(repository.to_url());
+                }
+
+                package.add_file(
+                    "src/main.rs",
+                    b"fn main() {\n    println!(\"Hello, world!\");\n}\n",
+                );
+                package.add_file("CHANGELOG.md", Changelog::new().to_string().into_bytes());
+                project.add_package(package)?;
+            }
+            Template::CargoLib => {
+                let mut package = Package::new_cargo(name);
+
+                if let Some(description) = project.description() {
+                    package.set_description(description);
+                }
+
+                if let Some(repository) = project.repository() {
+                    package.set_repository(repository.to_url());
+                }
+
+                package.add_file("src/lib.rs", b"\n");
+                package.add_file("CHANGELOG.md", Changelog::new().to_string().into_bytes());
+                project.add_package(package)?;
+            }
+            Template::None => {}
         }
 
         if !self.path.exists() {
@@ -106,4 +164,14 @@ impl Init {
 
         Ok(())
     }
+}
+
+#[derive(Clone, Copy, Debug, Display, VariantArray, ValueEnum)]
+enum Template {
+    #[strum(to_string = "Cargo (binary)")]
+    CargoBin,
+    #[strum(to_string = "Cargo (library)")]
+    CargoLib,
+    #[strum(to_string = "None")]
+    None,
 }
