@@ -2734,6 +2734,7 @@ dependencies = [
  "dialoguer",
  "ploys",
  "predicates",
+ "strum 0.26.3",
  "tempfile",
  "tracing",
  "tracing-subscriber",
