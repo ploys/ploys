@@ -208,6 +208,6 @@ enum Template {
 enum Vcs {
     #[strum(to_string = "Git")]
     Git,
-    #[strum(to_string = "Git")]
+    #[strum(to_string = "None")]
     None,
 }
