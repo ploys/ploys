@@ -32,6 +32,10 @@ pub struct Init {
     /// The project template.
     #[arg(long, value_enum)]
     template: Option<Template>,
+
+    /// The version control system.
+    #[arg(long, value_enum)]
+    vcs: Option<Vcs>,
 }
 
 impl Init {
@@ -96,6 +100,20 @@ impl Init {
             }
         };
 
+        let vcs = match self.vcs {
+            Some(vcs) => vcs,
+            None if !is_terminal => Vcs::None,
+            None => {
+                let selection = Select::new()
+                    .with_prompt("Version Control System")
+                    .items(Vcs::VARIANTS)
+                    .default(0)
+                    .interact()?;
+
+                Vcs::VARIANTS[selection]
+            }
+        };
+
         let mut project = Project::new(&name);
 
         if let Some(description) = description {
@@ -143,6 +161,12 @@ impl Init {
             Template::None => {}
         }
 
+        if let Vcs::Git = vcs {
+            if let Template::CargoBin | Template::CargoLib = template {
+                project.add_file(".gitignore", b"/target\n");
+            }
+        }
+
         if !self.path.exists() {
             if self.path.is_relative() {
                 std::fs::create_dir_all(&self.path).with_context(|| {
@@ -155,12 +179,16 @@ impl Init {
             }
         }
 
-        project.write(&self.path, false).with_context(|| {
+        let project = project.write(&self.path, false).with_context(|| {
             format!(
                 "Could not create project at directory `{}`",
                 self.path.display()
             )
         })?;
+
+        if let Vcs::Git = vcs {
+            project.init_git()?;
+        }
 
         Ok(())
     }
@@ -173,5 +201,13 @@ enum Template {
     #[strum(to_string = "Cargo (library)")]
     CargoLib,
     #[strum(to_string = "None")]
+    None,
+}
+
+#[derive(Clone, Copy, Debug, Display, VariantArray, ValueEnum)]
+enum Vcs {
+    #[strum(to_string = "Git")]
+    Git,
+    #[strum(to_string = "Git")]
     None,
 }
