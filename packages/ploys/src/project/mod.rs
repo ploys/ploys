@@ -559,6 +559,19 @@ mod fs_git {
                 config: self.config,
             })
         }
+
+        /// Initializes a new [`Git`] repository.
+        ///
+        /// This method creates a new a [`Git`] repository at the same path as
+        /// the [`FileSystem`] repository, keeping the project configuration
+        /// from the current repository. This does not stage or commit changes
+        /// so the new repository will appear to be empty.
+        pub fn init_git(self) -> Result<Project<Git>, Error<GitError>> {
+            Ok(Project {
+                repository: Git::init(self.repository.path())?,
+                config: self.config,
+            })
+        }
     }
 
     impl TryFrom<Project<FileSystem>> for Project<Git> {

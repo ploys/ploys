@@ -33,6 +33,12 @@ impl From<gix::open::Error> for Error {
     }
 }
 
+impl From<gix::init::Error> for Error {
+    fn from(err: gix::init::Error) -> Self {
+        Self::Gix(err.into())
+    }
+}
+
 impl From<gix::remote::find::existing::Error> for Error {
     fn from(err: gix::remote::find::existing::Error) -> Self {
         Self::Gix(err.into())
@@ -68,6 +74,8 @@ impl From<gix::traverse::tree::breadthfirst::Error> for Error {
 pub enum GixError {
     /// An open error.
     Open(Box<gix::open::Error>),
+    /// An init error.
+    Init(Box<gix::init::Error>),
     /// A remote lookup error.
     Remote(Box<gix::remote::find::existing::Error>),
     /// A revision parse error.
@@ -84,6 +92,7 @@ impl Display for GixError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Open(err) => Display::fmt(err, f),
+            Self::Init(err) => Display::fmt(err, f),
             Self::Remote(err) => Display::fmt(err, f),
             Self::Revision(err) => Display::fmt(err, f),
             Self::ObjectFind(err) => Display::fmt(err, f),
@@ -98,6 +107,12 @@ impl std::error::Error for GixError {}
 impl From<gix::open::Error> for GixError {
     fn from(err: gix::open::Error) -> Self {
         Self::Open(Box::new(err))
+    }
+}
+
+impl From<gix::init::Error> for GixError {
+    fn from(err: gix::init::Error) -> Self {
+        Self::Init(Box::new(err))
     }
 }
 

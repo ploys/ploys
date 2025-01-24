@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use gix::create::{Kind, Options};
 use gix::traverse::tree::Recorder;
 use gix::ThreadSafeRepository;
 
@@ -31,6 +32,15 @@ impl Git {
     pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
         Ok(Self {
             repository: ThreadSafeRepository::open(path)?,
+            revision: Revision::Head,
+            cache: Cache::new(),
+        })
+    }
+
+    /// Initializes a Git repository.
+    pub fn init(path: impl AsRef<Path>) -> Result<Self, Error> {
+        Ok(Self {
+            repository: ThreadSafeRepository::init(path, Kind::WithWorktree, Options::default())?,
             revision: Revision::Head,
             cache: Cache::new(),
         })
