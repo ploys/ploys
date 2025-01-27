@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use gix::config::File;
 use gix::create::{Kind, Options};
 use gix::traverse::tree::Recorder;
 use gix::ThreadSafeRepository;
@@ -62,6 +63,30 @@ impl Git {
     pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
         self.set_revision(revision);
         self
+    }
+}
+
+impl Git {
+    /// Gets the author information.
+    pub fn get_author() -> Option<String> {
+        let globals = File::from_globals().ok();
+        let overrides = File::from_environment_overrides().ok();
+
+        let config = match (globals, overrides) {
+            (Some(globals), Some(overrides)) => {
+                let mut config = globals;
+                config.append(overrides);
+                config
+            }
+            (Some(config), None) => config,
+            (None, Some(config)) => config,
+            (None, None) => return None,
+        };
+
+        let name = config.string("user.name")?;
+        let email = config.string("user.email")?;
+
+        Some(format!("{name} <{email}>"))
     }
 }
 
