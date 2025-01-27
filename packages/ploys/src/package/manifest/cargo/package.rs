@@ -1,5 +1,5 @@
 use semver::Version;
-use toml_edit::{Item, TableLike, Value};
+use toml_edit::{value, Array, Entry, Item, TableLike, Value};
 use url::Url;
 
 /// The package table.
@@ -34,6 +34,17 @@ impl<'a> Package<'a> {
     /// Gets the package repository.
     pub fn repository(&self) -> Option<Url> {
         self.0.get("repository")?.as_str()?.parse().ok()
+    }
+
+    /// Gets the package authors.
+    pub fn authors(&self) -> Option<impl IntoIterator<Item = &'a str>> {
+        Some(
+            self.0
+                .get("authors")?
+                .as_array()?
+                .iter()
+                .flat_map(Value::as_str),
+        )
     }
 }
 
@@ -94,6 +105,36 @@ impl PackageMut<'_> {
         let item = self.0.entry("repository").or_insert_with(Item::default);
 
         *item = Item::Value(Value::from(repository.into().to_string()));
+
+        self
+    }
+
+    /// Gets the package authors.
+    pub fn authors(&self) -> Option<impl IntoIterator<Item = &str>> {
+        Some(
+            self.0
+                .get("authors")?
+                .as_array()?
+                .iter()
+                .flat_map(Value::as_str),
+        )
+    }
+
+    /// Adds an author to the package.
+    pub fn add_author(&mut self, author: impl Into<String>) -> &mut Self {
+        match self.0.entry("authors") {
+            Entry::Occupied(mut entry) => match entry.get_mut() {
+                Item::Value(Value::Array(array)) => {
+                    array.push(author.into());
+                }
+                item => {
+                    *item = value(Array::from_iter([author.into()]));
+                }
+            },
+            Entry::Vacant(entry) => {
+                entry.insert(value(Array::from_iter([author.into()])));
+            }
+        }
 
         self
     }
