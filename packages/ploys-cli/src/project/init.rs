@@ -7,6 +7,7 @@ use dialoguer::{Input, Select};
 use ploys::changelog::Changelog;
 use ploys::package::Package;
 use ploys::project::Project;
+use ploys::repository::git::Git;
 use ploys::repository::RepoSpec;
 use strum::{Display, VariantArray};
 
@@ -36,6 +37,10 @@ pub struct Init {
     /// The version control system.
     #[arg(long, value_enum)]
     vcs: Option<Vcs>,
+
+    /// The project author.
+    #[arg(long)]
+    author: Vec<String>,
 }
 
 impl Init {
@@ -114,6 +119,31 @@ impl Init {
             }
         };
 
+        let authors = match self.author.is_empty() {
+            false => self.author,
+            true if !is_terminal => Vec::new(),
+            true => {
+                let mut author = format!("The {name} Project Developers");
+
+                if let Vcs::Git = vcs {
+                    if let Some(git_author) = Git::get_author() {
+                        author = git_author;
+                    }
+                };
+
+                let author = Input::<String>::new()
+                    .with_prompt("Author")
+                    .with_initial_text(author)
+                    .allow_empty(true)
+                    .interact_text()?;
+
+                match author.is_empty() {
+                    true => Vec::new(),
+                    false => vec![author],
+                }
+            }
+        };
+
         let mut project = Project::new(&name);
 
         if let Some(description) = description {
@@ -136,6 +166,12 @@ impl Init {
                     package.set_repository(repository.to_url());
                 }
 
+                if !authors.is_empty() {
+                    for author in authors {
+                        package.add_author(author);
+                    }
+                }
+
                 package.add_file(
                     "src/main.rs",
                     b"fn main() {\n    println!(\"Hello, world!\");\n}\n",
@@ -152,6 +188,12 @@ impl Init {
 
                 if let Some(repository) = project.repository() {
                     package.set_repository(repository.to_url());
+                }
+
+                if !authors.is_empty() {
+                    for author in authors {
+                        package.add_author(author);
+                    }
                 }
 
                 package.add_file("src/lib.rs", b"\n");
