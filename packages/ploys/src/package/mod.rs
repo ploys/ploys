@@ -145,6 +145,30 @@ impl<T> Package<T> {
         self
     }
 
+    /// Gets the package authors.
+    pub fn authors(&self) -> Option<impl IntoIterator<Item = &str>> {
+        match self.manifest() {
+            Manifest::Cargo(cargo) => cargo.package().expect("package").authors(),
+        }
+    }
+
+    /// Adds a package author.
+    pub fn add_author(&mut self, author: impl Into<String>) -> &mut Self {
+        match self.manifest_mut() {
+            Manifest::Cargo(cargo) => {
+                cargo.package_mut().expect("package").add_author(author);
+            }
+        }
+
+        self
+    }
+
+    /// Builds the package with the given author.
+    pub fn with_author(mut self, author: impl Into<String>) -> Self {
+        self.add_author(author);
+        self
+    }
+
     /// Gets the package path.
     pub fn path(&self) -> &Path {
         &self.path
