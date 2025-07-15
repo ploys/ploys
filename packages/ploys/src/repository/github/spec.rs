@@ -46,7 +46,7 @@ impl GitHubRepoSpec {
 
     /// Gets the repository URL.
     pub fn to_url(&self) -> Url {
-        Url::parse(&format!("https://github.com/{}", self))
+        Url::parse(&format!("https://github.com/{self}"))
             .expect("constructor ensures valid path components")
     }
 
