@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error};
+use anyhow::{Error, anyhow};
 use shuttle_runtime::SecretStore;
 
 #[derive(Clone)]

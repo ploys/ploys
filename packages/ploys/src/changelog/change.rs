@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
-use markdown::mdast::Node;
 use markdown::ParseOptions;
+use markdown::mdast::Node;
 
 use super::Text;
 

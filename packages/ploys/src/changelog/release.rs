@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
-use markdown::mdast::Node;
 use markdown::ParseOptions;
+use markdown::mdast::Node;
 
 use super::{Changeset, ChangesetRef, MultilineText, ReferenceRef};
 
@@ -276,12 +276,12 @@ impl<'a> ReleaseRef<'a> {
     }
 
     /// Gets an iterator over the changesets.
-    pub fn changesets(&self) -> impl Iterator<Item = ChangesetRef<'a>> {
+    pub fn changesets(&self) -> impl Iterator<Item = ChangesetRef<'a>> + use<'a> {
         self.get_sections().filter_map(ChangesetRef::from_nodes)
     }
 
     /// Gets an iterator over the references.
-    pub fn references(&self) -> impl Iterator<Item = ReferenceRef<'a>> {
+    pub fn references(&self) -> impl Iterator<Item = ReferenceRef<'a>> + use<'a> {
         self.nodes
             .chunk_by(|node, _| matches!(node, Node::Definition(_)))
             .last()
@@ -342,7 +342,7 @@ impl<'a> ReleaseRef<'a> {
     }
 
     /// Gets the sections separated by a third-level heading.
-    fn get_sections(&self) -> impl Iterator<Item = &'a [Node]> {
+    fn get_sections(&self) -> impl Iterator<Item = &'a [Node]> + use<'a> {
         self.nodes
             .chunk_by(|_, node| !matches!(node, Node::Heading(heading) if heading.depth == 3))
     }

@@ -1,6 +1,6 @@
+use reqwest::Method;
 use reqwest::blocking::{Client, RequestBuilder};
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
-use reqwest::Method;
 
 use super::{Error, GitHubRepoSpec};
 

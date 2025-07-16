@@ -1,6 +1,6 @@
 use either::Either;
 use semver::Version;
-use toml_edit::{value, Array, ArrayOfTables, Entry, Formatted, Item, Table, TableLike, Value};
+use toml_edit::{Array, ArrayOfTables, Entry, Formatted, Item, Table, TableLike, Value, value};
 
 use crate::package::manifest::CargoManifest;
 

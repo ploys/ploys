@@ -9,8 +9,8 @@ use std::convert::Infallible;
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
-use markdown::mdast::{Node, Root};
 use markdown::ParseOptions;
+use markdown::mdast::{Node, Root};
 
 pub use self::change::{Change, ChangeRef};
 pub use self::changeset::{Changeset, ChangesetRef};

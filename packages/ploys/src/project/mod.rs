@@ -342,9 +342,9 @@ mod fs {
     use std::io::{Error as IoError, ErrorKind};
     use std::path::PathBuf;
 
+    use crate::repository::Repository;
     use crate::repository::fs::FileSystem;
     use crate::repository::memory::Memory;
-    use crate::repository::Repository;
 
     use super::{Error, Project};
 
@@ -590,11 +590,11 @@ mod tests {
     use semver::Version;
 
     use crate::changelog::Changelog;
+    use crate::package::Package;
     use crate::package::lockfile::CargoLockfile;
     use crate::package::manifest::CargoManifest;
-    use crate::package::Package;
-    use crate::repository::memory::Memory;
     use crate::repository::RepoSpec;
+    use crate::repository::memory::Memory;
 
     use super::Project;
 

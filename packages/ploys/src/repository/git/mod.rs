@@ -9,16 +9,16 @@ use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use gix::ThreadSafeRepository;
 use gix::config::File;
 use gix::create::{Kind, Options};
 use gix::traverse::tree::Recorder;
-use gix::ThreadSafeRepository;
 
 pub use self::error::Error;
 
+use super::Repository;
 use super::cache::Cache;
 use super::revision::Revision;
-use super::Repository;
 
 /// The local Git repository.
 #[derive(Clone)]

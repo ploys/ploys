@@ -1,5 +1,5 @@
 use semver::Version;
-use toml_edit::{value, Array, Entry, Item, TableLike, Value};
+use toml_edit::{Array, Entry, Item, TableLike, Value, value};
 use url::Url;
 
 /// The package table.
@@ -37,7 +37,7 @@ impl<'a> Package<'a> {
     }
 
     /// Gets the package authors.
-    pub fn authors(&self) -> Option<impl IntoIterator<Item = &'a str>> {
+    pub fn authors(&self) -> Option<impl IntoIterator<Item = &'a str> + use<'a>> {
         Some(
             self.0
                 .get("authors")?

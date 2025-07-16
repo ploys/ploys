@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
-use markdown::mdast::Node;
 use markdown::ParseOptions;
+use markdown::mdast::Node;
 
 use super::{Change, ChangeRef, MultilineText};
 
@@ -197,7 +197,7 @@ impl<'a> ChangesetRef<'a> {
     }
 
     /// Gets an iterator over the changes.
-    pub fn changes(&self) -> impl Iterator<Item = ChangeRef<'a>> {
+    pub fn changes(&self) -> impl Iterator<Item = ChangeRef<'a>> + use<'a> {
         self.nodes
             .iter()
             .filter_map(|node| match node {

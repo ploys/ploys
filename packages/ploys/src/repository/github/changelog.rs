@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
+use time::format_description::well_known::Iso8601;
 
 use crate::changelog::{Change, Changeset, Release};
 

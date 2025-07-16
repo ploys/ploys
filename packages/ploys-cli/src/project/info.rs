@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use clap::Args;
 use console::style;
 use ploys::project::Project;
