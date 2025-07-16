@@ -9,7 +9,7 @@ mod project;
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
-use toml_edit::{value, DocumentMut, Item, Table};
+use toml_edit::{DocumentMut, Item, Table, value};
 
 use crate::repository::RepoSpec;
 

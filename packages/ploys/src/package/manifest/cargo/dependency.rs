@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use either::Either;
 use semver::Version;
-use toml_edit::{value, Entry, InlineTable, Item, KeyMut, Table, TableLike, Value};
+use toml_edit::{Entry, InlineTable, Item, KeyMut, Table, TableLike, Value, value};
 
 /// A *Cargo* package dependency.
 pub struct Dependency {

@@ -1,14 +1,14 @@
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Context, Error};
+use anyhow::{Context, Error, bail};
 use clap::{Args, ValueEnum};
 use dialoguer::{Input, Select};
 use ploys::changelog::Changelog;
 use ploys::package::Package;
 use ploys::project::Project;
-use ploys::repository::git::Git;
 use ploys::repository::RepoSpec;
+use ploys::repository::git::Git;
 use strum::{Display, VariantArray};
 
 /// Initializes a new project.

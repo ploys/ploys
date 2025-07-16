@@ -6,7 +6,7 @@ authors = ["Daniel Balcomb <daniel.balcomb@gmail.com>"]
 homepage = "https://ploys.dev"
 repository = "https://github.com/ploys/ploys"
 license = "MIT OR Apache-2.0"
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]

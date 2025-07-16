@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use anyhow::{bail, Context, Error};
+use anyhow::{Context, Error, bail};
 use clap::Args;
 use ploys::package::BumpOrVersion;
 use ploys::project::Project;

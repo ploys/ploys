@@ -5,15 +5,15 @@ use axum::extract::rejection::{BytesRejection, ExtensionRejection};
 use axum::extract::{FromRequest, Request};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::{async_trait, Extension, RequestExt};
+use axum::{Extension, RequestExt, async_trait};
+use axum_extra::TypedHeader;
 use axum_extra::headers::ContentType;
 use axum_extra::typed_header::TypedHeaderRejection;
-use axum_extra::TypedHeader;
 use hmac::{Hmac, Mac};
 use mime::Mime;
 use serde::Deserialize;
-use serde_json::error::Category;
 use serde_json::Value;
+use serde_json::error::Category;
 use sha2::Sha256;
 
 use super::header::{XGitHubEvent, XHubSignature256};

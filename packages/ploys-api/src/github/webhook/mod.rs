@@ -11,7 +11,7 @@ use ploys::project::Project;
 use ploys::repository::revision::Revision;
 use semver::Version;
 use serde::Deserialize;
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{DisplayFromStr, serde_as};
 use tracing::{debug, error, instrument};
 
 use crate::state::AppState;
@@ -180,7 +180,7 @@ mod tests {
     use axum::routing::post;
     use axum::{Extension, Router};
     use hmac::{Hmac, Mac};
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
     use sha2::Sha256;
     use tower_service::Service;
 

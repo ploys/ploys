@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use globset::{Glob, GlobSetBuilder};
-use toml_edit::{value, Array, DocumentMut, Item, Table};
+use toml_edit::{Array, DocumentMut, Item, Table, value};
 
 use crate::package::manifest::Members;
 
@@ -289,7 +289,7 @@ mod tests {
     use std::path::Path;
 
     use semver::Version;
-    use toml_edit::{value, DocumentMut};
+    use toml_edit::{DocumentMut, value};
 
     use crate::package::manifest::cargo::Dependency;
 

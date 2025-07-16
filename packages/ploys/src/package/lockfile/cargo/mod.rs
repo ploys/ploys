@@ -6,7 +6,7 @@ use std::fmt::{self, Display};
 use std::str::FromStr;
 
 use semver::Version;
-use toml_edit::{value, Decor, DocumentMut, Item, Key};
+use toml_edit::{Decor, DocumentMut, Item, Key, value};
 
 use crate::package::manifest::CargoManifest;
 
@@ -105,10 +105,10 @@ impl FromStr for CargoLockfile {
 #[cfg(test)]
 mod tests {
     use semver::Version;
-    use toml_edit::{value, ArrayOfTables, DocumentMut, Item, Table};
+    use toml_edit::{ArrayOfTables, DocumentMut, Item, Table, value};
 
-    use crate::package::manifest::cargo::Dependency;
     use crate::package::manifest::CargoManifest;
+    use crate::package::manifest::cargo::Dependency;
 
     use super::CargoLockfile;
 
