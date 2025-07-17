@@ -5,7 +5,7 @@ use axum::extract::rejection::{BytesRejection, ExtensionRejection};
 use axum::extract::{FromRequest, Request};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::{Extension, RequestExt, async_trait};
+use axum::{Extension, RequestExt};
 use axum_extra::TypedHeader;
 use axum_extra::headers::ContentType;
 use axum_extra::typed_header::TypedHeaderRejection;
@@ -39,7 +39,6 @@ impl Payload {
     }
 }
 
-#[async_trait]
 impl<S> FromRequest<S> for Payload
 where
     S: Send + Sync,
