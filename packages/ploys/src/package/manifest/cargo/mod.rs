@@ -382,7 +382,7 @@ mod tests {
 
         let expected = indoc::indoc! {r#"
             [workspace]
-            resolver = "2"
+            resolver = "3"
             members = ["packages/*", "examples/example"]
         "#};
 
