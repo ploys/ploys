@@ -38,7 +38,7 @@ impl CargoManifest {
 
                     table.insert("name", value(name.into()));
                     table.insert("version", value("0.0.0"));
-                    table.insert("edition", value("2021"));
+                    table.insert("edition", value("2024"));
                     table
                 }),
             );
@@ -56,7 +56,7 @@ impl CargoManifest {
                 Item::Table({
                     let mut table = Table::new();
 
-                    table.insert("resolver", value("2"));
+                    table.insert("resolver", value("3"));
                     table.insert("members", value(Array::new()));
                     table
                 }),
