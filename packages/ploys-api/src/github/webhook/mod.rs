@@ -33,16 +33,16 @@ pub async fn receive(
     match payload {
         Payload::PullRequest(payload) => match &*payload.action {
             "closed" if payload.pull_request.merged => {
-                if payload.pull_request.head.r#ref.starts_with("release/") {
-                    if let Some(sha) = &payload.pull_request.merge_commit_sha {
-                        create_release(
-                            payload.pull_request.head.r#ref[8..].to_owned(),
-                            sha.clone(),
-                            payload,
-                            &state,
-                        )
-                        .await?;
-                    }
+                if payload.pull_request.head.r#ref.starts_with("release/")
+                    && let Some(sha) = &payload.pull_request.merge_commit_sha
+                {
+                    create_release(
+                        payload.pull_request.head.r#ref[8..].to_owned(),
+                        sha.clone(),
+                        payload,
+                        &state,
+                    )
+                    .await?;
                 }
 
                 Ok(())

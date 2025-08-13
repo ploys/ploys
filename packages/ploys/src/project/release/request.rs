@@ -154,20 +154,20 @@ where
             }
         }
 
-        if self.options.update_lockfile {
-            if let Some(path) = self.package.kind().lockfile_name() {
-                let lockfile = self
-                    .project
-                    .repository
-                    .get_file(path)
-                    .ok()
-                    .flatten()
-                    .and_then(|bytes| Lockfile::from_bytes(self.package.kind(), &bytes).ok());
+        if self.options.update_lockfile
+            && let Some(path) = self.package.kind().lockfile_name()
+        {
+            let lockfile = self
+                .project
+                .repository
+                .get_file(path)
+                .ok()
+                .flatten()
+                .and_then(|bytes| Lockfile::from_bytes(self.package.kind(), &bytes).ok());
 
-                if let Some(mut lockfile) = lockfile {
-                    lockfile.set_package_version(self.package.name(), version.clone());
-                    files.push((path.to_owned(), lockfile.to_string()));
-                }
+            if let Some(mut lockfile) = lockfile {
+                lockfile.set_package_version(self.package.name(), version.clone());
+                files.push((path.to_owned(), lockfile.to_string()));
             }
         }
 
