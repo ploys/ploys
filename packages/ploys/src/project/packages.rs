@@ -44,19 +44,18 @@ where
                         .flatten()
                         .and_then(|bytes| Manifest::from_bytes(kind, &bytes).ok());
 
-                    if let Some(manifest) = manifest {
-                        if let Ok(members) = manifest.members() {
-                            if let Ok(files) = project.repository.get_index() {
-                                self.state = State::Manifest {
-                                    packages: ManifestPackages {
-                                        project,
-                                        manifest,
-                                        members,
-                                        files: Box::new(files),
-                                    },
-                                };
-                            }
-                        }
+                    if let Some(manifest) = manifest
+                        && let Ok(members) = manifest.members()
+                        && let Ok(files) = project.repository.get_index()
+                    {
+                        self.state = State::Manifest {
+                            packages: ManifestPackages {
+                                project,
+                                manifest,
+                                members,
+                                files: Box::new(files),
+                            },
+                        };
                     }
                 }
                 State::Manifest { packages } => match packages.next() {
@@ -71,14 +70,13 @@ where
                             .flatten()
                             .and_then(|bytes| Manifest::from_bytes(kind, &bytes).ok());
 
-                        if let Some(manifest) = manifest {
-                            if let Ok(members) = manifest.members() {
-                                if let Ok(files) = packages.project.repository.get_index() {
-                                    packages.manifest = manifest;
-                                    packages.members = members;
-                                    packages.files = Box::new(files);
-                                }
-                            }
+                        if let Some(manifest) = manifest
+                            && let Ok(members) = manifest.members()
+                            && let Ok(files) = packages.project.repository.get_index()
+                        {
+                            packages.manifest = manifest;
+                            packages.members = members;
+                            packages.files = Box::new(files);
                         }
                     }
                 },

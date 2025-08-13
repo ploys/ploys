@@ -53,10 +53,10 @@ impl WorkspaceMut<'_> {
                         return;
                     }
 
-                    if let Ok(glob) = Glob::new(member.trim_start_matches("./")) {
-                        if glob.compile_matcher().is_match(path.as_ref()) {
-                            return;
-                        }
+                    if let Ok(glob) = Glob::new(member.trim_start_matches("./"))
+                        && glob.compile_matcher().is_match(path.as_ref())
+                    {
+                        return;
                     }
                 }
             }

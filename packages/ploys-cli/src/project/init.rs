@@ -125,10 +125,10 @@ impl Init {
             true => {
                 let mut author = format!("The {name} Project Developers");
 
-                if let Vcs::Git = vcs {
-                    if let Some(git_author) = Git::get_author() {
-                        author = git_author;
-                    }
+                if let Vcs::Git = vcs
+                    && let Some(git_author) = Git::get_author()
+                {
+                    author = git_author;
                 };
 
                 let author = Input::<String>::new()
@@ -203,10 +203,10 @@ impl Init {
             Template::None => {}
         }
 
-        if let Vcs::Git = vcs {
-            if let Template::CargoBin | Template::CargoLib = template {
-                project.add_file(".gitignore", b"/target\n");
-            }
+        if let Vcs::Git = vcs
+            && let Template::CargoBin | Template::CargoLib = template
+        {
+            project.add_file(".gitignore", b"/target\n");
         }
 
         if !self.path.exists() {

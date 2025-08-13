@@ -55,32 +55,32 @@ impl Change {
             nodes.extend(root.children);
         }
 
-        if let Some(Node::Paragraph(paragraph)) = nodes.first_mut() {
-            if let Some((label, url)) = self.url {
-                if let Some(Node::Text(text)) = paragraph.children.last_mut() {
-                    text.value.push_str(" (");
-                } else {
-                    paragraph.children.push(Node::Text(markdown::mdast::Text {
-                        value: String::from(" ("),
-                        position: None,
-                    }));
-                }
-
-                paragraph.children.push(Node::Link(markdown::mdast::Link {
-                    children: vec![Node::Text(markdown::mdast::Text {
-                        value: label,
-                        position: None,
-                    })],
-                    position: None,
-                    url,
-                    title: None,
-                }));
-
+        if let Some(Node::Paragraph(paragraph)) = nodes.first_mut()
+            && let Some((label, url)) = self.url
+        {
+            if let Some(Node::Text(text)) = paragraph.children.last_mut() {
+                text.value.push_str(" (");
+            } else {
                 paragraph.children.push(Node::Text(markdown::mdast::Text {
-                    value: String::from(")"),
+                    value: String::from(" ("),
                     position: None,
                 }));
             }
+
+            paragraph.children.push(Node::Link(markdown::mdast::Link {
+                children: vec![Node::Text(markdown::mdast::Text {
+                    value: label,
+                    position: None,
+                })],
+                position: None,
+                url,
+                title: None,
+            }));
+
+            paragraph.children.push(Node::Text(markdown::mdast::Text {
+                value: String::from(")"),
+                position: None,
+            }));
         }
 
         nodes
