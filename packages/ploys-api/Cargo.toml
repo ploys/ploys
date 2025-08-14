@@ -32,7 +32,7 @@ tracing = "0.1.41"
 uuid = "1.11.0"
 
 [dependencies.ploys]
-version = "0.3.0"
+version = "0.4.0"
 path = "../ploys"
 features = ["github"]
 default-features = false
