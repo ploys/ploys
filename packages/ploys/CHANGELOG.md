@@ -5,6 +5,64 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-08-14
+
+### Changed
+
+- Replace `ureq` with `reqwest` as HTTP client ([#178](https://github.com/ploys/ploys/pull/178))
+- Fix missing `Project::github` repository validation ([#179](https://github.com/ploys/ploys/pull/179))
+- Add `tracing` integration ([#183](https://github.com/ploys/ploys/pull/183))
+- Set project repository config field to be optional ([#184](https://github.com/ploys/ploys/pull/184))
+- Move release and release request builders to `Project` ([#185](https://github.com/ploys/ploys/pull/185))
+- Refactor `Project` internals and helper methods ([#186](https://github.com/ploys/ploys/pull/186))
+- Add `Package` builder ([#187](https://github.com/ploys/ploys/pull/187))
+- Remove `Package` file cache ([#190](https://github.com/ploys/ploys/pull/190))
+- Store configuration in `Project` struct field ([#193](https://github.com/ploys/ploys/pull/193))
+- Disable repository cache for branch and tag revisions ([#194](https://github.com/ploys/ploys/pull/194))
+- Move `Arc` wrapper from repository to file cache ([#195](https://github.com/ploys/ploys/pull/195))
+- Remove unused `get_name` and `get_url` repository methods ([#196](https://github.com/ploys/ploys/pull/196))
+- Update `get_file_index` to return iterator of paths ([#197](https://github.com/ploys/ploys/pull/197))
+- Bypass file index cache for branch and tag revisions ([#198](https://github.com/ploys/ploys/pull/198))
+- Remove unused `get_file_contents` repository method ([#199](https://github.com/ploys/ploys/pull/199))
+- Add `Memory` repository type ([#200](https://github.com/ploys/ploys/pull/200))
+- Move file cache to repository module ([#201](https://github.com/ploys/ploys/pull/201))
+- Remove unused `GitHub` repository error variant ([#202](https://github.com/ploys/ploys/pull/202))
+- Remove `File` type and redesign file handling ([#203](https://github.com/ploys/ploys/pull/203))
+- Replace `Repository` enum with trait and generics ([#204](https://github.com/ploys/ploys/pull/204))
+- Add `GitLike` trait split from `Remote` ([#205](https://github.com/ploys/ploys/pull/205))
+- Move project `TryFrom` impls to feature modules ([#206](https://github.com/ploys/ploys/pull/206))
+- Add `FileSystem` repository type ([#207](https://github.com/ploys/ploys/pull/207))
+- Update project tests to reduce index queries ([#208](https://github.com/ploys/ploys/pull/208))
+- Add `Project::write` method ([#209](https://github.com/ploys/ploys/pull/209))
+- Add project `Config` builder methods ([#210](https://github.com/ploys/ploys/pull/210))
+- Add `Project` builder ([#211](https://github.com/ploys/ploys/pull/211))
+- Update project `Config` builder methods ([#212](https://github.com/ploys/ploys/pull/212))
+- Add support for reloading `Project` configuration ([#214](https://github.com/ploys/ploys/pull/214))
+- Add ability to upgrade `FileSystem` project to `Git` ([#215](https://github.com/ploys/ploys/pull/215))
+- Refactor `Project` method impl order ([#217](https://github.com/ploys/ploys/pull/217))
+- Fix compile error with `git` and without `fs` features ([#218](https://github.com/ploys/ploys/pull/218))
+- Add `Project` and `Package` file handling methods ([#219](https://github.com/ploys/ploys/pull/219))
+- Add `Package` and `Error` generic defaults ([#220](https://github.com/ploys/ploys/pull/220))
+- Implement `FromStr` for `CargoManifest` and `CargoLockfile` ([#221](https://github.com/ploys/ploys/pull/221))
+- Add ability to insert dependencies in `CargoManifest` ([#222](https://github.com/ploys/ploys/pull/222))
+- Add `CargoManifest` workspace constructor ([#223](https://github.com/ploys/ploys/pull/223))
+- Add `CargoLockfile` builder ([#224](https://github.com/ploys/ploys/pull/224))
+- Add ability to add `CargoManifest` workspace members ([#225](https://github.com/ploys/ploys/pull/225))
+- Fix implementation of `PartialEq` for `Changelog` ([#226](https://github.com/ploys/ploys/pull/226))
+- Add ability to add packages to projects ([#227](https://github.com/ploys/ploys/pull/227))
+- Fix invalid `CargoManifest` workspace resolver ([#230](https://github.com/ploys/ploys/pull/230))
+- Add default `version` and `edition` to `CargoManifest` ([#231](https://github.com/ploys/ploys/pull/231))
+- Add ability to configure `Package` manifest repository field ([#232](https://github.com/ploys/ploys/pull/232))
+- Bump `gix` to `0.70.0` ([#234](https://github.com/ploys/ploys/pull/234))
+- Add ability to initialize a new `Git` repository ([#235](https://github.com/ploys/ploys/pull/235))
+- Add ability to configure `Package` manifest authors ([#237](https://github.com/ploys/ploys/pull/237))
+- Add `Git::get_author` associated function ([#238](https://github.com/ploys/ploys/pull/238))
+- Fix `clippy::double_ended_iterator_last` and other lints ([#240](https://github.com/ploys/ploys/pull/240))
+- Upgrade packages to Rust 2024 edition ([#241](https://github.com/ploys/ploys/pull/241))
+- Update `CargoManifest` default edition and resolver ([#246](https://github.com/ploys/ploys/pull/246))
+- Bump `markdown` to `1.0.0` ([#247](https://github.com/ploys/ploys/pull/247))
+- Refactor collapsible `if let` chains ([#250](https://github.com/ploys/ploys/pull/250))
+
 ## [0.3.0] - 2024-12-13
 
 ### Changed
@@ -115,6 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add project commit methods ([#57](https://github.com/ploys/ploys/pull/57))
 - Add release workflow publish job ([#73](https://github.com/ploys/ploys/pull/73))
 
+[0.4.0]: https://github.com/ploys/ploys/releases/tag/0.4.0
 [0.3.0]: https://github.com/ploys/ploys/releases/tag/0.3.0
 [0.2.0]: https://github.com/ploys/ploys/releases/tag/0.2.0
 [0.1.0]: https://github.com/ploys/ploys/releases/tag/0.1.0
