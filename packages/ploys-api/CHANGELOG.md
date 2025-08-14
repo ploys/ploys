@@ -5,6 +5,16 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-08-14
+
+### Changed
+
+- Add `tracing` integration ([#183](https://github.com/ploys/ploys/pull/183))
+- Refactor unnecessary use of `map_or` ([#192](https://github.com/ploys/ploys/pull/192))
+- Upgrade packages to Rust 2024 edition ([#241](https://github.com/ploys/ploys/pull/241))
+- Bump `shuttle-runtime` to `0.56.0` and `axum` to `0.8.4` ([#242](https://github.com/ploys/ploys/pull/242))
+- Refactor collapsible `if let` chains ([#250](https://github.com/ploys/ploys/pull/250))
+
 ## [0.3.0] - 2024-12-13
 
 ### Changed
@@ -44,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `shuttle-runtime` to `0.48.0` ([#68](https://github.com/ploys/ploys/pull/68))
 - Add release workflow with deploy job ([#69](https://github.com/ploys/ploys/pull/69))
 
+[0.4.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.4.0
 [0.3.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.3.0
 [0.2.1]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.2.1
 [0.2.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.2.0
