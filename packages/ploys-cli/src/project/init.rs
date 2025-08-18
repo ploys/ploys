@@ -174,7 +174,7 @@ impl Init {
 
                 package.add_file(
                     "src/main.rs",
-                    b"fn main() {\n    println!(\"Hello, world!\");\n}\n",
+                    "fn main() {\n    println!(\"Hello, world!\");\n}\n",
                 );
                 package.add_file("CHANGELOG.md", Changelog::new().to_string().into_bytes());
                 project.add_package(package)?;
@@ -196,7 +196,7 @@ impl Init {
                     }
                 }
 
-                package.add_file("src/lib.rs", b"\n");
+                package.add_file("src/lib.rs", "\n");
                 package.add_file("CHANGELOG.md", Changelog::new().to_string().into_bytes());
                 project.add_package(package)?;
             }
@@ -206,7 +206,7 @@ impl Init {
         if let Vcs::Git = vcs
             && let Template::CargoBin | Template::CargoLib = template
         {
-            project.add_file(".gitignore", b"/target\n");
+            project.add_file(".gitignore", "/target\n");
         }
 
         if !self.path.exists() {

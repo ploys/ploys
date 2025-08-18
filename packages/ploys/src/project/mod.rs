@@ -39,10 +39,10 @@ mod error;
 mod packages;
 mod release;
 
-use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use bytes::Bytes;
 use either::Either;
 
 use crate::package::lockfile::CargoLockfile;
@@ -145,21 +145,13 @@ impl<T> Project<T> {
 
 impl Project {
     /// Adds a file to the project.
-    pub fn add_file(
-        &mut self,
-        path: impl Into<PathBuf>,
-        file: impl Into<Cow<'static, [u8]>>,
-    ) -> &mut Self {
+    pub fn add_file(&mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> &mut Self {
         self.repository.insert_file(path, file);
         self
     }
 
     /// Builds the project with the given file.
-    pub fn with_file(
-        mut self,
-        path: impl Into<PathBuf>,
-        file: impl Into<Cow<'static, [u8]>>,
-    ) -> Self {
+    pub fn with_file(mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> Self {
         self.add_file(path, file);
         self
     }
@@ -170,12 +162,9 @@ where
     T: Repository,
 {
     /// Gets a file at the given path.
-    pub fn get_file(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, [u8]>>, Error<T::Error>> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Error<T::Error>> {
         if path.as_ref() == Path::new("Ploys.toml") {
-            return Ok(Some(Cow::Owned(self.config.to_string().into_bytes())));
+            return Ok(Some(self.config.to_string().into()));
         }
 
         self.repository.get_file(path).map_err(Error::Repository)
@@ -211,7 +200,7 @@ impl Project {
                 continue;
             }
 
-            if let Some(file) = package.repository.get_file(&path)?.map(Cow::into_owned) {
+            if let Some(file) = package.repository.get_file(&path)? {
                 self.add_file(base_path.join(path), file);
             }
         }
@@ -666,7 +655,7 @@ mod tests {
 
     #[test]
     fn test_project_memory_repository() {
-        let repository = Memory::new().with_file("Ploys.toml", b"[project]\nname = \"example\"");
+        let repository = Memory::new().with_file("Ploys.toml", "[project]\nname = \"example\"");
         let mut project = Project::open(repository).unwrap();
 
         assert_eq!(project.name(), "example");
@@ -681,10 +670,10 @@ mod tests {
         assert_eq!(project.name(), "example");
         assert_eq!(project.description(), None);
 
-        project.add_file("hello-world.txt", b"Hello World!");
+        project.add_file("hello-world.txt", "Hello World!");
 
         let txt = project.get_file("hello-world.txt").unwrap();
 
-        assert_eq!(txt, Some(b"Hello World!".into()));
+        assert_eq!(txt, Some("Hello World!".into()));
     }
 }

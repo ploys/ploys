@@ -13,6 +13,7 @@ use std::collections::BTreeSet;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
+use bytes::Bytes;
 use reqwest::header::CONTENT_TYPE;
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -131,19 +132,16 @@ impl GitHub {
 impl Repository for GitHub {
     type Error = Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error> {
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Some(Cow::Owned(self.get_file_uncached(path.as_ref())?)));
+            return Ok(Some(self.get_file_uncached(path.as_ref())?));
         }
 
-        Ok(self
-            .cache
-            .get_or_try_init(
-                path,
-                |path| self.get_file_uncached(path),
-                || self.get_index_uncached(),
-            )?
-            .map(Cow::Borrowed))
+        self.cache.get_or_try_init(
+            path,
+            |path| self.get_file_uncached(path),
+            || self.get_index_uncached(),
+        )
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
@@ -185,7 +183,7 @@ impl GitHub {
         Ok(entries)
     }
 
-    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Vec<u8>, Error> {
+    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Bytes, Error> {
         let mut response = self
             .repository
             .get(
@@ -204,7 +202,7 @@ impl GitHub {
 
                     response.read_to_end(&mut contents)?;
 
-                    Ok(contents)
+                    Ok(contents.into())
                 }
                 _ => Err(io::Error::from(io::ErrorKind::NotFound))?,
             },

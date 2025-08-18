@@ -3,12 +3,14 @@ use std::collections::BTreeMap;
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 
+use bytes::Bytes;
+
 use super::Repository;
 
 /// An in-memory repository.
 #[derive(Clone)]
 pub struct Memory {
-    files: BTreeMap<PathBuf, Box<[u8]>>,
+    files: BTreeMap<PathBuf, Bytes>,
 }
 
 impl Memory {
@@ -20,21 +22,13 @@ impl Memory {
     }
 
     /// Inserts a file into the repository.
-    pub fn insert_file(
-        &mut self,
-        path: impl Into<PathBuf>,
-        file: impl Into<Cow<'static, [u8]>>,
-    ) -> &mut Self {
-        self.files.insert(path.into(), file.into().into());
+    pub fn insert_file(&mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> &mut Self {
+        self.files.insert(path.into(), file.into());
         self
     }
 
     /// Builds the repository with the given file.
-    pub fn with_file(
-        mut self,
-        path: impl Into<PathBuf>,
-        file: impl Into<Cow<'static, [u8]>>,
-    ) -> Self {
+    pub fn with_file(mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> Self {
         self.insert_file(path, file);
         self
     }
@@ -43,12 +37,8 @@ impl Memory {
 impl Repository for Memory {
     type Error = Infallible;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error> {
-        Ok(self
-            .files
-            .get(path.as_ref())
-            .map(AsRef::as_ref)
-            .map(Cow::Borrowed))
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+        Ok(self.files.get(path.as_ref()).cloned())
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {

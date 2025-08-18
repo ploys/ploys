@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use bytes::Bytes;
 use once_cell::sync::OnceCell;
 
 /// The repository cache.
@@ -26,7 +27,7 @@ use once_cell::sync::OnceCell;
 #[derive(Clone, Debug)]
 #[allow(clippy::type_complexity)]
 pub struct Cache {
-    cache: Arc<OnceCell<BTreeMap<PathBuf, OnceCell<Box<[u8]>>>>>,
+    cache: Arc<OnceCell<BTreeMap<PathBuf, OnceCell<Bytes>>>>,
 }
 
 impl Cache {
@@ -42,15 +43,15 @@ impl Cache {
         &self,
         path: impl AsRef<Path>,
         with: F,
-    ) -> Result<Option<&[u8]>, E>
+    ) -> Result<Option<Bytes>, E>
     where
-        F: FnOnce(&Path) -> Result<Vec<u8>, E>,
+        F: FnOnce(&Path) -> Result<Bytes, E>,
     {
         match self.cache.get() {
             Some(cache) => match cache.get(path.as_ref()) {
                 Some(cell) => cell
-                    .get_or_try_init(|| with(path.as_ref()).map(Into::into))
-                    .map(AsRef::as_ref)
+                    .get_or_try_init(|| with(path.as_ref()))
+                    .cloned()
                     .map(Some),
                 None => Ok(None),
             },
@@ -81,9 +82,9 @@ impl Cache {
         path: impl AsRef<Path>,
         insert: F,
         index: G,
-    ) -> Result<Option<&[u8]>, E>
+    ) -> Result<Option<Bytes>, E>
     where
-        F: FnOnce(&Path) -> Result<Vec<u8>, E>,
+        F: FnOnce(&Path) -> Result<Bytes, E>,
         G: FnOnce() -> Result<BTreeSet<PathBuf>, E>,
     {
         let _ = self.get_or_try_index(index)?;
