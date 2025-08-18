@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use bytes::Bytes;
 use gix::ThreadSafeRepository;
 use gix::config::File;
 use gix::create::{Kind, Options};
@@ -93,19 +94,16 @@ impl Git {
 impl Repository for Git {
     type Error = Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error> {
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Some(Cow::Owned(self.get_file_uncached(path.as_ref())?)));
+            return Ok(Some(self.get_file_uncached(path.as_ref())?));
         }
 
-        Ok(self
-            .cache
-            .get_or_try_init(
-                path,
-                |path| self.get_file_uncached(path),
-                || self.get_index_uncached(),
-            )?
-            .map(Cow::Borrowed))
+        self.cache.get_or_try_init(
+            path,
+            |path| self.get_file_uncached(path),
+            || self.get_index_uncached(),
+        )
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
@@ -144,7 +142,7 @@ impl Git {
         Ok(entries)
     }
 
-    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Vec<u8>, Error> {
+    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Bytes, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
         let mut tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
@@ -154,7 +152,7 @@ impl Git {
             .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
 
         if entry.mode().is_blob() {
-            Ok(entry.object()?.detached().data)
+            Ok(entry.object()?.detached().data.into())
         } else {
             Err(io::Error::from(io::ErrorKind::NotFound))?
         }

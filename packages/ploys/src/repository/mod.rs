@@ -23,6 +23,8 @@ pub mod revision;
 use std::borrow::Cow;
 use std::path::Path;
 
+use bytes::Bytes;
+
 pub use self::remote::Remote;
 pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
 pub use self::vcs::GitLike;
@@ -32,7 +34,7 @@ pub trait Repository {
     type Error;
 
     /// Gets a file at the given path.
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error>;
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error>;
 
     /// Gets the index.
     fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error>;
@@ -44,7 +46,7 @@ where
 {
     type Error = T::Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error> {
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         (*self).get_file(path)
     }
 

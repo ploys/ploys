@@ -5,11 +5,11 @@ use tempfile::tempdir;
 #[test]
 fn test_project_write() -> Result<(), Box<dyn std::error::Error>> {
     let memory = Memory::new()
-        .with_file("Ploys.toml", b"[project]\nname = \"example\"")
-        .with_file("Cargo.toml", b"[workspace]\nmembers = [\"packages/*\"]")
+        .with_file("Ploys.toml", "[project]\nname = \"example\"")
+        .with_file("Cargo.toml", "[workspace]\nmembers = [\"packages/*\"]")
         .with_file(
             "packages/example/Cargo.toml",
-            b"[package]\nname = \"example\"",
+            "[package]\nname = \"example\"",
         );
 
     let dir = tempdir()?;

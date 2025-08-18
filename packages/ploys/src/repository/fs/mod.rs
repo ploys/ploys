@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 
+use bytes::Bytes;
 use walkdir::WalkDir;
 
 use super::Repository;
@@ -34,9 +35,9 @@ impl FileSystem {
 impl Repository for FileSystem {
     type Error = Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Cow<'_, [u8]>>, Self::Error> {
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         match std::fs::read(self.path.join(path.as_ref())) {
-            Ok(bytes) => Ok(Some(Cow::Owned(bytes))),
+            Ok(bytes) => Ok(Some(bytes.into())),
             Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
             Err(err) => Err(err),
         }

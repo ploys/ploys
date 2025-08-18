@@ -9,10 +9,11 @@ mod kind;
 pub mod lockfile;
 pub mod manifest;
 
-use std::borrow::{Borrow, Cow};
+use std::borrow::Borrow;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use bytes::Bytes;
 use either::Either;
 use semver::Version;
 use tracing::info;
@@ -221,21 +222,13 @@ where
 
 impl Package {
     /// Adds a file to the package.
-    pub fn add_file(
-        &mut self,
-        path: impl AsRef<Path>,
-        file: impl Into<Cow<'static, [u8]>>,
-    ) -> &mut Self {
+    pub fn add_file(&mut self, path: impl AsRef<Path>, file: impl Into<Bytes>) -> &mut Self {
         self.repository.insert_file(self.path.join(path), file);
         self
     }
 
     /// Builds the package with the given file.
-    pub fn with_file(
-        mut self,
-        path: impl AsRef<Path>,
-        file: impl Into<Cow<'static, [u8]>>,
-    ) -> Self {
+    pub fn with_file(mut self, path: impl AsRef<Path>, file: impl Into<Bytes>) -> Self {
         self.add_file(path, file);
         self
     }
@@ -246,14 +239,11 @@ where
     T: Repository,
 {
     /// Gets a file at the given path.
-    pub fn get_file(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<Option<Cow<'_, [u8]>>, Error<T::Error>> {
+    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Error<T::Error>> {
         let path = self.path.join(path);
 
         if path == self.manifest_path() {
-            return Ok(Some(Cow::Owned(self.manifest.to_string().into_bytes())));
+            return Ok(Some(self.manifest.to_string().into()));
         }
 
         self.repository.get_file(path).map_err(Error::Repository)
@@ -436,10 +426,10 @@ mod tests {
         assert_eq!(package.version().to_string(), "0.1.0");
         assert_eq!(package.changelog(), None);
 
-        package.add_file("hello-world.txt", b"Hello World!");
+        package.add_file("hello-world.txt", "Hello World!");
 
         let txt = package.get_file("hello-world.txt").unwrap();
 
-        assert_eq!(txt, Some(b"Hello World!".into()));
+        assert_eq!(txt, Some("Hello World!".into()));
     }
 }
