@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 
@@ -43,7 +42,7 @@ impl Repository for FileSystem {
         }
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
         let index = WalkDir::new(&self.path)
             .into_iter()
             .filter_entry(|entry| {
@@ -53,13 +52,11 @@ impl Repository for FileSystem {
             .flat_map(|res| match res {
                 Ok(entry) => match entry.file_type().is_dir() {
                     true => None,
-                    false => Some(Ok(Cow::Owned(
-                        entry
-                            .path()
-                            .strip_prefix(&self.path)
-                            .expect("prefixed")
-                            .to_owned(),
-                    ))),
+                    false => Some(Ok(entry
+                        .path()
+                        .strip_prefix(&self.path)
+                        .expect("prefixed")
+                        .to_owned())),
                 },
                 Err(err) => Some(Err(err)),
             })

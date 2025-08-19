@@ -8,7 +8,6 @@ mod error;
 mod repo;
 mod spec;
 
-use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -144,18 +143,14 @@ impl Repository for GitHub {
         )
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(
-                Box::new(self.get_index_uncached()?.into_iter().map(Cow::Owned))
-                    as Box<dyn Iterator<Item = Cow<'_, Path>>>,
-            );
+            return Ok(Box::new(self.get_index_uncached()?.into_iter())
+                as Box<dyn Iterator<Item = PathBuf>>);
         }
 
         Ok(Box::new(
-            self.cache
-                .get_or_try_index(|| self.get_index_uncached())?
-                .map(Cow::Borrowed),
+            self.cache.get_or_try_index(|| self.get_index_uncached())?,
         ))
     }
 }

@@ -1,6 +1,5 @@
-use std::borrow::Cow;
 use std::iter::FusedIterator;
-use std::path::Path;
+use std::path::PathBuf;
 
 use strum::IntoEnumIterator;
 
@@ -98,7 +97,7 @@ struct ManifestPackages<'a, T> {
     project: &'a Project<T>,
     manifest: Manifest,
     members: Members,
-    files: Box<dyn Iterator<Item = Cow<'a, Path>> + 'a>,
+    files: Box<dyn Iterator<Item = PathBuf> + 'a>,
 }
 
 impl<'a, T> Iterator for ManifestPackages<'a, T>

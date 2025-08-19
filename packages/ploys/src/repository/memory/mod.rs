@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
@@ -41,8 +40,8 @@ impl Repository for Memory {
         Ok(self.files.get(path.as_ref()).cloned())
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
-        Ok(self.files.keys().map(|path| Cow::Borrowed(path.as_path())))
+    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
+        Ok(self.files.keys().map(Clone::clone))
     }
 }
 

@@ -20,8 +20,7 @@ pub mod github;
 pub mod memory;
 pub mod revision;
 
-use std::borrow::Cow;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 
@@ -37,7 +36,7 @@ pub trait Repository {
     fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error>;
 
     /// Gets the index.
-    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error>;
+    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error>;
 }
 
 impl<T> Repository for &T
@@ -50,7 +49,7 @@ where
         (*self).get_file(path)
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, Path>>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
         (*self).get_index()
     }
 }

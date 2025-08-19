@@ -60,7 +60,7 @@ impl Cache {
     }
 
     /// Gets or inserts the index.
-    pub fn get_or_try_index<E, F>(&self, with: F) -> Result<impl Iterator<Item = &Path>, E>
+    pub fn get_or_try_index<E, F>(&self, with: F) -> Result<impl Iterator<Item = PathBuf>, E>
     where
         F: FnOnce() -> Result<BTreeSet<PathBuf>, E>,
     {
@@ -73,7 +73,7 @@ impl Cache {
                         .collect()
                 })
             })
-            .map(|index| index.keys().map(PathBuf::as_path))
+            .map(|index| index.keys().map(Clone::clone))
     }
 
     /// Gets or inserts the index and file with the given path.
