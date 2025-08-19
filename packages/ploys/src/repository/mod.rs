@@ -29,7 +29,7 @@ pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
 pub use self::vcs::GitLike;
 
 /// Defines a file repository.
-pub trait Repository {
+pub trait Repository: Clone {
     type Error;
 
     /// Gets a file at the given path.

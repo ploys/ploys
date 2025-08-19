@@ -35,12 +35,12 @@ impl Release {
 /// The package release builder.
 pub struct ReleaseBuilder<'a, T> {
     project: &'a Project<T>,
-    package: Package<&'a T>,
+    package: Package<T>,
 }
 
 impl<'a, T> ReleaseBuilder<'a, T> {
     /// Constructs a new release builder.
-    pub(crate) fn new(project: &'a Project<T>, package: Package<&'a T>) -> Self {
+    pub(crate) fn new(project: &'a Project<T>, package: Package<T>) -> Self {
         Self { project, package }
     }
 }

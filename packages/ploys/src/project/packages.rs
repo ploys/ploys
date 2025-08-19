@@ -29,7 +29,7 @@ impl<'a, T> Iterator for Packages<'a, T>
 where
     T: Repository,
 {
-    type Item = Package<&'a T>;
+    type Item = Package<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -104,7 +104,7 @@ impl<'a, T> Iterator for ManifestPackages<'a, T>
 where
     T: Repository,
 {
-    type Item = Package<&'a T>;
+    type Item = Package<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

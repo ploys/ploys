@@ -43,7 +43,7 @@ impl ReleaseRequest {
 /// repository.
 pub struct ReleaseRequestBuilder<'a, T> {
     project: &'a Project<T>,
-    package: Package<&'a T>,
+    package: Package<T>,
     version: BumpOrVersion,
     options: Options,
 }
@@ -52,7 +52,7 @@ impl<'a, T> ReleaseRequestBuilder<'a, T> {
     /// Constructs a new release request builder.
     pub(crate) fn new(
         project: &'a Project<T>,
-        package: Package<&'a T>,
+        package: Package<T>,
         version: BumpOrVersion,
     ) -> Self {
         Self {
