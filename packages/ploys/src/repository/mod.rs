@@ -38,18 +38,3 @@ pub trait Repository: Clone {
     /// Gets the index.
     fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error>;
 }
-
-impl<T> Repository for &T
-where
-    T: Repository,
-{
-    type Error = T::Error;
-
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
-        (*self).get_file(path)
-    }
-
-    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
-        (*self).get_index()
-    }
-}
