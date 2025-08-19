@@ -256,7 +256,7 @@ where
     T: Repository,
 {
     /// Gets a package with the given name.
-    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<&'_ T>> {
+    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<T>> {
         self.packages()
             .find(|package| package.name() == name.as_ref())
     }
