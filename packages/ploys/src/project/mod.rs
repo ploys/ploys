@@ -146,7 +146,7 @@ impl<T> Project<T> {
 impl Project {
     /// Adds a file to the project.
     pub fn add_file(&mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> &mut Self {
-        self.repository.insert_file(path, file);
+        self.repository.add_file(path, file);
         self
     }
 

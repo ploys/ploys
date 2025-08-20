@@ -6,7 +6,7 @@ use std::sync::Arc;
 use bytes::Bytes;
 use parking_lot::Mutex;
 
-use super::Repository;
+use super::{Repository, Stage};
 
 /// An in-memory repository.
 #[derive(Clone)]
@@ -22,15 +22,15 @@ impl Memory {
         }
     }
 
-    /// Inserts a file into the repository.
-    pub fn insert_file(&mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> &mut Self {
+    /// Adds the given file to the index.
+    pub fn add_file(&mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> &mut Self {
         self.files.lock().insert(path.into(), file.into());
         self
     }
 
-    /// Builds the repository with the given file.
+    /// Builds the repository with the given file in the index.
     pub fn with_file(mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> Self {
-        self.insert_file(path, file);
+        self.add_file(path, file);
         self
     }
 }
@@ -51,6 +51,18 @@ impl Repository for Memory {
             .collect::<Vec<_>>()
             .into_boxed_slice()
             .into_iter())
+    }
+}
+
+impl Stage for Memory {
+    fn add_file(
+        &mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<&mut Self, Self::Error> {
+        self.add_file(path, file);
+
+        Ok(self)
     }
 }
 
