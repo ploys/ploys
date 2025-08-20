@@ -223,7 +223,7 @@ where
 impl Package {
     /// Adds a file to the package.
     pub fn add_file(&mut self, path: impl AsRef<Path>, file: impl Into<Bytes>) -> &mut Self {
-        self.repository.insert_file(self.path.join(path), file);
+        self.repository.add_file(self.path.join(path), file);
         self
     }
 

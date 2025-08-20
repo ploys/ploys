@@ -38,3 +38,27 @@ pub trait Repository: Clone {
     /// Gets the index.
     fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error>;
 }
+
+/// Defines the ability to stage files in a repository.
+pub trait Stage: Repository {
+    /// Adds the given file to the index.
+    fn add_file(
+        &mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<&mut Self, Self::Error>;
+
+    /// Builds the repository with the given file in the index.
+    fn with_file(
+        mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        self.add_file(path, file)?;
+
+        Ok(self)
+    }
+}
