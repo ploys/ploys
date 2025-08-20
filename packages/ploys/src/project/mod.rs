@@ -48,7 +48,7 @@ use either::Either;
 use crate::package::lockfile::CargoLockfile;
 use crate::package::manifest::CargoManifest;
 use crate::package::{BumpOrVersion, Package, PackageKind};
-use crate::repository::memory::Memory;
+use crate::repository::staging::Staging;
 use crate::repository::{Remote, RepoSpec, Repository};
 
 pub use self::config::Config;
@@ -67,7 +67,7 @@ pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 /// description = "{project-description}"
 /// repository = "https://github.com/{project-owner}/{project-name}"
 /// ```
-pub struct Project<T = Memory> {
+pub struct Project<T = Staging> {
     pub(crate) repository: T,
     config: Config,
 }
@@ -78,7 +78,7 @@ impl Project {
         let config = Config::new(name);
 
         Self {
-            repository: Memory::new().with_file("Ploys.toml", config.to_string().into_bytes()),
+            repository: Staging::new().with_file("Ploys.toml", config.to_string().into_bytes()),
             config,
         }
     }
@@ -333,7 +333,7 @@ mod fs {
 
     use crate::repository::Repository;
     use crate::repository::fs::FileSystem;
-    use crate::repository::memory::Memory;
+    use crate::repository::staging::Staging;
 
     use super::{Error, Project};
 
@@ -354,11 +354,11 @@ mod fs {
         }
     }
 
-    impl Project<Memory> {
+    impl Project<Staging> {
         /// Writes the project to the file system.
         ///
         /// This method upgrades the project to use a [`FileSystem`] repository
-        /// by writing the contents of the [`Memory`] repository to the file
+        /// by writing the contents of the [`Staging`] repository to the file
         /// system. This includes the current project configuration stored in
         /// the project and not the original configuration from the repository.
         pub fn write<P>(self, path: P, force: bool) -> Result<Project<FileSystem>, Error<IoError>>
@@ -583,7 +583,7 @@ mod tests {
     use crate::package::lockfile::CargoLockfile;
     use crate::package::manifest::CargoManifest;
     use crate::repository::RepoSpec;
-    use crate::repository::memory::Memory;
+    use crate::repository::staging::Staging;
 
     use super::Project;
 
@@ -654,8 +654,8 @@ mod tests {
     }
 
     #[test]
-    fn test_project_memory_repository() {
-        let repository = Memory::new().with_file("Ploys.toml", "[project]\nname = \"example\"");
+    fn test_project_staging_repository() {
+        let repository = Staging::new().with_file("Ploys.toml", "[project]\nname = \"example\"");
         let mut project = Project::open(repository).unwrap();
 
         assert_eq!(project.name(), "example");

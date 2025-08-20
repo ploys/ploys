@@ -17,8 +17,8 @@ pub mod git;
 #[cfg(feature = "github")]
 pub mod github;
 
-pub mod memory;
 pub mod revision;
+pub mod staging;
 
 use std::path::{Path, PathBuf};
 
