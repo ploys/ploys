@@ -8,14 +8,14 @@ use parking_lot::Mutex;
 
 use super::{Repository, Stage};
 
-/// An in-memory repository.
+/// A staging repository.
 #[derive(Clone)]
-pub struct Memory {
+pub struct Staging {
     files: Arc<Mutex<BTreeMap<PathBuf, Bytes>>>,
 }
 
-impl Memory {
-    /// Creates a new in-memory repository.
+impl Staging {
+    /// Creates a new staging repository.
     pub fn new() -> Self {
         Self {
             files: Arc::new(Mutex::new(BTreeMap::new())),
@@ -35,7 +35,7 @@ impl Memory {
     }
 }
 
-impl Repository for Memory {
+impl Repository for Staging {
     type Error = Infallible;
 
     fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
@@ -54,7 +54,7 @@ impl Repository for Memory {
     }
 }
 
-impl Stage for Memory {
+impl Stage for Staging {
     fn add_file(
         &mut self,
         path: impl Into<PathBuf>,
@@ -66,7 +66,7 @@ impl Stage for Memory {
     }
 }
 
-impl Default for Memory {
+impl Default for Staging {
     fn default() -> Self {
         Self::new()
     }

@@ -21,7 +21,7 @@ use url::Url;
 
 use crate::changelog::Changelog;
 use crate::project::Project;
-use crate::repository::memory::Memory;
+use crate::repository::staging::Staging;
 use crate::repository::{Remote, Repository};
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
@@ -33,7 +33,7 @@ use self::manifest::{Dependencies, DependenciesMut, DependencyMut, DependencyRef
 
 /// A project package.
 #[derive(Clone)]
-pub struct Package<T = Memory> {
+pub struct Package<T = Staging> {
     pub(crate) repository: T,
     manifest: Manifest,
     path: PathBuf,
@@ -44,7 +44,7 @@ impl Package {
     /// Constructs a new cargo package.
     pub fn new_cargo(name: impl Into<String>) -> Self {
         Self {
-            repository: Memory::new(),
+            repository: Staging::new(),
             manifest: Manifest::new_cargo(name),
             path: PathBuf::new(),
             primary: false,
