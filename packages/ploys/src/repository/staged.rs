@@ -9,7 +9,7 @@ use super::{Repository, Stage};
 /// A repository adapter for staging changes.
 #[derive(Clone)]
 pub struct Staged<T> {
-    inner: T,
+    pub(crate) inner: T,
     files: BTreeMap<PathBuf, Option<Bytes>>,
 }
 
@@ -19,6 +19,14 @@ impl<T> Staged<T> {
         Self {
             inner: repo,
             files: BTreeMap::new(),
+        }
+    }
+
+    /// Builds the adapter with the given repository.
+    pub fn with_repository<U>(self, repo: U) -> Staged<U> {
+        Staged {
+            inner: repo,
+            files: self.files,
         }
     }
 }
