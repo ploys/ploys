@@ -40,10 +40,11 @@ where
     fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
         Ok(self
             .files
-            .iter()
-            .filter_map(|(key, val)| val.as_ref().map(|_| key.clone()))
+            .keys()
+            .cloned()
             .merge(self.inner.get_index()?)
-            .unique())
+            .unique()
+            .filter(|path| self.files.get(path).is_none_or(Option::is_some)))
     }
 }
 
@@ -68,6 +69,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::repository::staging::Staging;
     use crate::repository::{Repository, Stage};
 
@@ -82,12 +85,24 @@ mod tests {
         assert_eq!(outer.get_file("b"), Ok(Some("B".into())));
         assert_eq!(outer.get_file("c"), Ok(None));
 
+        let index = outer.get_index().unwrap().collect::<Vec<_>>();
+
+        assert_eq!(index.len(), 2);
+        assert!(index.contains(&PathBuf::from("a")));
+        assert!(index.contains(&PathBuf::from("b")));
+
         outer.add_file("c", "C").unwrap();
         outer.remove_file("a").unwrap();
 
         assert_eq!(outer.get_file("a"), Ok(None));
         assert_eq!(outer.get_file("b"), Ok(Some("B".into())));
         assert_eq!(outer.get_file("c"), Ok(Some("C".into())));
+
+        let index = outer.get_index().unwrap().collect::<Vec<_>>();
+
+        assert_eq!(index.len(), 2);
+        assert!(index.contains(&PathBuf::from("b")));
+        assert!(index.contains(&PathBuf::from("c")));
 
         assert_eq!(outer.inner.get_file("a"), Ok(Some("A".into())));
         assert_eq!(outer.inner.get_file("b"), Ok(Some("B".into())));
