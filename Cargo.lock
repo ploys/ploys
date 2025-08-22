@@ -2577,7 +2577,6 @@ dependencies = [
  "indoc",
  "markdown",
  "once_cell",
- "parking_lot",
  "pretty_assertions",
  "reqwest",
  "semver",
