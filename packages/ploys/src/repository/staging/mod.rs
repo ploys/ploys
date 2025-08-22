@@ -55,6 +55,10 @@ impl Stage for Staging {
 
         Ok(self)
     }
+
+    fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+        Ok(self.files.remove(path.as_ref()))
+    }
 }
 
 impl Default for Staging {

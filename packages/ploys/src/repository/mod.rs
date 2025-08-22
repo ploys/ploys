@@ -61,4 +61,7 @@ pub trait Stage: Repository {
 
         Ok(self)
     }
+
+    /// Removes a file from the index.
+    fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error>;
 }
