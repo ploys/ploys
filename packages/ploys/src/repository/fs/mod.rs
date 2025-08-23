@@ -4,34 +4,67 @@ use std::path::{Path, PathBuf};
 use bytes::Bytes;
 use walkdir::WalkDir;
 
-use super::Repository;
+use super::{Repository, Stage, Staged};
 
 /// A file system repository.
 #[derive(Clone)]
 pub struct FileSystem {
-    path: PathBuf,
+    inner: Staged<Inner>,
 }
 
 impl FileSystem {
     /// Opens a file system repository.
     pub fn open(path: impl Into<PathBuf>) -> Self {
-        Self { path: path.into() }
+        Self {
+            inner: Staged::new(Inner { path: path.into() }),
+        }
     }
 
     /// Opens a file system repository in the current directory.
     pub fn current_dir() -> Result<Self, Error> {
-        Ok(Self {
-            path: std::env::current_dir()?,
-        })
+        Ok(Self::open(std::env::current_dir()?))
     }
 
     /// Gets the file system path.
     pub fn path(&self) -> &Path {
-        &self.path
+        &self.inner.inner.path
     }
 }
 
 impl Repository for FileSystem {
+    type Error = Error;
+
+    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+        self.inner.get_file(path)
+    }
+
+    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
+        self.inner.get_index()
+    }
+}
+
+impl Stage for FileSystem {
+    fn add_file(
+        &mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<&mut Self, Self::Error> {
+        self.inner.add_file(path, file)?;
+
+        Ok(self)
+    }
+
+    fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+        self.inner.remove_file(path)
+    }
+}
+
+#[derive(Clone)]
+struct Inner {
+    path: PathBuf,
+}
+
+impl Repository for Inner {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
