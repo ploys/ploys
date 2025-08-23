@@ -145,17 +145,32 @@ impl<T> Project<T> {
     }
 }
 
-impl Project {
+impl<T> Project<T>
+where
+    T: Stage,
+{
     /// Adds a file to the project.
-    pub fn add_file(&mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> &mut Self {
-        self.repository.add_file(path, file).ok();
-        self
+    pub fn add_file(
+        &mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<&mut Self, Error<T::Error>> {
+        self.repository
+            .add_file(path, file)
+            .map_err(Error::Repository)?;
+
+        Ok(self)
     }
 
     /// Builds the project with the given file.
-    pub fn with_file(mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> Self {
-        self.add_file(path, file);
-        self
+    pub fn with_file(
+        mut self,
+        path: impl Into<PathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<Self, Error<T::Error>> {
+        self.add_file(path, file)?;
+
+        Ok(self)
     }
 }
 
@@ -191,9 +206,15 @@ where
     }
 }
 
-impl Project {
+impl<T> Project<T>
+where
+    T: Stage,
+{
     /// Adds the given package to the project.
-    pub fn add_package(&mut self, package: impl Into<Package>) -> Result<&mut Self, Error> {
+    pub fn add_package(
+        &mut self,
+        package: impl Into<Package>,
+    ) -> Result<&mut Self, Error<T::Error>> {
         let package = package.into();
         let base_path = Path::new("packages").join(package.name());
 
@@ -203,14 +224,14 @@ impl Project {
             }
 
             if let Some(file) = package.repository.get_file(&path)? {
-                self.add_file(base_path.join(path), file);
+                self.add_file(base_path.join(path), file)?;
             }
         }
 
         self.add_file(
             base_path.join(package.manifest_path()),
             package.manifest().to_string().into_bytes(),
-        );
+        )?;
 
         match package.kind() {
             PackageKind::Cargo => {
@@ -237,8 +258,8 @@ impl Project {
 
                 lockfile.add_package(package.manifest().try_as_cargo_ref().expect("cargo"));
 
-                self.add_file("Cargo.toml", manifest.to_string().into_bytes());
-                self.add_file("Cargo.lock", lockfile.to_string().into_bytes());
+                self.add_file("Cargo.toml", manifest.to_string().into_bytes())?;
+                self.add_file("Cargo.lock", lockfile.to_string().into_bytes())?;
             }
         }
 
@@ -246,7 +267,7 @@ impl Project {
     }
 
     /// Builds the project with the given package.
-    pub fn with_package(mut self, package: impl Into<Package>) -> Result<Self, Error> {
+    pub fn with_package(mut self, package: impl Into<Package>) -> Result<Self, Error<T::Error>> {
         self.add_package(package)?;
 
         Ok(self)
@@ -617,7 +638,8 @@ mod tests {
         let package_a = Package::new_cargo("example-one");
         let package_b = Package::new_cargo("example-two")
             .with_version(Version::new(0, 1, 0))
-            .with_file("CHANGELOG.md", Changelog::new().to_string().into_bytes());
+            .with_file("CHANGELOG.md", Changelog::new().to_string().into_bytes())
+            .unwrap();
 
         project.add_package(package_a).unwrap();
         project.add_package(package_b).unwrap();
@@ -678,7 +700,7 @@ mod tests {
         assert_eq!(project.name(), "example");
         assert_eq!(project.description(), None);
 
-        project.add_file("hello-world.txt", "Hello World!");
+        project.add_file("hello-world.txt", "Hello World!").unwrap();
 
         let txt = project.get_file("hello-world.txt").unwrap();
 

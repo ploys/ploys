@@ -220,17 +220,32 @@ where
     }
 }
 
-impl Package {
+impl<T> Package<T>
+where
+    T: Stage,
+{
     /// Adds a file to the package.
-    pub fn add_file(&mut self, path: impl AsRef<Path>, file: impl Into<Bytes>) -> &mut Self {
-        self.repository.add_file(self.path.join(path), file).ok();
-        self
+    pub fn add_file(
+        &mut self,
+        path: impl AsRef<Path>,
+        file: impl Into<Bytes>,
+    ) -> Result<&mut Self, Error<T::Error>> {
+        self.repository
+            .add_file(self.path.join(path), file)
+            .map_err(Error::Repository)?;
+
+        Ok(self)
     }
 
     /// Builds the package with the given file.
-    pub fn with_file(mut self, path: impl AsRef<Path>, file: impl Into<Bytes>) -> Self {
-        self.add_file(path, file);
-        self
+    pub fn with_file(
+        mut self,
+        path: impl AsRef<Path>,
+        file: impl Into<Bytes>,
+    ) -> Result<Self, Error<T::Error>> {
+        self.add_file(path, file)?;
+
+        Ok(self)
     }
 }
 
@@ -433,7 +448,7 @@ mod tests {
         assert_eq!(package.version().to_string(), "0.1.0");
         assert_eq!(package.changelog(), None);
 
-        package.add_file("hello-world.txt", "Hello World!");
+        package.add_file("hello-world.txt", "Hello World!").unwrap();
 
         let txt = package.get_file("hello-world.txt").unwrap();
 
