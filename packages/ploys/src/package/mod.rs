@@ -22,7 +22,7 @@ use url::Url;
 use crate::changelog::Changelog;
 use crate::project::Project;
 use crate::repository::staging::Staging;
-use crate::repository::{Remote, Repository, Stage, Staged};
+use crate::repository::{Remote, Repository, Stage};
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 pub use self::error::Error;
@@ -34,7 +34,7 @@ use self::manifest::{Dependencies, DependenciesMut, DependencyMut, DependencyRef
 /// A project package.
 #[derive(Clone)]
 pub struct Package<T = Staging> {
-    pub(crate) repository: Staged<T>,
+    pub(crate) repository: T,
     manifest: Manifest,
     path: PathBuf,
     primary: bool,
@@ -44,7 +44,7 @@ impl Package {
     /// Constructs a new cargo package.
     pub fn new_cargo(name: impl Into<String>) -> Self {
         Self {
-            repository: Staged::new(Staging::new()),
+            repository: Staging::new(),
             manifest: Manifest::new_cargo(name),
             path: PathBuf::new(),
             primary: false,
@@ -368,7 +368,6 @@ where
         );
 
         self.repository
-            .inner
             .request_package_release(self.name(), version)?;
 
         Ok(())
@@ -386,11 +385,8 @@ where
         &self,
         version: impl Borrow<Version>,
     ) -> Result<crate::changelog::Release, T::Error> {
-        self.repository.inner.get_changelog_release(
-            self.name(),
-            version.borrow(),
-            self.is_primary(),
-        )
+        self.repository
+            .get_changelog_release(self.name(), version.borrow(), self.is_primary())
     }
 }
 

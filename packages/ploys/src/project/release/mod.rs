@@ -51,7 +51,7 @@ where
 {
     /// Finishes the release.
     pub fn finish(self) -> Result<Release, T::Error> {
-        let sha = self.project.repository.inner.sha()?;
+        let sha = self.project.repository.sha()?;
 
         let version = self.package.version();
 
@@ -92,7 +92,6 @@ where
         let id = self
             .project
             .repository
-            .inner
             .create_release(&tag, &sha, &name, &body, prerelease, latest)?;
 
         info!(id, "Created release");

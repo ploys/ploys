@@ -4,7 +4,6 @@ use tracing::{info, info_span};
 use crate::changelog::Release;
 use crate::package::{BumpOrVersion, Lockfile, Package};
 use crate::project::Project;
-use crate::repository::Repository;
 
 use super::Remote;
 
@@ -208,33 +207,28 @@ where
         let default_branch = self
             .project
             .repository
-            .inner
             .get_default_branch()
             .map_err(crate::project::Error::Repository)?;
 
         self.project
             .repository
-            .inner
             .create_branch(&branch)
             .map_err(crate::project::Error::Repository)?;
 
         let sha = self
             .project
             .repository
-            .inner
             .commit(&title, files)
             .map_err(crate::project::Error::Repository)?;
 
         self.project
             .repository
-            .inner
             .update_branch(&branch, &sha)
             .map_err(crate::project::Error::Repository)?;
 
         let id = self
             .project
             .repository
-            .inner
             .create_pull_request(&branch, &default_branch, &title, &body)
             .map_err(crate::project::Error::Repository)?;
 
