@@ -49,7 +49,7 @@ use crate::package::lockfile::CargoLockfile;
 use crate::package::manifest::CargoManifest;
 use crate::package::{BumpOrVersion, Package, PackageKind};
 use crate::repository::staging::Staging;
-use crate::repository::{Remote, RepoSpec, Repository, Stage, Staged};
+use crate::repository::{Remote, RepoSpec, Repository, Stage};
 
 pub use self::config::Config;
 pub use self::error::Error;
@@ -68,7 +68,7 @@ pub use self::release::{ReleaseBuilder, ReleaseRequest, ReleaseRequestBuilder};
 /// repository = "https://github.com/{project-owner}/{project-name}"
 /// ```
 pub struct Project<T = Staging> {
-    pub(crate) repository: Staged<T>,
+    pub(crate) repository: T,
     config: Config,
 }
 
@@ -78,9 +78,7 @@ impl Project {
         let config = Config::new(name);
 
         Self {
-            repository: Staged::new(
-                Staging::new().with_file("Ploys.toml", config.to_string().into_bytes()),
-            ),
+            repository: Staging::new().with_file("Ploys.toml", config.to_string().into_bytes()),
             config,
         }
     }
@@ -99,7 +97,7 @@ where
 
         Ok(Self {
             config: Config::from_bytes(&config)?,
-            repository: Staged::new(repository),
+            repository,
         })
     }
 }
@@ -354,9 +352,9 @@ mod fs {
     use std::io::{Error as IoError, ErrorKind};
     use std::path::PathBuf;
 
+    use crate::repository::Repository;
     use crate::repository::fs::FileSystem;
     use crate::repository::staging::Staging;
-    use crate::repository::{Repository, Staged};
 
     use super::{Error, Project};
 
@@ -426,7 +424,7 @@ mod fs {
             }
 
             Ok(Project {
-                repository: Staged::new(repository),
+                repository,
                 config: self.config,
             })
         }
@@ -566,12 +564,8 @@ mod fs_git {
             self,
             revision: impl Into<Revision>,
         ) -> Result<Project<Git>, Error<GitError>> {
-            let path = self.repository.inner.path().to_owned();
-
             Ok(Project {
-                repository: self
-                    .repository
-                    .with_repository(Git::open(path)?.with_revision(revision)),
+                repository: Git::open(self.repository.path())?.with_revision(revision),
                 config: self.config,
             })
         }
@@ -583,10 +577,8 @@ mod fs_git {
         /// from the current repository. This does not stage or commit changes
         /// so the new repository will appear to be empty.
         pub fn init_git(self) -> Result<Project<Git>, Error<GitError>> {
-            let path = self.repository.inner.path().to_owned();
-
             Ok(Project {
-                repository: self.repository.with_repository(Git::init(path)?),
+                repository: Git::init(self.repository.path())?,
                 config: self.config,
             })
         }
