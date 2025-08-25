@@ -77,8 +77,8 @@ impl<T> From<crate::package::BumpError> for Error<T> {
 }
 
 #[cfg(feature = "fs")]
-impl From<std::io::Error> for Error<std::io::Error> {
-    fn from(err: std::io::Error) -> Self {
+impl From<crate::repository::fs::Error> for Error<crate::repository::fs::Error> {
+    fn from(err: crate::repository::fs::Error) -> Self {
         Self::Repository(err)
     }
 }

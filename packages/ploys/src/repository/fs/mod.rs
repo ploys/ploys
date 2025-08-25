@@ -1,8 +1,12 @@
-use std::io::{Error, ErrorKind};
+mod error;
+
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 use walkdir::WalkDir;
+
+pub use self::error::Error;
 
 use super::{Repository, Stage, Staged};
 
@@ -71,7 +75,7 @@ impl Repository for Inner {
         match std::fs::read(self.path.join(path.as_ref())) {
             Ok(bytes) => Ok(Some(bytes.into())),
             Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
-            Err(err) => Err(err),
+            Err(err) => Err(err.into()),
         }
     }
 

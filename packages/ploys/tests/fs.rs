@@ -1,11 +1,11 @@
-use std::io::Error as IoError;
 use std::path::Path;
 
 use ploys::project::{Error, Project};
+use ploys::repository::fs::Error as FsError;
 
 #[test]
 #[ignore]
-fn test_project() -> Result<(), Error<IoError>> {
+fn test_project() -> Result<(), Error<FsError>> {
     let project = Project::fs("../..")?;
 
     assert_eq!(project.name(), "ploys");
