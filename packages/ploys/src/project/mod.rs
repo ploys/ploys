@@ -353,7 +353,7 @@ mod fs {
     use std::path::PathBuf;
 
     use crate::repository::Repository;
-    use crate::repository::fs::FileSystem;
+    use crate::repository::fs::{Error as FsError, FileSystem};
     use crate::repository::staging::Staging;
 
     use super::{Error, Project};
@@ -361,7 +361,7 @@ mod fs {
     /// The [`FileSystem`] repository constructors.
     impl Project<FileSystem> {
         /// Opens a project from a [`FileSystem`] repository.
-        pub fn fs<P>(path: P) -> Result<Self, Error<IoError>>
+        pub fn fs<P>(path: P) -> Result<Self, Error<FsError>>
         where
             P: Into<PathBuf>,
         {
@@ -370,7 +370,7 @@ mod fs {
 
         /// Opens a project from a [`FileSystem`] repository in the current
         /// directory.
-        pub fn current_dir() -> Result<Self, Error<IoError>> {
+        pub fn current_dir() -> Result<Self, Error<FsError>> {
             Self::open(FileSystem::current_dir()?)
         }
     }
@@ -382,30 +382,31 @@ mod fs {
         /// by writing the contents of the [`Staging`] repository to the file
         /// system. This includes the current project configuration stored in
         /// the project and not the original configuration from the repository.
-        pub fn write<P>(self, path: P, force: bool) -> Result<Project<FileSystem>, Error<IoError>>
+        pub fn write<P>(self, path: P, force: bool) -> Result<Project<FileSystem>, Error<FsError>>
         where
             P: Into<PathBuf>,
         {
             let path = path.into();
-            let meta = path.metadata()?;
+            let meta = path.metadata().map_err(FsError::Io)?;
 
             if !meta.is_dir() {
-                return Err(Error::Repository(IoError::new(
+                return Err(Error::Repository(FsError::Io(IoError::new(
                     ErrorKind::NotADirectory,
                     "Expected a directory",
-                )));
+                ))));
             }
 
             let repository = FileSystem::open(&path);
 
             if !force && repository.get_index()?.count() > 0 {
-                return Err(Error::Repository(IoError::new(
+                return Err(Error::Repository(FsError::Io(IoError::new(
                     ErrorKind::DirectoryNotEmpty,
                     "Expected an empty directory",
-                )));
+                ))));
             }
 
-            std::fs::write(path.join("Ploys.toml"), self.config.to_string())?;
+            std::fs::write(path.join("Ploys.toml"), self.config.to_string())
+                .map_err(FsError::Io)?;
 
             for file in self.repository.get_index()? {
                 if file.as_os_str() == "Ploys.toml" {
@@ -415,12 +416,12 @@ mod fs {
                 let path = path.join(&file);
 
                 if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent)?;
+                    std::fs::create_dir_all(parent).map_err(FsError::Io)?;
                 }
 
                 let file = self.repository.get_file(&file)?.expect("indexed");
 
-                std::fs::write(path, file)?;
+                std::fs::write(path, file).map_err(FsError::Io)?;
             }
 
             Ok(Project {
