@@ -1,9 +1,12 @@
 use std::fmt::{self, Display};
 use std::io;
+use std::path::PathBuf;
 
 /// The `FileSystem` repository error.
 #[derive(Debug)]
 pub enum Error {
+    /// An invalid directory error.
+    Directory(PathBuf),
     /// An I/O error.
     Io(io::Error),
 }
@@ -11,6 +14,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Directory(path) => write!(f, "Invalid directory: `{}`", path.display()),
             Self::Io(err) => Display::fmt(err, f),
         }
     }
