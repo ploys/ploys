@@ -18,15 +18,25 @@ pub struct FileSystem {
 
 impl FileSystem {
     /// Opens a file system repository.
-    pub fn open(path: impl Into<PathBuf>) -> Self {
-        Self {
-            inner: Staged::new(Inner { path: path.into() }),
+    pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
+        let path = path.into();
+
+        let Ok(meta) = path.metadata() else {
+            return Err(Error::Directory(path));
+        };
+
+        if !meta.is_dir() {
+            return Err(Error::Directory(path));
         }
+
+        Ok(Self {
+            inner: Staged::new(Inner { path }),
+        })
     }
 
     /// Opens a file system repository in the current directory.
     pub fn current_dir() -> Result<Self, Error> {
-        Ok(Self::open(std::env::current_dir()?))
+        Self::open(std::env::current_dir()?)
     }
 
     /// Gets the file system path.

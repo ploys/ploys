@@ -365,7 +365,7 @@ mod fs {
         where
             P: Into<PathBuf>,
         {
-            Self::open(FileSystem::open(path))
+            Self::open(FileSystem::open(path)?)
         }
 
         /// Opens a project from a [`FileSystem`] repository in the current
@@ -387,16 +387,7 @@ mod fs {
             P: Into<PathBuf>,
         {
             let path = path.into();
-            let meta = path.metadata().map_err(FsError::Io)?;
-
-            if !meta.is_dir() {
-                return Err(Error::Repository(FsError::Io(IoError::new(
-                    ErrorKind::NotADirectory,
-                    "Expected a directory",
-                ))));
-            }
-
-            let repository = FileSystem::open(&path);
+            let repository = FileSystem::open(&path)?;
 
             if !force && repository.get_index()?.count() > 0 {
                 return Err(Error::Repository(FsError::Io(IoError::new(
