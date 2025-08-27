@@ -1,7 +1,49 @@
 use std::path::Path;
 
 use ploys::project::{Error, Project};
-use ploys::repository::fs::Error as FsError;
+use ploys::repository::fs::{Error as FsError, FileSystem};
+use ploys::repository::{Commit, Stage};
+use tempfile::tempdir;
+
+#[test]
+fn test_repository() -> Result<(), FsError> {
+    let dir = tempdir()?;
+    let mut repo = FileSystem::open(dir.path())?;
+
+    repo.add_file("hello-world.txt", "Hello World")?;
+    repo.commit(())?;
+
+    assert_eq!(
+        std::fs::read_to_string(repo.path().join("hello-world.txt"))?,
+        "Hello World"
+    );
+
+    repo.remove_file("hello-world.txt")?;
+    repo.commit(())?;
+
+    assert!(!repo.path().join("hello-world.txt").exists());
+    assert!(repo.path().read_dir()?.next().is_none());
+
+    repo.add_file("one/two/three.txt", "3")?;
+    repo.commit(())?;
+
+    assert_eq!(
+        std::fs::read_to_string(repo.path().join("one/two/three.txt"))?,
+        "3"
+    );
+
+    repo.remove_file("one/two/three.txt")?;
+    repo.commit(())?;
+
+    assert!(!repo.path().join("one/two/three.txt").exists());
+    assert!(!repo.path().join("one/two").exists());
+    assert!(!repo.path().join("one").exists());
+    assert!(repo.path().read_dir()?.next().is_none());
+
+    dir.close()?;
+
+    Ok(())
+}
 
 #[test]
 #[ignore]

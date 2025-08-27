@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 pub use self::error::Error;
 
-use super::{Repository, Stage, Staged};
+use super::{Commit, Repository, Stage, Staged};
 
 /// A file system repository.
 #[derive(Clone)]
@@ -30,7 +30,9 @@ impl FileSystem {
         }
 
         Ok(Self {
-            inner: Staged::new(Inner { path }),
+            inner: Staged::new(Inner {
+                path: path.canonicalize()?,
+            }),
         })
     }
 
@@ -70,6 +72,50 @@ impl Stage for FileSystem {
 
     fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         self.inner.remove_file(path)
+    }
+}
+
+impl Commit for FileSystem {
+    type Context = ();
+
+    fn commit(&mut self, _: impl Into<Self::Context>) -> Result<(), Self::Error> {
+        let base_path = self.path().to_owned();
+
+        for (path, file) in self.inner.drain() {
+            let path = base_path.join(path);
+
+            match file {
+                Some(file) => {
+                    if let Some(parent) = path.parent()
+                        && parent != base_path
+                    {
+                        std::fs::create_dir_all(parent)?;
+                    }
+
+                    std::fs::write(path, file)?;
+                }
+                None => {
+                    if let Err(err) = std::fs::remove_file(&path)
+                        && err.kind() != ErrorKind::NotFound
+                    {
+                        return Err(err.into());
+                    }
+
+                    let mut parent = path.parent();
+
+                    while let Some(path) = parent
+                        && path != base_path
+                        && path.read_dir()?.next().is_none()
+                    {
+                        std::fs::remove_dir(path)?;
+
+                        parent = path.parent();
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
