@@ -75,6 +75,16 @@ where
         Ok(self)
     }
 
+    fn add_files(
+        &mut self,
+        files: impl IntoIterator<Item = (PathBuf, Bytes)>,
+    ) -> Result<&mut Self, Self::Error> {
+        self.files
+            .extend(files.into_iter().map(|(path, file)| (path, Some(file))));
+
+        Ok(self)
+    }
+
     fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         Ok(self.files.insert(path.as_ref().to_owned(), None).flatten())
     }

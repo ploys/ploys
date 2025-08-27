@@ -70,6 +70,15 @@ impl Stage for FileSystem {
         Ok(self)
     }
 
+    fn add_files(
+        &mut self,
+        files: impl IntoIterator<Item = (PathBuf, Bytes)>,
+    ) -> Result<&mut Self, Self::Error> {
+        self.inner.add_files(files)?;
+
+        Ok(self)
+    }
+
     fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         self.inner.remove_file(path)
     }

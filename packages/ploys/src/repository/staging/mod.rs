@@ -56,6 +56,15 @@ impl Stage for Staging {
         Ok(self)
     }
 
+    fn add_files(
+        &mut self,
+        files: impl IntoIterator<Item = (PathBuf, Bytes)>,
+    ) -> Result<&mut Self, Self::Error> {
+        self.files.extend(files);
+
+        Ok(self)
+    }
+
     fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         Ok(self.files.remove(path.as_ref()))
     }

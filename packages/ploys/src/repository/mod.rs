@@ -50,6 +50,18 @@ pub trait Stage: Repository {
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error>;
 
+    /// Adds multiple staged files to the repository.
+    fn add_files(
+        &mut self,
+        files: impl IntoIterator<Item = (PathBuf, Bytes)>,
+    ) -> Result<&mut Self, Self::Error> {
+        for (path, file) in files {
+            self.add_file(path, file)?;
+        }
+
+        Ok(self)
+    }
+
     /// Builds the repository with the given file in the index.
     fn with_file(
         mut self,
@@ -60,6 +72,19 @@ pub trait Stage: Repository {
         Self: Sized,
     {
         self.add_file(path, file)?;
+
+        Ok(self)
+    }
+
+    /// Builds the repository with the given staged files.
+    fn with_files(
+        mut self,
+        files: impl IntoIterator<Item = (PathBuf, Bytes)>,
+    ) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        self.add_files(files)?;
 
         Ok(self)
     }
@@ -75,4 +100,11 @@ pub trait Commit: Stage {
 
     /// Commits the staged file changes to the repository.
     fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error>;
+
+    /// Builds the repository with the staged file changes committed.
+    fn committed(mut self, context: impl Into<Self::Context>) -> Result<Self, Self::Error> {
+        self.commit(context)?;
+
+        Ok(self)
+    }
 }
