@@ -29,6 +29,11 @@ impl<T> Staged<T> {
             files: self.files,
         }
     }
+
+    /// Drains the staged files.
+    pub(crate) fn drain(&mut self) -> impl Iterator<Item = (PathBuf, Option<Bytes>)> {
+        Drain(&mut self.files).fuse()
+    }
 }
 
 impl<T> Repository for Staged<T>
@@ -72,6 +77,16 @@ where
 
     fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         Ok(self.files.insert(path.as_ref().to_owned(), None).flatten())
+    }
+}
+
+struct Drain<'a>(&'a mut BTreeMap<PathBuf, Option<Bytes>>);
+
+impl<'a> Iterator for Drain<'a> {
+    type Item = (PathBuf, Option<Bytes>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop_first()
     }
 }
 

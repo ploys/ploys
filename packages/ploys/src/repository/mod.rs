@@ -67,3 +67,12 @@ pub trait Stage: Repository {
     /// Removes a file from the index.
     fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error>;
 }
+
+/// Defines the ability to commit files in a repository.
+pub trait Commit: Stage {
+    /// The associated commit context.
+    type Context;
+
+    /// Commits the staged file changes to the repository.
+    fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error>;
+}
