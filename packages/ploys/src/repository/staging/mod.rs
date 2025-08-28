@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::collections::btree_map::IntoIter;
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 
@@ -73,5 +74,14 @@ impl Stage for Staging {
 impl Default for Staging {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl IntoIterator for Staging {
+    type Item = (PathBuf, Bytes);
+    type IntoIter = IntoIter<PathBuf, Bytes>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.files.into_iter()
     }
 }
