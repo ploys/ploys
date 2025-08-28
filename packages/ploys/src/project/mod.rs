@@ -373,6 +373,18 @@ mod fs {
         pub fn current_dir() -> Result<Self, Error<FsError>> {
             Self::open(FileSystem::current_dir()?)
         }
+
+        /// Writes the project to the file system.
+        ///
+        /// This method writes any staged file changes in this project to the
+        /// file system, including the addition and removal of files. This
+        /// includes the current project configuration, overriding any changes
+        /// on disk.
+        pub fn write(&mut self) -> Result<&mut Self, Error<FsError>> {
+            self.repository.commit(())?;
+
+            Ok(self)
+        }
     }
 
     impl Project<Staging> {

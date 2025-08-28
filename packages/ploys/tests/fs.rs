@@ -93,3 +93,35 @@ fn test_project() -> Result<(), Error<FsError>> {
 
     Ok(())
 }
+
+#[test]
+fn test_project_write() -> Result<(), Box<dyn std::error::Error>> {
+    let dir = tempdir()?;
+
+    std::fs::write(
+        dir.path().join("Ploys.toml"),
+        "[project]\nname = \"example\"",
+    )?;
+
+    let mut project = Project::fs(dir.path())?;
+
+    project.add_file("file.txt", "New File")?;
+
+    assert!(!dir.path().join("file.txt").exists());
+
+    project.write()?;
+
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("file.txt"))?,
+        "New File"
+    );
+
+    assert_eq!(
+        project.get_file(dir.path().join("file.txt"))?,
+        Some("New File".into())
+    );
+
+    dir.close()?;
+
+    Ok(())
+}
