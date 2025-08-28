@@ -352,9 +352,9 @@ mod fs {
     use std::io::{Error as IoError, ErrorKind};
     use std::path::PathBuf;
 
-    use crate::repository::Repository;
     use crate::repository::fs::{Error as FsError, FileSystem};
     use crate::repository::staging::Staging;
+    use crate::repository::{Commit, Repository, Stage};
 
     use super::{Error, Project};
 
@@ -396,27 +396,11 @@ mod fs {
                 ))));
             }
 
-            std::fs::write(path.join("Ploys.toml"), self.config.to_string())
-                .map_err(FsError::Io)?;
-
-            for file in self.repository.get_index()? {
-                if file.as_os_str() == "Ploys.toml" {
-                    continue;
-                }
-
-                let path = path.join(&file);
-
-                if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent).map_err(FsError::Io)?;
-                }
-
-                let file = self.repository.get_file(&file)?.expect("indexed");
-
-                std::fs::write(path, file).map_err(FsError::Io)?;
-            }
-
             Ok(Project {
-                repository,
+                repository: repository
+                    .with_files(self.repository)?
+                    .with_file(path.join("Ploys.toml"), self.config.to_string())?
+                    .committed(())?,
                 config: self.config,
             })
         }
