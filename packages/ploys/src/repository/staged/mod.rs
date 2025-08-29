@@ -1,8 +1,12 @@
+mod drain;
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 use itertools::Itertools;
+
+use self::drain::Drain;
 
 use super::{Repository, Stage};
 
@@ -87,16 +91,6 @@ where
 
     fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         Ok(self.files.insert(path.as_ref().to_owned(), None).flatten())
-    }
-}
-
-struct Drain<'a>(&'a mut BTreeMap<PathBuf, Option<Bytes>>);
-
-impl<'a> Iterator for Drain<'a> {
-    type Item = (PathBuf, Option<Bytes>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.pop_first()
     }
 }
 
