@@ -33,3 +33,11 @@ impl From<walkdir::Error> for Error {
         Self::Io(err.into())
     }
 }
+
+impl From<crate::repository::staged::Error<Error>> for Error {
+    fn from(err: crate::repository::staged::Error<Error>) -> Self {
+        match err {
+            crate::repository::staged::Error::Inner(err) => err,
+        }
+    }
+}

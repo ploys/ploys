@@ -1,4 +1,5 @@
 mod drain;
+mod error;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -7,6 +8,8 @@ use bytes::Bytes;
 use itertools::Itertools;
 
 use self::drain::Drain;
+
+pub use self::error::Error;
 
 use super::{Repository, Stage};
 
@@ -44,13 +47,13 @@ impl<T> Repository for Staged<T>
 where
     T: Repository,
 {
-    type Error = T::Error;
+    type Error = Error<T::Error>;
 
     fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
         match self.files.get(path.as_ref()) {
             Some(Some(file)) => Ok(Some(file.clone())),
             Some(None) => Ok(None),
-            None => self.inner.get_file(path),
+            None => Ok(self.inner.get_file(path)?),
         }
     }
 

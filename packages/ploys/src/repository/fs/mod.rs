@@ -51,11 +51,11 @@ impl Repository for FileSystem {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
-        self.inner.get_file(path)
+        self.inner.get_file(path).map_err(Into::into)
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
-        self.inner.get_index()
+        self.inner.get_index().map_err(Into::into)
     }
 }
 
@@ -80,7 +80,7 @@ impl Stage for FileSystem {
     }
 
     fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
-        self.inner.remove_file(path)
+        self.inner.remove_file(path).map_err(Into::into)
     }
 }
 
