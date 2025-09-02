@@ -42,7 +42,7 @@ impl RepoSpec {
 
     /// Gets a GitHub repository specification.
     #[cfg(feature = "github")]
-    pub fn to_github(&self) -> Option<super::github::GitHubRepoSpec> {
+    pub fn to_github(&self) -> Option<super::types::github::GitHubRepoSpec> {
         match self {
             Self::Url(url) => match url.host()? {
                 url::Host::Domain("github.com") => url
@@ -103,8 +103,8 @@ impl From<ShortRepoSpec> for RepoSpec {
 }
 
 #[cfg(feature = "github")]
-impl From<super::github::GitHubRepoSpec> for RepoSpec {
-    fn from(github: super::github::GitHubRepoSpec) -> Self {
+impl From<super::types::github::GitHubRepoSpec> for RepoSpec {
+    fn from(github: super::types::github::GitHubRepoSpec) -> Self {
         Self::Short(ShortRepoSpec::GitHub(github))
     }
 }
@@ -114,10 +114,10 @@ impl From<super::github::GitHubRepoSpec> for RepoSpec {
 pub enum ShortRepoSpec {
     /// A default (GitHub) repository specification.
     #[cfg(feature = "github")]
-    Default(super::github::GitHubRepoSpec),
+    Default(super::types::github::GitHubRepoSpec),
     /// A GitHub repository specification.
     #[cfg(feature = "github")]
-    GitHub(super::github::GitHubRepoSpec),
+    GitHub(super::types::github::GitHubRepoSpec),
 }
 
 impl ShortRepoSpec {
@@ -166,8 +166,8 @@ impl FromStr for ShortRepoSpec {
 }
 
 #[cfg(feature = "github")]
-impl From<super::github::GitHubRepoSpec> for ShortRepoSpec {
-    fn from(github: super::github::GitHubRepoSpec) -> Self {
+impl From<super::types::github::GitHubRepoSpec> for ShortRepoSpec {
+    fn from(github: super::types::github::GitHubRepoSpec) -> Self {
         Self::GitHub(github)
     }
 }

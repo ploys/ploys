@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use ploys::project::{Error, Project};
-use ploys::repository::fs::{Error as FsError, FileSystem};
+use ploys::repository::types::fs::{Error as FsError, FileSystem};
 use ploys::repository::{Commit, Stage};
 use tempfile::tempdir;
 

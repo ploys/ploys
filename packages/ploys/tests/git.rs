@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use ploys::project::{Error, Project};
-use ploys::repository::git::Error as GitError;
+use ploys::repository::types::git::Error as GitError;
 
 #[test]
 #[ignore]

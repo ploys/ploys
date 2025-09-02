@@ -21,7 +21,7 @@ use url::Url;
 
 use crate::changelog::Changelog;
 use crate::project::Project;
-use crate::repository::staging::Staging;
+use crate::repository::types::staging::Staging;
 use crate::repository::{Remote, Repository, Stage};
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
