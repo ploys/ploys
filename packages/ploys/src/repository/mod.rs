@@ -6,20 +6,10 @@
 mod cache;
 mod remote;
 mod spec;
-mod staged;
 mod vcs;
 
-#[cfg(feature = "fs")]
-pub mod fs;
-
-#[cfg(feature = "git")]
-pub mod git;
-
-#[cfg(feature = "github")]
-pub mod github;
-
 pub mod revision;
-pub mod staging;
+pub mod types;
 
 use std::path::{Path, PathBuf};
 
@@ -27,7 +17,6 @@ use bytes::Bytes;
 
 pub use self::remote::Remote;
 pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
-pub use self::staged::Staged;
 pub use self::vcs::GitLike;
 
 /// Defines a file repository.

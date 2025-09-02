@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 
-use super::{Repository, Stage};
+use crate::repository::{Repository, Stage};
 
 /// A staging repository.
 #[derive(Clone)]

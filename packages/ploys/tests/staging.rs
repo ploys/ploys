@@ -1,5 +1,5 @@
 use ploys::project::Project;
-use ploys::repository::staging::Staging;
+use ploys::repository::types::staging::Staging;
 use tempfile::tempdir;
 
 #[test]

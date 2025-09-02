@@ -48,7 +48,7 @@ use either::Either;
 use crate::package::lockfile::CargoLockfile;
 use crate::package::manifest::CargoManifest;
 use crate::package::{BumpOrVersion, Package, PackageKind};
-use crate::repository::staging::Staging;
+use crate::repository::types::staging::Staging;
 use crate::repository::{Remote, RepoSpec, Repository, Stage};
 
 pub use self::config::Config;
@@ -352,8 +352,8 @@ mod fs {
     use std::io::{Error as IoError, ErrorKind};
     use std::path::PathBuf;
 
-    use crate::repository::fs::{Error as FsError, FileSystem};
-    use crate::repository::staging::Staging;
+    use crate::repository::types::fs::{Error as FsError, FileSystem};
+    use crate::repository::types::staging::Staging;
     use crate::repository::{Commit, Repository, Stage};
 
     use super::{Error, Project};
@@ -423,8 +423,8 @@ mod fs {
 mod git {
     use std::path::PathBuf;
 
-    use crate::repository::git::{Error as GitError, Git};
     use crate::repository::revision::Revision;
+    use crate::repository::types::git::{Error as GitError, Git};
 
     use super::{Error, Project};
 
@@ -459,8 +459,8 @@ mod git {
 
 #[cfg(feature = "github")]
 mod github {
-    use crate::repository::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
     use crate::repository::revision::Revision;
+    use crate::repository::types::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
     use super::{Error, Project};
 
@@ -532,9 +532,9 @@ mod github {
 
 #[cfg(all(feature = "fs", feature = "git"))]
 mod fs_git {
-    use crate::repository::fs::FileSystem;
-    use crate::repository::git::{Error as GitError, Git};
     use crate::repository::revision::Revision;
+    use crate::repository::types::fs::FileSystem;
+    use crate::repository::types::git::{Error as GitError, Git};
 
     use super::{Error, Project};
 
@@ -592,7 +592,7 @@ mod tests {
     use crate::package::lockfile::CargoLockfile;
     use crate::package::manifest::CargoManifest;
     use crate::repository::RepoSpec;
-    use crate::repository::staging::Staging;
+    use crate::repository::types::staging::Staging;
 
     use super::Project;
 

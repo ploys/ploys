@@ -8,7 +8,7 @@ use ploys::changelog::Changelog;
 use ploys::package::Package;
 use ploys::project::Project;
 use ploys::repository::RepoSpec;
-use ploys::repository::git::Git;
+use ploys::repository::types::git::Git;
 use strum::{Display, VariantArray};
 
 /// Initializes a new project.

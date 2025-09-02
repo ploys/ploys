@@ -6,9 +6,9 @@ use std::path::{Path, PathBuf};
 use bytes::Bytes;
 use itertools::Itertools;
 
-use self::drain::Drain;
+use crate::repository::{Repository, Stage};
 
-use super::{Repository, Stage};
+use self::drain::Drain;
 
 /// A repository adapter for staging changes.
 #[derive(Clone)]
@@ -98,7 +98,7 @@ where
 mod tests {
     use std::path::PathBuf;
 
-    use crate::repository::staging::Staging;
+    use crate::repository::types::staging::Staging;
     use crate::repository::{Repository, Stage};
 
     use super::Staged;

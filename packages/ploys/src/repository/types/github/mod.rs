@@ -19,14 +19,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
 use crate::package::BumpOrVersion;
+use crate::repository::cache::Cache;
+use crate::repository::revision::Revision;
+use crate::repository::{GitLike, Remote, Repository};
 
 pub use self::error::Error;
 pub use self::repo::Repo;
 pub use self::spec::GitHubRepoSpec;
-
-use super::cache::Cache;
-use super::revision::Revision;
-use super::{GitLike, Remote, Repository};
 
 /// The remote GitHub repository.
 #[derive(Clone, Debug)]

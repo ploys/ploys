@@ -82,15 +82,17 @@ impl From<std::io::Error> for Error<std::io::Error> {
 }
 
 #[cfg(feature = "git")]
-impl From<crate::repository::git::Error> for Error<crate::repository::git::Error> {
-    fn from(err: crate::repository::git::Error) -> Self {
+impl From<crate::repository::types::git::Error> for Error<crate::repository::types::git::Error> {
+    fn from(err: crate::repository::types::git::Error) -> Self {
         Self::Repository(err)
     }
 }
 
 #[cfg(feature = "github")]
-impl From<crate::repository::github::Error> for Error<crate::repository::github::Error> {
-    fn from(err: crate::repository::github::Error) -> Self {
+impl From<crate::repository::types::github::Error>
+    for Error<crate::repository::types::github::Error>
+{
+    fn from(err: crate::repository::types::github::Error) -> Self {
         Self::Repository(err)
     }
 }

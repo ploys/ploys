@@ -77,22 +77,24 @@ impl<T> From<crate::package::BumpError> for Error<T> {
 }
 
 #[cfg(feature = "fs")]
-impl From<crate::repository::fs::Error> for Error<crate::repository::fs::Error> {
-    fn from(err: crate::repository::fs::Error) -> Self {
+impl From<crate::repository::types::fs::Error> for Error<crate::repository::types::fs::Error> {
+    fn from(err: crate::repository::types::fs::Error) -> Self {
         Self::Repository(err)
     }
 }
 
 #[cfg(feature = "git")]
-impl From<crate::repository::git::Error> for Error<crate::repository::git::Error> {
-    fn from(err: crate::repository::git::Error) -> Self {
+impl From<crate::repository::types::git::Error> for Error<crate::repository::types::git::Error> {
+    fn from(err: crate::repository::types::git::Error) -> Self {
         Self::Repository(err)
     }
 }
 
 #[cfg(feature = "github")]
-impl From<crate::repository::github::Error> for Error<crate::repository::github::Error> {
-    fn from(err: crate::repository::github::Error) -> Self {
+impl From<crate::repository::types::github::Error>
+    for Error<crate::repository::types::github::Error>
+{
+    fn from(err: crate::repository::types::github::Error) -> Self {
         Self::Repository(err)
     }
 }

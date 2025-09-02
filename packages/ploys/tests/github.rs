@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use ploys::project::{Error, Project};
-use ploys::repository::github::Error as GitHubError;
 use ploys::repository::revision::Revision;
+use ploys::repository::types::github::Error as GitHubError;
 
 #[test]
 #[ignore]

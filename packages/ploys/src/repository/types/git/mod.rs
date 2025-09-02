@@ -14,11 +14,11 @@ use gix::config::File;
 use gix::create::{Kind, Options};
 use gix::traverse::tree::Recorder;
 
-pub use self::error::Error;
+use crate::repository::Repository;
+use crate::repository::cache::Cache;
+use crate::repository::revision::Revision;
 
-use super::Repository;
-use super::cache::Cache;
-use super::revision::Revision;
+pub use self::error::Error;
 
 /// The local Git repository.
 #[derive(Clone)]
