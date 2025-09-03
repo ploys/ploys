@@ -78,7 +78,9 @@ impl Project {
         let config = Config::new(name);
 
         Self {
-            repository: Staging::new().with_file("Ploys.toml", config.to_string().into_bytes()),
+            repository: Staging::new()
+                .with_file("Ploys.toml", config.to_string().into_bytes())
+                .expect("infallible"),
             config,
         }
     }
@@ -591,8 +593,8 @@ mod tests {
     use crate::package::Package;
     use crate::package::lockfile::CargoLockfile;
     use crate::package::manifest::CargoManifest;
-    use crate::repository::RepoSpec;
     use crate::repository::types::staging::Staging;
+    use crate::repository::{RepoSpec, Stage};
 
     use super::Project;
 
@@ -665,7 +667,9 @@ mod tests {
 
     #[test]
     fn test_project_staging_repository() {
-        let repository = Staging::new().with_file("Ploys.toml", "[project]\nname = \"example\"");
+        let repository = Staging::new()
+            .with_file("Ploys.toml", "[project]\nname = \"example\"")
+            .unwrap();
         let mut project = Project::open(repository).unwrap();
 
         assert_eq!(project.name(), "example");

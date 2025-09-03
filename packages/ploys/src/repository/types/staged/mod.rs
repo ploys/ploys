@@ -105,7 +105,11 @@ mod tests {
 
     #[test]
     fn test_staged_repository() {
-        let inner = Staging::new().with_file("a", "A").with_file("b", "B");
+        let inner = Staging::new()
+            .with_file("a", "A")
+            .unwrap()
+            .with_file("b", "B")
+            .unwrap();
         let mut outer = Staged::new(inner);
 
         assert_eq!(outer.get_file("a"), Ok(Some("A".into())));

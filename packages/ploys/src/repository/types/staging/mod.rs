@@ -20,18 +20,6 @@ impl Staging {
             files: BTreeMap::new(),
         }
     }
-
-    /// Adds the given file to the index.
-    pub fn add_file(&mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> &mut Self {
-        self.files.insert(path.into(), file.into());
-        self
-    }
-
-    /// Builds the repository with the given file in the index.
-    pub fn with_file(mut self, path: impl Into<PathBuf>, file: impl Into<Bytes>) -> Self {
-        self.add_file(path, file);
-        self
-    }
 }
 
 impl Repository for Staging {
@@ -52,7 +40,7 @@ impl Stage for Staging {
         path: impl Into<PathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
-        self.add_file(path, file);
+        self.files.insert(path.into(), file.into());
 
         Ok(self)
     }
