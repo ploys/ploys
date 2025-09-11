@@ -10,11 +10,11 @@ pub mod lockfile;
 pub mod manifest;
 
 use std::borrow::Borrow;
-use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use bytes::Bytes;
 use either::Either;
+use relative_path::{RelativePath, RelativePathBuf};
 use semver::Version;
 use tracing::info;
 use url::Url;
@@ -36,7 +36,7 @@ use self::manifest::{Dependencies, DependenciesMut, DependencyMut, DependencyRef
 pub struct Package<T = Staging> {
     pub(crate) repository: T,
     manifest: Manifest,
-    path: PathBuf,
+    path: RelativePathBuf,
     primary: bool,
 }
 
@@ -46,7 +46,7 @@ impl Package {
         Self {
             repository: Staging::new(),
             manifest: Manifest::new_cargo(name),
-            path: PathBuf::new(),
+            path: RelativePathBuf::new(),
             primary: false,
         }
     }
@@ -171,12 +171,12 @@ impl<T> Package<T> {
     }
 
     /// Gets the package path.
-    pub fn path(&self) -> &Path {
+    pub fn path(&self) -> &RelativePath {
         &self.path
     }
 
     /// Gets the package manifest path.
-    pub fn manifest_path(&self) -> PathBuf {
+    pub fn manifest_path(&self) -> RelativePathBuf {
         self.path().join(self.kind().file_name())
     }
 
@@ -227,7 +227,7 @@ where
     /// Adds a file to the package.
     pub fn add_file(
         &mut self,
-        path: impl AsRef<Path>,
+        path: impl AsRef<RelativePath>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Error<T::Error>> {
         self.repository
@@ -240,7 +240,7 @@ where
     /// Builds the package with the given file.
     pub fn with_file(
         mut self,
-        path: impl AsRef<Path>,
+        path: impl AsRef<RelativePath>,
         file: impl Into<Bytes>,
     ) -> Result<Self, Error<T::Error>> {
         self.add_file(path, file)?;
@@ -254,7 +254,10 @@ where
     T: Repository,
 {
     /// Gets a file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Error<T::Error>> {
+    pub fn get_file(
+        &self,
+        path: impl AsRef<RelativePath>,
+    ) -> Result<Option<Bytes>, Error<T::Error>> {
         let path = self.path.join(path);
 
         if path == self.manifest_path() {
@@ -268,7 +271,7 @@ where
     #[allow(clippy::type_complexity)]
     pub fn get_file_as<U>(
         &self,
-        path: impl AsRef<Path>,
+        path: impl AsRef<RelativePath>,
     ) -> Result<Option<U>, Either<Error<T::Error>, U::Err>>
     where
         U: FromStr,
@@ -397,7 +400,7 @@ where
     /// Constructs a package from a manifest.
     pub(super) fn from_manifest(
         project: &Project<T>,
-        path: impl Into<PathBuf>,
+        path: impl Into<RelativePathBuf>,
         manifest: Manifest,
     ) -> Option<Self> {
         let kind = manifest.package_kind();
@@ -420,8 +423,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use semver::Version;
 
     use super::{Package, PackageKind};
@@ -437,7 +438,7 @@ mod tests {
         assert_eq!(package.dev_dependencies().into_iter().count(), 0);
         assert_eq!(package.build_dependencies().into_iter().count(), 0);
         assert_eq!(package.kind(), PackageKind::Cargo);
-        assert_eq!(package.path(), Path::new(""));
+        assert_eq!(package.path(), "");
 
         package.set_version("0.1.0".parse::<Version>().unwrap());
 

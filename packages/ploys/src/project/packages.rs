@@ -1,6 +1,7 @@
 use std::iter::FusedIterator;
-use std::path::PathBuf;
+use std::path::Path;
 
+use relative_path::RelativePathBuf;
 use strum::IntoEnumIterator;
 
 use crate::package::manifest::Members;
@@ -97,7 +98,7 @@ struct ManifestPackages<'a, T> {
     project: &'a Project<T>,
     manifest: Manifest,
     members: Members,
-    files: Box<dyn Iterator<Item = PathBuf> + 'a>,
+    files: Box<dyn Iterator<Item = RelativePathBuf> + 'a>,
 }
 
 impl<'a, T> Iterator for ManifestPackages<'a, T>
@@ -111,7 +112,7 @@ where
             let path = self.files.next()?;
             let manifest_path = self.manifest.package_kind().file_name();
 
-            if path.file_name() != Some(manifest_path.as_os_str()) {
+            if path.file_name() != Some(manifest_path) {
                 continue;
             }
 
@@ -119,7 +120,7 @@ where
                 continue;
             };
 
-            if path != manifest_path && !self.members.includes(parent) {
+            if path != manifest_path && !self.members.includes(Path::new(parent.as_str())) {
                 continue;
             }
 

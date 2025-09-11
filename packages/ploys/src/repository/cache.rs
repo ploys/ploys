@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use bytes::Bytes;
 use once_cell::sync::OnceCell;
+use relative_path::{RelativePath, RelativePathBuf};
 
 /// The repository cache.
 ///
@@ -27,7 +27,7 @@ use once_cell::sync::OnceCell;
 #[derive(Clone, Debug)]
 #[allow(clippy::type_complexity)]
 pub struct Cache {
-    cache: Arc<OnceCell<BTreeMap<PathBuf, OnceCell<Bytes>>>>,
+    cache: Arc<OnceCell<BTreeMap<RelativePathBuf, OnceCell<Bytes>>>>,
 }
 
 impl Cache {
@@ -41,11 +41,11 @@ impl Cache {
     /// Gets or inserts the file with the given path.
     pub fn get_or_try_insert<E, F>(
         &self,
-        path: impl AsRef<Path>,
+        path: impl AsRef<RelativePath>,
         with: F,
     ) -> Result<Option<Bytes>, E>
     where
-        F: FnOnce(&Path) -> Result<Bytes, E>,
+        F: FnOnce(&RelativePath) -> Result<Bytes, E>,
     {
         match self.cache.get() {
             Some(cache) => match cache.get(path.as_ref()) {
@@ -60,9 +60,12 @@ impl Cache {
     }
 
     /// Gets or inserts the index.
-    pub fn get_or_try_index<E, F>(&self, with: F) -> Result<impl Iterator<Item = PathBuf>, E>
+    pub fn get_or_try_index<E, F>(
+        &self,
+        with: F,
+    ) -> Result<impl Iterator<Item = RelativePathBuf>, E>
     where
-        F: FnOnce() -> Result<BTreeSet<PathBuf>, E>,
+        F: FnOnce() -> Result<BTreeSet<RelativePathBuf>, E>,
     {
         self.cache
             .get_or_try_init(|| {
@@ -79,13 +82,13 @@ impl Cache {
     /// Gets or inserts the index and file with the given path.
     pub fn get_or_try_init<E, F, G>(
         &self,
-        path: impl AsRef<Path>,
+        path: impl AsRef<RelativePath>,
         insert: F,
         index: G,
     ) -> Result<Option<Bytes>, E>
     where
-        F: FnOnce(&Path) -> Result<Bytes, E>,
-        G: FnOnce() -> Result<BTreeSet<PathBuf>, E>,
+        F: FnOnce(&RelativePath) -> Result<Bytes, E>,
+        G: FnOnce() -> Result<BTreeSet<RelativePathBuf>, E>,
     {
         let _ = self.get_or_try_index(index)?;
 

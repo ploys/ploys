@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use relative_path::RelativePathBuf;
 
 use super::Repository;
 
@@ -8,7 +8,11 @@ pub trait GitLike: Repository {
     fn sha(&self) -> Result<String, Self::Error>;
 
     /// Commits the changes to the repository.
-    fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, Self::Error>;
+    fn commit(
+        &self,
+        message: &str,
+        files: Vec<(RelativePathBuf, String)>,
+    ) -> Result<String, Self::Error>;
 
     /// Gets the default branch.
     fn get_default_branch(&self) -> Result<String, Self::Error>;

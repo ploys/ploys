@@ -39,11 +39,11 @@ mod error;
 mod packages;
 mod release;
 
-use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use bytes::Bytes;
 use either::Either;
+use relative_path::{RelativePath, RelativePathBuf};
 
 use crate::package::lockfile::CargoLockfile;
 use crate::package::manifest::CargoManifest;
@@ -152,7 +152,7 @@ where
     /// Adds a file to the project.
     pub fn add_file(
         &mut self,
-        path: impl Into<PathBuf>,
+        path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Error<T::Error>> {
         self.repository
@@ -165,7 +165,7 @@ where
     /// Builds the project with the given file.
     pub fn with_file(
         mut self,
-        path: impl Into<PathBuf>,
+        path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<Self, Error<T::Error>> {
         self.add_file(path, file)?;
@@ -179,8 +179,11 @@ where
     T: Repository,
 {
     /// Gets a file at the given path.
-    pub fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Error<T::Error>> {
-        if path.as_ref() == Path::new("Ploys.toml") {
+    pub fn get_file(
+        &self,
+        path: impl AsRef<RelativePath>,
+    ) -> Result<Option<Bytes>, Error<T::Error>> {
+        if path.as_ref() == "Ploys.toml" {
             return Ok(Some(self.config.to_string().into()));
         }
 
@@ -191,7 +194,7 @@ where
     #[allow(clippy::type_complexity)]
     pub fn get_file_as<U>(
         &self,
-        path: impl AsRef<Path>,
+        path: impl AsRef<RelativePath>,
     ) -> Result<Option<U>, Either<Error<T::Error>, U::Err>>
     where
         U: FromStr,
@@ -216,7 +219,7 @@ where
         package: impl Into<Package>,
     ) -> Result<&mut Self, Error<T::Error>> {
         let package = package.into();
-        let base_path = Path::new("packages").join(package.name());
+        let base_path = RelativePath::new("packages").join(package.name());
 
         for path in package.repository.get_index()? {
             if path == package.manifest_path() {
@@ -245,7 +248,7 @@ where
                     .unwrap_or_default();
 
                 manifest.add_workspace_member("packages/*");
-                manifest.add_workspace_member(base_path.join(package.path()));
+                manifest.add_workspace_member(base_path.join(package.path()).as_str());
 
                 let mut lockfile = self
                     .get_file_as::<CargoLockfile>("Cargo.lock")
@@ -413,7 +416,7 @@ mod fs {
             Ok(Project {
                 repository: repository
                     .with_files(self.repository)?
-                    .with_file(path.join("Ploys.toml"), self.config.to_string())?
+                    .with_file("Ploys.toml", self.config.to_string())?
                     .committed(())?,
                 config: self.config,
             })

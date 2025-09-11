@@ -1,3 +1,4 @@
+use relative_path::RelativePathBuf;
 use semver::Version;
 use tracing::{info, info_span};
 
@@ -167,7 +168,7 @@ where
 
             if let Some(mut lockfile) = lockfile {
                 lockfile.set_package_version(self.package.name(), version.clone());
-                files.push((path.to_owned(), lockfile.to_string()));
+                files.push((RelativePathBuf::from(path), lockfile.to_string()));
             }
         }
 
