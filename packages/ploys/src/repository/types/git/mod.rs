@@ -13,6 +13,7 @@ use gix::ThreadSafeRepository;
 use gix::config::File;
 use gix::create::{Kind, Options};
 use gix::traverse::tree::Recorder;
+use relative_path::{RelativePath, RelativePathBuf};
 
 use crate::repository::Repository;
 use crate::repository::cache::Cache;
@@ -93,7 +94,7 @@ impl Git {
 impl Repository for Git {
     type Error = Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Some(self.get_file_uncached(path.as_ref())?));
         }
@@ -105,10 +106,10 @@ impl Repository for Git {
         )
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Box::new(self.get_index_uncached()?.into_iter())
-                as Box<dyn Iterator<Item = PathBuf>>);
+                as Box<dyn Iterator<Item = RelativePathBuf>>);
         }
 
         Ok(Box::new(
@@ -118,7 +119,7 @@ impl Repository for Git {
 }
 
 impl Git {
-    fn get_index_uncached(&self) -> Result<BTreeSet<PathBuf>, Error> {
+    fn get_index_uncached(&self) -> Result<BTreeSet<RelativePathBuf>, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
         let tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
@@ -131,19 +132,19 @@ impl Git {
             .records
             .into_iter()
             .filter(|entry| entry.mode.is_blob())
-            .map(|entry| PathBuf::from(entry.filepath.to_string()))
+            .map(|entry| RelativePathBuf::from(entry.filepath.to_string()))
             .collect::<BTreeSet<_>>();
 
         Ok(entries)
     }
 
-    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Bytes, Error> {
+    fn get_file_uncached(&self, path: impl AsRef<RelativePath>) -> Result<Bytes, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
         let mut tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
 
         let entry = tree
-            .peel_to_entry_by_path(path)?
+            .peel_to_entry_by_path(path.as_ref().as_str())?
             .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
 
         if entry.mode().is_blob() {

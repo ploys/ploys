@@ -4,6 +4,7 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
+use relative_path::{PathExt, RelativePath, RelativePathBuf};
 use walkdir::WalkDir;
 
 pub use self::error::Error;
@@ -52,11 +53,11 @@ impl FileSystem {
 impl Repository for FileSystem {
     type Error = Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         self.inner.get_file(path)
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
         self.inner.get_index()
     }
 }
@@ -64,7 +65,7 @@ impl Repository for FileSystem {
 impl Stage for FileSystem {
     fn add_file(
         &mut self,
-        path: impl Into<PathBuf>,
+        path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
         self.inner.add_file(path, file)?;
@@ -74,14 +75,17 @@ impl Stage for FileSystem {
 
     fn add_files(
         &mut self,
-        files: impl IntoIterator<Item = (PathBuf, Bytes)>,
+        files: impl IntoIterator<Item = (RelativePathBuf, Bytes)>,
     ) -> Result<&mut Self, Self::Error> {
         self.inner.add_files(files)?;
 
         Ok(self)
     }
 
-    fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+    fn remove_file(
+        &mut self,
+        path: impl AsRef<RelativePath>,
+    ) -> Result<Option<Bytes>, Self::Error> {
         self.inner.remove_file(path)
     }
 }
@@ -93,7 +97,7 @@ impl Commit for FileSystem {
         let base_path = self.path().to_owned();
 
         for (path, file) in self.inner.drain() {
-            let path = base_path.join(path);
+            let path = path.to_logical_path(&base_path);
 
             match file {
                 Some(file) => {
@@ -138,15 +142,15 @@ struct Inner {
 impl Repository for Inner {
     type Error = Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
-        match std::fs::read(self.path.join(path.as_ref())) {
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
+        match std::fs::read(path.as_ref().to_logical_path(&self.path)) {
             Ok(bytes) => Ok(Some(bytes.into())),
             Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
             Err(err) => Err(err.into()),
         }
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
         let index = WalkDir::new(&self.path)
             .into_iter()
             .filter_entry(|entry| {
@@ -156,11 +160,7 @@ impl Repository for Inner {
             .flat_map(|res| match res {
                 Ok(entry) => match entry.file_type().is_dir() {
                     true => None,
-                    false => Some(Ok(entry
-                        .path()
-                        .strip_prefix(&self.path)
-                        .expect("prefixed")
-                        .to_owned())),
+                    false => Some(Ok(entry.path().relative_to(&self.path).expect("prefixed"))),
                 },
                 Err(err) => Some(Err(err)),
             })

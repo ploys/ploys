@@ -1,10 +1,10 @@
 mod drain;
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 use itertools::Itertools;
+use relative_path::{RelativePath, RelativePathBuf};
 
 use crate::repository::{Repository, Stage};
 
@@ -14,7 +14,7 @@ use self::drain::Drain;
 #[derive(Clone)]
 pub struct Staged<T> {
     pub(crate) inner: T,
-    files: BTreeMap<PathBuf, Option<Bytes>>,
+    files: BTreeMap<RelativePathBuf, Option<Bytes>>,
 }
 
 impl<T> Staged<T> {
@@ -35,7 +35,7 @@ impl<T> Staged<T> {
     }
 
     /// Drains the staged files.
-    pub(crate) fn drain(&mut self) -> impl Iterator<Item = (PathBuf, Option<Bytes>)> {
+    pub(crate) fn drain(&mut self) -> impl Iterator<Item = (RelativePathBuf, Option<Bytes>)> {
         Drain(&mut self.files).fuse()
     }
 }
@@ -46,7 +46,7 @@ where
 {
     type Error = T::Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         match self.files.get(path.as_ref()) {
             Some(Some(file)) => Ok(Some(file.clone())),
             Some(None) => Ok(None),
@@ -54,7 +54,7 @@ where
         }
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
         Ok(self
             .files
             .keys()
@@ -71,7 +71,7 @@ where
 {
     fn add_file(
         &mut self,
-        path: impl Into<PathBuf>,
+        path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
         self.files.insert(path.into(), Some(file.into()));
@@ -81,7 +81,7 @@ where
 
     fn add_files(
         &mut self,
-        files: impl IntoIterator<Item = (PathBuf, Bytes)>,
+        files: impl IntoIterator<Item = (RelativePathBuf, Bytes)>,
     ) -> Result<&mut Self, Self::Error> {
         self.files
             .extend(files.into_iter().map(|(path, file)| (path, Some(file))));
@@ -89,14 +89,17 @@ where
         Ok(self)
     }
 
-    fn remove_file(&mut self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+    fn remove_file(
+        &mut self,
+        path: impl AsRef<RelativePath>,
+    ) -> Result<Option<Bytes>, Self::Error> {
         Ok(self.files.insert(path.as_ref().to_owned(), None).flatten())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use relative_path::RelativePathBuf;
 
     use crate::repository::types::staging::Staging;
     use crate::repository::{Repository, Stage};
@@ -119,8 +122,8 @@ mod tests {
         let index = outer.get_index().unwrap().collect::<Vec<_>>();
 
         assert_eq!(index.len(), 2);
-        assert!(index.contains(&PathBuf::from("a")));
-        assert!(index.contains(&PathBuf::from("b")));
+        assert!(index.contains(&RelativePathBuf::from("a")));
+        assert!(index.contains(&RelativePathBuf::from("b")));
 
         outer.add_file("c", "C").unwrap();
         outer.remove_file("a").unwrap();
@@ -132,8 +135,8 @@ mod tests {
         let index = outer.get_index().unwrap().collect::<Vec<_>>();
 
         assert_eq!(index.len(), 2);
-        assert!(index.contains(&PathBuf::from("b")));
-        assert!(index.contains(&PathBuf::from("c")));
+        assert!(index.contains(&RelativePathBuf::from("b")));
+        assert!(index.contains(&RelativePathBuf::from("c")));
 
         assert_eq!(outer.inner.get_file("a"), Ok(Some("A".into())));
         assert_eq!(outer.inner.get_file("b"), Ok(Some("B".into())));

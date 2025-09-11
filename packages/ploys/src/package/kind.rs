@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use strum::EnumIter;
 
 /// The package kind.
@@ -11,16 +9,16 @@ pub enum PackageKind {
 
 impl PackageKind {
     /// Gets the package file name.
-    pub fn file_name(&self) -> &'static Path {
+    pub fn file_name(&self) -> &'static str {
         match self {
-            Self::Cargo => Path::new("Cargo.toml"),
+            Self::Cargo => "Cargo.toml",
         }
     }
 
     /// Gets the lockfile name.
-    pub(crate) fn lockfile_name(&self) -> Option<&'static Path> {
+    pub(crate) fn lockfile_name(&self) -> Option<&'static str> {
         match self {
-            Self::Cargo => Some(Path::new("Cargo.lock")),
+            Self::Cargo => Some("Cargo.lock"),
         }
     }
 }

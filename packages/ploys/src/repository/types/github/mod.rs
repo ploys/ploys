@@ -10,9 +10,9 @@ mod spec;
 
 use std::collections::BTreeSet;
 use std::io::{self, Read};
-use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
+use relative_path::{RelativePath, RelativePathBuf};
 use reqwest::header::CONTENT_TYPE;
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -130,7 +130,7 @@ impl GitHub {
 impl Repository for GitHub {
     type Error = Error;
 
-    fn get_file(&self, path: impl AsRef<Path>) -> Result<Option<Bytes>, Self::Error> {
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Some(self.get_file_uncached(path.as_ref())?));
         }
@@ -142,10 +142,10 @@ impl Repository for GitHub {
         )
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = PathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Box::new(self.get_index_uncached()?.into_iter())
-                as Box<dyn Iterator<Item = PathBuf>>);
+                as Box<dyn Iterator<Item = RelativePathBuf>>);
         }
 
         Ok(Box::new(
@@ -155,7 +155,7 @@ impl Repository for GitHub {
 }
 
 impl GitHub {
-    fn get_index_uncached(&self) -> Result<BTreeSet<PathBuf>, Error> {
+    fn get_index_uncached(&self) -> Result<BTreeSet<RelativePathBuf>, Error> {
         let entries = self
             .repository
             .get(
@@ -171,17 +171,17 @@ impl GitHub {
             .tree
             .into_iter()
             .filter(|entry| entry.r#type == "blob")
-            .map(|entry| PathBuf::from(entry.path))
+            .map(|entry| entry.path)
             .collect::<BTreeSet<_>>();
 
         Ok(entries)
     }
 
-    fn get_file_uncached(&self, path: impl AsRef<Path>) -> Result<Bytes, Error> {
+    fn get_file_uncached(&self, path: impl AsRef<RelativePath>) -> Result<Bytes, Error> {
         let mut response = self
             .repository
             .get(
-                format!("contents/{}?ref={}", path.as_ref().display(), self.revision),
+                format!("contents/{}?ref={}", path.as_ref(), self.revision),
                 self.token.as_deref(),
             )
             .header("Accept", "application/vnd.github.raw")
@@ -210,7 +210,11 @@ impl GitLike for GitHub {
         self.sha()
     }
 
-    fn commit(&self, message: &str, files: Vec<(PathBuf, String)>) -> Result<String, Self::Error> {
+    fn commit(
+        &self,
+        message: &str,
+        files: Vec<(RelativePathBuf, String)>,
+    ) -> Result<String, Self::Error> {
         #[derive(Serialize)]
         struct CreateBlob {
             content: String,
@@ -230,7 +234,7 @@ impl GitLike for GitHub {
 
         #[derive(Serialize)]
         struct TreeObject {
-            path: String,
+            path: RelativePathBuf,
             mode: String,
             r#type: String,
             sha: String,
@@ -279,7 +283,7 @@ impl GitLike for GitHub {
                 .sha;
 
             tree.tree.push(TreeObject {
-                path: path.to_string_lossy().into(),
+                path,
                 mode: String::from("100644"),
                 r#type: String::from("blob"),
                 sha,
@@ -559,7 +563,7 @@ struct TreeResponse {
 
 #[derive(Deserialize)]
 struct TreeResponseEntry {
-    path: String,
+    path: RelativePathBuf,
     r#type: String,
 }
 
