@@ -11,7 +11,6 @@ use walkdir::WalkDir;
 pub use self::error::Error;
 
 use crate::repository::path::prepare_path;
-use crate::repository::types::staged::Error as StagedError;
 use crate::repository::{Commit, Repository, Stage};
 
 use super::staged::Staged;
@@ -59,13 +58,11 @@ impl Repository for FileSystem {
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
 
-        self.inner
-            .get_file(path)
-            .map_err(StagedError::into_repo_err)
+        self.inner.get_file(path)
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
-        self.inner.get_index().map_err(StagedError::into_repo_err)
+        self.inner.get_index()
     }
 }
 
@@ -77,9 +74,7 @@ impl Stage for FileSystem {
     ) -> Result<&mut Self, Self::Error> {
         let path = prepare_path(Cow::Owned(path.into()))?;
 
-        self.inner
-            .add_file(path.into_owned(), file)
-            .map_err(StagedError::into_repo_err)?;
+        self.inner.add_file(path.into_owned(), file)?;
 
         Ok(self)
     }
@@ -90,9 +85,7 @@ impl Stage for FileSystem {
     ) -> Result<Option<Bytes>, Self::Error> {
         let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
 
-        self.inner
-            .remove_file(path)
-            .map_err(StagedError::into_repo_err)
+        self.inner.remove_file(path)
     }
 }
 

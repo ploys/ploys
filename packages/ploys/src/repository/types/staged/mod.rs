@@ -1,5 +1,4 @@
 mod drain;
-mod error;
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -12,8 +11,6 @@ use crate::repository::path::prepare_path;
 use crate::repository::{Repository, Stage};
 
 use self::drain::Drain;
-
-pub use self::error::Error;
 
 /// A repository adapter for staging changes.
 #[derive(Clone)]
@@ -48,8 +45,9 @@ impl<T> Staged<T> {
 impl<T> Repository for Staged<T>
 where
     T: Repository,
+    T::Error: From<crate::repository::path::Error>,
 {
-    type Error = Error<T::Error>;
+    type Error = T::Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
@@ -57,7 +55,7 @@ where
         match self.files.get(&*path) {
             Some(Some(file)) => Ok(Some(file.clone())),
             Some(None) => Ok(None),
-            None => self.inner.get_file(path).map_err(Error::Repo),
+            None => self.inner.get_file(path),
         }
     }
 
@@ -66,7 +64,7 @@ where
             .files
             .keys()
             .cloned()
-            .merge(self.inner.get_index().map_err(Error::Repo)?)
+            .merge(self.inner.get_index()?)
             .unique()
             .filter(|path| self.files.get(path).is_none_or(Option::is_some)))
     }
@@ -75,6 +73,7 @@ where
 impl<T> Stage for Staged<T>
 where
     T: Repository,
+    T::Error: From<crate::repository::path::Error>,
 {
     fn add_file(
         &mut self,
