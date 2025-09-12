@@ -1,11 +1,13 @@
 mod drain;
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use bytes::Bytes;
 use itertools::Itertools;
 use relative_path::{RelativePath, RelativePathBuf};
 
+use crate::repository::path::prepare_path;
 use crate::repository::{Repository, Stage};
 
 use self::drain::Drain;
@@ -43,11 +45,14 @@ impl<T> Staged<T> {
 impl<T> Repository for Staged<T>
 where
     T: Repository,
+    T::Error: From<crate::repository::path::Error>,
 {
     type Error = T::Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        match self.files.get(path.as_ref()) {
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
+        match self.files.get(&*path) {
             Some(Some(file)) => Ok(Some(file.clone())),
             Some(None) => Ok(None),
             None => self.inner.get_file(path),
@@ -68,23 +73,16 @@ where
 impl<T> Stage for Staged<T>
 where
     T: Repository,
+    T::Error: From<crate::repository::path::Error>,
 {
     fn add_file(
         &mut self,
         path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
-        self.files.insert(path.into(), Some(file.into()));
+        let path = prepare_path(Cow::Owned(path.into()))?;
 
-        Ok(self)
-    }
-
-    fn add_files(
-        &mut self,
-        files: impl IntoIterator<Item = (RelativePathBuf, Bytes)>,
-    ) -> Result<&mut Self, Self::Error> {
-        self.files
-            .extend(files.into_iter().map(|(path, file)| (path, Some(file))));
+        self.files.insert(path.into_owned(), Some(file.into()));
 
         Ok(self)
     }
@@ -93,7 +91,9 @@ where
         &mut self,
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
-        Ok(self.files.insert(path.as_ref().to_owned(), None).flatten())
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
+        Ok(self.files.insert(path.into_owned(), None).flatten())
     }
 }
 

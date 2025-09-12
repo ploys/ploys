@@ -7,6 +7,8 @@ use crate::repository::RepoSpecError;
 /// The GitHub repository error.
 #[derive(Debug)]
 pub enum Error {
+    /// An invalid path error.
+    Path(crate::repository::path::Error),
     /// A request error.
     Request(reqwest::Error),
     /// An I/O error.
@@ -18,6 +20,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Path(err) => Display::fmt(err, f),
             Self::Request(transport) => Display::fmt(transport, f),
             Self::Io(err) => Display::fmt(err, f),
             Self::Spec(err) => Display::fmt(err, f),
@@ -28,10 +31,17 @@ impl Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            Self::Path(err) => Some(err),
             Self::Request(err) => Some(err),
             Self::Io(err) => Some(err),
             Self::Spec(err) => Some(err),
         }
+    }
+}
+
+impl From<crate::repository::path::Error> for Error {
+    fn from(err: crate::repository::path::Error) -> Self {
+        Self::Path(err)
     }
 }
 

@@ -1,11 +1,16 @@
+mod error;
+
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::collections::btree_map::IntoIter;
-use std::convert::Infallible;
 
 use bytes::Bytes;
 use relative_path::{RelativePath, RelativePathBuf};
 
+use crate::repository::path::prepare_path;
 use crate::repository::{Repository, Stage};
+
+pub use self::error::Error;
 
 /// A staging repository.
 #[derive(Clone)]
@@ -23,10 +28,12 @@ impl Staging {
 }
 
 impl Repository for Staging {
-    type Error = Infallible;
+    type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        Ok(self.files.get(path.as_ref()).cloned())
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
+        Ok(self.files.get(&*path).cloned())
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
@@ -40,16 +47,9 @@ impl Stage for Staging {
         path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
-        self.files.insert(path.into(), file.into());
+        let path = prepare_path(Cow::Owned(path.into()))?;
 
-        Ok(self)
-    }
-
-    fn add_files(
-        &mut self,
-        files: impl IntoIterator<Item = (RelativePathBuf, Bytes)>,
-    ) -> Result<&mut Self, Self::Error> {
-        self.files.extend(files);
+        self.files.insert(path.into_owned(), file.into());
 
         Ok(self)
     }
@@ -58,7 +58,9 @@ impl Stage for Staging {
         &mut self,
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
-        Ok(self.files.remove(path.as_ref()))
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
+        Ok(self.files.remove(&*path))
     }
 }
 

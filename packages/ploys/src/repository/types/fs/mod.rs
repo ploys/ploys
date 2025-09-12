@@ -1,5 +1,6 @@
 mod error;
 
+use std::borrow::Cow;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
@@ -9,6 +10,7 @@ use walkdir::WalkDir;
 
 pub use self::error::Error;
 
+use crate::repository::path::prepare_path;
 use crate::repository::{Commit, Repository, Stage};
 
 use super::staged::Staged;
@@ -54,6 +56,8 @@ impl Repository for FileSystem {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
         self.inner.get_file(path)
     }
 
@@ -68,16 +72,9 @@ impl Stage for FileSystem {
         path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
-        self.inner.add_file(path, file)?;
+        let path = prepare_path(Cow::Owned(path.into()))?;
 
-        Ok(self)
-    }
-
-    fn add_files(
-        &mut self,
-        files: impl IntoIterator<Item = (RelativePathBuf, Bytes)>,
-    ) -> Result<&mut Self, Self::Error> {
-        self.inner.add_files(files)?;
+        self.inner.add_file(path.into_owned(), file)?;
 
         Ok(self)
     }
@@ -86,6 +83,8 @@ impl Stage for FileSystem {
         &mut self,
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
         self.inner.remove_file(path)
     }
 }

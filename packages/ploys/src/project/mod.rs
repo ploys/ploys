@@ -221,12 +221,16 @@ where
         let package = package.into();
         let base_path = RelativePath::new("packages").join(package.name());
 
-        for path in package.repository.get_index()? {
+        for path in package.repository.get_index().expect("infallible") {
             if path == package.manifest_path() {
                 continue;
             }
 
-            if let Some(file) = package.repository.get_file(&path)? {
+            if let Some(file) = package
+                .repository
+                .get_file(&path)
+                .expect("valid path from index")
+            {
                 self.add_file(base_path.join(path), file)?;
             }
         }
