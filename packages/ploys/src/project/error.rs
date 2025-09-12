@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 
 /// The project error.
 #[derive(Debug)]
-pub enum Error<T = Infallible> {
+pub enum Error<T = crate::repository::types::staging::Error> {
     /// The configuration error.
     Config(super::config::Error),
     /// The changelog error.
@@ -73,6 +73,14 @@ impl<T> From<crate::package::Error<T>> for Error<T> {
 impl<T> From<crate::package::BumpError> for Error<T> {
     fn from(err: crate::package::BumpError) -> Self {
         Self::Package(err.into())
+    }
+}
+
+impl From<crate::repository::types::staging::Error>
+    for Error<crate::repository::types::staging::Error>
+{
+    fn from(err: crate::repository::types::staging::Error) -> Self {
+        Self::Repository(err)
     }
 }
 

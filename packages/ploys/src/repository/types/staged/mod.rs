@@ -1,14 +1,19 @@
 mod drain;
+mod error;
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use bytes::Bytes;
 use itertools::Itertools;
 use relative_path::{RelativePath, RelativePathBuf};
 
+use crate::repository::path::prepare_path;
 use crate::repository::{Repository, Stage};
 
 use self::drain::Drain;
+
+pub use self::error::Error;
 
 /// A repository adapter for staging changes.
 #[derive(Clone)]
@@ -44,13 +49,15 @@ impl<T> Repository for Staged<T>
 where
     T: Repository,
 {
-    type Error = T::Error;
+    type Error = Error<T::Error>;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        match self.files.get(path.as_ref()) {
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
+        match self.files.get(&*path) {
             Some(Some(file)) => Ok(Some(file.clone())),
             Some(None) => Ok(None),
-            None => self.inner.get_file(path),
+            None => self.inner.get_file(path).map_err(Error::Repo),
         }
     }
 
@@ -59,7 +66,7 @@ where
             .files
             .keys()
             .cloned()
-            .merge(self.inner.get_index()?)
+            .merge(self.inner.get_index().map_err(Error::Repo)?)
             .unique()
             .filter(|path| self.files.get(path).is_none_or(Option::is_some)))
     }
@@ -74,17 +81,9 @@ where
         path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
-        self.files.insert(path.into(), Some(file.into()));
+        let path = prepare_path(Cow::Owned(path.into()))?;
 
-        Ok(self)
-    }
-
-    fn add_files(
-        &mut self,
-        files: impl IntoIterator<Item = (RelativePathBuf, Bytes)>,
-    ) -> Result<&mut Self, Self::Error> {
-        self.files
-            .extend(files.into_iter().map(|(path, file)| (path, Some(file))));
+        self.files.insert(path.into_owned(), Some(file.into()));
 
         Ok(self)
     }
@@ -93,7 +92,9 @@ where
         &mut self,
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
-        Ok(self.files.insert(path.as_ref().to_owned(), None).flatten())
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
+        Ok(self.files.insert(path.into_owned(), None).flatten())
     }
 }
 

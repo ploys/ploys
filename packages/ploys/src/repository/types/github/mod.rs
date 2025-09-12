@@ -8,6 +8,7 @@ mod error;
 mod repo;
 mod spec;
 
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io::{self, Read};
 
@@ -20,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use crate::changelog::Release;
 use crate::package::BumpOrVersion;
 use crate::repository::cache::Cache;
+use crate::repository::path::prepare_path;
 use crate::repository::revision::Revision;
 use crate::repository::{GitLike, Remote, Repository};
 
@@ -131,6 +133,8 @@ impl Repository for GitHub {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Some(self.get_file_uncached(path.as_ref())?));
         }
@@ -215,6 +219,11 @@ impl GitLike for GitHub {
         message: &str,
         files: Vec<(RelativePathBuf, String)>,
     ) -> Result<String, Self::Error> {
+        let files = files
+            .into_iter()
+            .map(|(path, file)| prepare_path(Cow::Owned(path)).map(|path| (path, file)))
+            .collect::<Result<Vec<_>, _>>()?;
+
         #[derive(Serialize)]
         struct CreateBlob {
             content: String,
@@ -283,7 +292,7 @@ impl GitLike for GitHub {
                 .sha;
 
             tree.tree.push(TreeObject {
-                path,
+                path: path.into_owned(),
                 mode: String::from("100644"),
                 r#type: String::from("blob"),
                 sha,
