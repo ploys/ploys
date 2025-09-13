@@ -106,6 +106,50 @@ where
         Ok(self)
     }
 
+    fn add_files(
+        &mut self,
+        files: impl IntoIterator<Item = (RelativePathBuf, Bytes)>,
+    ) -> Result<&mut Self, Self::Error> {
+        self.repo.add_files(
+            files
+                .into_iter()
+                .map(|(path, file)| (self.path.join(path), file)),
+        )?;
+
+        Ok(self)
+    }
+
+    fn with_file(
+        self,
+        path: impl Into<RelativePathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        Ok(Self {
+            repo: self.repo.with_file(path, file)?,
+            path: self.path,
+        })
+    }
+
+    fn with_files(
+        self,
+        files: impl IntoIterator<Item = (RelativePathBuf, Bytes)>,
+    ) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        Ok(Self {
+            repo: self.repo.with_files(
+                files
+                    .into_iter()
+                    .map(|(path, file)| (self.path.join(path), file)),
+            )?,
+            path: self.path,
+        })
+    }
+
     fn remove_file(
         &mut self,
         path: impl AsRef<RelativePath>,
