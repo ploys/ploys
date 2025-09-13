@@ -8,6 +8,7 @@ mod remote;
 mod spec;
 mod vcs;
 
+pub mod adapters;
 pub mod path;
 pub mod revision;
 pub mod types;

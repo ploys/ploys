@@ -21,6 +21,7 @@ use url::Url;
 
 use crate::changelog::Changelog;
 use crate::project::Project;
+use crate::repository::adapters::subdirectory::Subdirectory;
 use crate::repository::types::staging::Staging;
 use crate::repository::{Remote, Repository, Stage};
 
@@ -34,9 +35,8 @@ use self::manifest::{Dependencies, DependenciesMut, DependencyMut, DependencyRef
 /// A project package.
 #[derive(Clone)]
 pub struct Package<T = Staging> {
-    pub(crate) repository: T,
+    pub(crate) repository: Subdirectory<T>,
     manifest: Manifest,
-    path: RelativePathBuf,
     primary: bool,
 }
 
@@ -44,9 +44,8 @@ impl Package {
     /// Constructs a new cargo package.
     pub fn new_cargo(name: impl Into<String>) -> Self {
         Self {
-            repository: Staging::new(),
+            repository: Subdirectory::new_root(Staging::new()),
             manifest: Manifest::new_cargo(name),
-            path: RelativePathBuf::new(),
             primary: false,
         }
     }
@@ -172,7 +171,7 @@ impl<T> Package<T> {
 
     /// Gets the package path.
     pub fn path(&self) -> &RelativePath {
-        &self.path
+        self.repository.path()
     }
 
     /// Gets the package manifest path.
@@ -227,11 +226,11 @@ where
     /// Adds a file to the package.
     pub fn add_file(
         &mut self,
-        path: impl AsRef<RelativePath>,
+        path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Error<T::Error>> {
         self.repository
-            .add_file(self.path.join(path), file)
+            .add_file(path, file)
             .map_err(Error::Repository)?;
 
         Ok(self)
@@ -240,7 +239,7 @@ where
     /// Builds the package with the given file.
     pub fn with_file(
         mut self,
-        path: impl AsRef<RelativePath>,
+        path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<Self, Error<T::Error>> {
         self.add_file(path, file)?;
@@ -258,9 +257,7 @@ where
         &self,
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Error<T::Error>> {
-        let path = self.path.join(path);
-
-        if path == self.manifest_path() {
+        if path.as_ref() == self.kind().file_name() {
             return Ok(Some(self.manifest.to_string().into()));
         }
 
@@ -371,6 +368,7 @@ where
         );
 
         self.repository
+            .inner()
             .request_package_release(self.name(), version)?;
 
         Ok(())
@@ -388,8 +386,11 @@ where
         &self,
         version: impl Borrow<Version>,
     ) -> Result<crate::changelog::Release, T::Error> {
-        self.repository
-            .get_changelog_release(self.name(), version.borrow(), self.is_primary())
+        self.repository.inner().get_changelog_release(
+            self.name(),
+            version.borrow(),
+            self.is_primary(),
+        )
     }
 }
 
@@ -413,9 +414,8 @@ where
         };
 
         Some(Self {
-            repository: project.repository.clone(),
+            repository: Subdirectory::new_unvalidated(project.repository.clone(), path.into()),
             manifest: manifest.clone(),
-            path: path.into(),
             primary,
         })
     }
