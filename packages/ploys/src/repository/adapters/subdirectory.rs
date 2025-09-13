@@ -157,3 +157,59 @@ where
         self.repo.remove_file(self.path.join(path))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use bytes::Bytes;
+    use relative_path::RelativePathBuf;
+
+    use crate::repository::types::staging::Staging;
+    use crate::repository::{Repository, Stage};
+
+    use super::Subdirectory;
+
+    #[test]
+    fn test_subdirectory_valid() {
+        let staging = Staging::new()
+            .with_file("hello.txt", "Hello World!")
+            .unwrap()
+            .with_file("foo/bar.txt", "Hello Foo!")
+            .unwrap();
+
+        let root = Subdirectory::new(staging.clone(), "").unwrap();
+
+        assert_eq!(
+            root.get_file("hello.txt"),
+            Ok(Some(Bytes::from("Hello World!")))
+        );
+        assert_eq!(
+            root.get_file("foo/bar.txt"),
+            Ok(Some(Bytes::from("Hello Foo!")))
+        );
+
+        let root_index = root.get_index().unwrap().collect::<Vec<_>>();
+
+        assert_eq!(root_index.len(), 2);
+
+        assert!(root_index.contains(&RelativePathBuf::from("hello.txt")));
+        assert!(root_index.contains(&RelativePathBuf::from("foo/bar.txt")));
+
+        let foo = Subdirectory::new(staging, "foo").unwrap();
+
+        assert_eq!(foo.get_file("hello.txt"), Ok(None));
+        assert_eq!(foo.get_file("foo/bar.txt"), Ok(None));
+        assert_eq!(foo.get_file("bar.txt"), Ok(Some(Bytes::from("Hello Foo!"))));
+
+        let foo_index = foo.get_index().unwrap().collect::<Vec<_>>();
+
+        assert_eq!(foo_index.len(), 1);
+
+        assert!(foo_index.contains(&RelativePathBuf::from("bar.txt")));
+    }
+
+    #[test]
+    fn test_subdirectory_invalid() {
+        assert!(Subdirectory::new(Staging::new(), "..").is_err());
+        assert!(Subdirectory::new(Staging::new(), "../foo/bar").is_err());
+    }
+}
