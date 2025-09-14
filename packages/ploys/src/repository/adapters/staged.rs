@@ -34,10 +34,9 @@ impl<T> Staged<T> {
 
     /// Drains the staged files.
     pub(crate) fn drain(&mut self) -> impl Iterator<Item = (RelativePathBuf, Option<Bytes>)> {
-        /// An iterator that drains a file map.
-        pub struct Drain<'a>(pub &'a mut BTreeMap<RelativePathBuf, Option<Bytes>>);
+        struct Drain<'a>(&'a mut BTreeMap<RelativePathBuf, Option<Bytes>>);
 
-        impl<'a> Iterator for Drain<'a> {
+        impl Iterator for Drain<'_> {
             type Item = (RelativePathBuf, Option<Bytes>);
 
             fn next(&mut self) -> Option<Self::Item> {
