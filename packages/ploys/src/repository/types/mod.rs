@@ -1,4 +1,3 @@
-pub mod staged;
 pub mod staging;
 
 #[cfg(feature = "fs")]

@@ -10,10 +10,9 @@ use walkdir::WalkDir;
 
 pub use self::error::Error;
 
+use crate::repository::adapters::staged::Staged;
 use crate::repository::path::prepare_path;
 use crate::repository::{Commit, Repository, Stage};
-
-use super::staged::Staged;
 
 /// A file system repository.
 #[derive(Clone)]

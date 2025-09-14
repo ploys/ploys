@@ -1,5 +1,3 @@
-mod drain;
-
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 
@@ -9,8 +7,6 @@ use relative_path::{RelativePath, RelativePathBuf};
 
 use crate::repository::path::prepare_path;
 use crate::repository::{Repository, Stage};
-
-use self::drain::Drain;
 
 /// A repository adapter for staging changes.
 #[derive(Clone)]
@@ -38,6 +34,16 @@ impl<T> Staged<T> {
 
     /// Drains the staged files.
     pub(crate) fn drain(&mut self) -> impl Iterator<Item = (RelativePathBuf, Option<Bytes>)> {
+        struct Drain<'a>(&'a mut BTreeMap<RelativePathBuf, Option<Bytes>>);
+
+        impl Iterator for Drain<'_> {
+            type Item = (RelativePathBuf, Option<Bytes>);
+
+            fn next(&mut self) -> Option<Self::Item> {
+                self.0.pop_first()
+            }
+        }
+
         Drain(&mut self.files).fuse()
     }
 }
