@@ -20,22 +20,20 @@ use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
 use crate::package::BumpOrVersion;
+use crate::repository::adapters::staged::Staged;
 use crate::repository::cache::Cache;
 use crate::repository::path::prepare_path;
 use crate::repository::revision::Revision;
-use crate::repository::{GitLike, Remote, Repository};
+use crate::repository::{GitLike, Remote, Repository, Stage};
 
 pub use self::error::Error;
 pub use self::repo::Repo;
 pub use self::spec::GitHubRepoSpec;
 
 /// The remote GitHub repository.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct GitHub {
-    repository: Repo,
-    revision: Revision,
-    token: Option<String>,
-    cache: Cache,
+    inner: Staged<Inner>,
 }
 
 impl GitHub {
@@ -49,10 +47,12 @@ impl GitHub {
         R: TryInto<GitHubRepoSpec, Error: Into<Error>>,
     {
         Ok(Self {
-            repository: Repo::new(repo.try_into().map_err(Into::into)?)?,
-            revision: Revision::head(),
-            token: None,
-            cache: Cache::new(),
+            inner: Staged::new(Inner {
+                repository: Repo::new(repo.try_into().map_err(Into::into)?)?,
+                revision: Revision::head(),
+                token: None,
+                cache: Cache::new(),
+            }),
         })
     }
 }
@@ -60,19 +60,22 @@ impl GitHub {
 impl GitHub {
     /// Builds the repository with the given revision.
     pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
-        self.revision = revision.into();
+        self.inner.inner.revision = revision.into();
         self
     }
 
     /// Builds the repository with the given authentication token.
     pub fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
-        self.token = Some(token.into());
+        self.inner.inner.token = Some(token.into());
         self
     }
 
     /// Builds the repository with validation to ensure it exists.
     pub fn validated(self) -> Result<Self, Error> {
-        self.repository.validate(self.token.as_deref())?;
+        self.inner
+            .inner
+            .repository
+            .validate(self.inner.inner.token.as_deref())?;
 
         Ok(self)
     }
@@ -96,12 +99,14 @@ impl GitHub {
             sha: String,
         }
 
-        match &self.revision {
+        match &self.inner.inner.revision {
             Revision::Sha(sha) => Ok(sha.clone()),
             Revision::Head => {
                 let sha = self
+                    .inner
+                    .inner
                     .repository
-                    .get("git/trees/HEAD", self.token.as_deref())
+                    .get("git/trees/HEAD", self.inner.inner.token.as_deref())
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
                     .send()?
@@ -113,8 +118,13 @@ impl GitHub {
             }
             Revision::Reference(reference) => {
                 let sha = self
+                    .inner
+                    .inner
                     .repository
-                    .get(format!("git/ref/{reference}"), self.token.as_deref())
+                    .get(
+                        format!("git/ref/{reference}"),
+                        self.inner.inner.token.as_deref(),
+                    )
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
                     .send()?
@@ -135,6 +145,49 @@ impl Repository for GitHub {
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
 
+        self.inner.get_file(path)
+    }
+
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+        self.inner.get_index()
+    }
+}
+
+impl Stage for GitHub {
+    fn add_file(
+        &mut self,
+        path: impl Into<RelativePathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<&mut Self, Self::Error> {
+        let path = prepare_path(Cow::Owned(path.into()))?;
+
+        self.inner.add_file(path.into_owned(), file)?;
+
+        Ok(self)
+    }
+
+    fn remove_file(
+        &mut self,
+        path: impl AsRef<RelativePath>,
+    ) -> Result<Option<Bytes>, Self::Error> {
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
+        self.inner.remove_file(path)
+    }
+}
+
+#[derive(Clone)]
+struct Inner {
+    repository: Repo,
+    revision: Revision,
+    token: Option<String>,
+    cache: Cache,
+}
+
+impl Repository for Inner {
+    type Error = Error;
+
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         if !matches!(&self.revision, Revision::Sha(_)) {
             return Ok(Some(self.get_file_uncached(path.as_ref())?));
         }
@@ -158,7 +211,7 @@ impl Repository for GitHub {
     }
 }
 
-impl GitHub {
+impl Inner {
     fn get_index_uncached(&self) -> Result<BTreeSet<RelativePathBuf>, Error> {
         let entries = self
             .repository
@@ -275,8 +328,10 @@ impl GitLike for GitHub {
 
         for (path, content) in files {
             let sha = self
+                .inner
+                .inner
                 .repository
-                .post("git/blobs", self.token.as_deref())
+                .post("git/blobs", self.inner.inner.token.as_deref())
                 .header("Accept", "application/vnd.github+json")
                 .header("X-GitHub-Api-Version", "2022-11-28")
                 .json(&CreateBlob {
@@ -300,8 +355,10 @@ impl GitLike for GitHub {
         }
 
         let tree_sha = self
+            .inner
+            .inner
             .repository
-            .post("git/trees", self.token.as_deref())
+            .post("git/trees", self.inner.inner.token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&tree)
@@ -314,8 +371,10 @@ impl GitLike for GitHub {
             .sha;
 
         let commit_sha = self
+            .inner
+            .inner
             .repository
-            .post("git/commits", self.token.as_deref())
+            .post("git/commits", self.inner.inner.token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&CreateCommit {
@@ -341,8 +400,10 @@ impl GitLike for GitHub {
         }
 
         let default_branch = self
+            .inner
+            .inner
             .repository
-            .get("", self.token.as_deref())
+            .get("", self.inner.inner.token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
@@ -365,8 +426,10 @@ impl GitLike for GitHub {
 
         let sha = self.sha()?;
 
-        self.repository
-            .post("git/refs", self.token.as_deref())
+        self.inner
+            .inner
+            .repository
+            .post("git/refs", self.inner.inner.token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewBranch {
@@ -387,8 +450,13 @@ impl GitLike for GitHub {
             sha: String,
         }
 
-        self.repository
-            .patch(format!("git/refs/heads/{name}"), self.token.as_deref())
+        self.inner
+            .inner
+            .repository
+            .patch(
+                format!("git/refs/heads/{name}"),
+                self.inner.inner.token.as_deref(),
+            )
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&UpdateRef {
@@ -415,8 +483,10 @@ impl Remote for GitHub {
             version: String,
         }
 
-        self.repository
-            .post("dispatches", self.token.as_deref())
+        self.inner
+            .inner
+            .repository
+            .post("dispatches", self.inner.inner.token.as_deref())
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&RepositoryDispatchEvent {
                 event_type: String::from("ploys-package-release-request"),
@@ -440,11 +510,11 @@ impl Remote for GitHub {
         is_primary: bool,
     ) -> Result<Release, Self::Error> {
         self::changelog::get_release(
-            &self.repository,
+            &self.inner.inner.repository,
             package,
             version,
             is_primary,
-            self.token.as_deref(),
+            self.inner.inner.token.as_deref(),
         )
     }
 
@@ -469,8 +539,10 @@ impl Remote for GitHub {
         }
 
         let number = self
+            .inner
+            .inner
             .repository
-            .post("pulls", self.token.as_deref())
+            .post("pulls", self.inner.inner.token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewPullRequest {
@@ -533,8 +605,10 @@ impl Remote for GitHub {
         }
 
         let id = self
+            .inner
+            .inner
             .repository
-            .post("releases", self.token.as_deref())
+            .post("releases", self.inner.inner.token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewRelease {
