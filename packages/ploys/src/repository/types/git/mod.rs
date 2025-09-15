@@ -16,37 +16,44 @@ use gix::create::{Kind, Options};
 use gix::traverse::tree::Recorder;
 use relative_path::{RelativePath, RelativePathBuf};
 
-use crate::repository::Repository;
+use crate::repository::adapters::staged::Staged;
 use crate::repository::cache::Cache;
 use crate::repository::path::prepare_path;
 use crate::repository::revision::Revision;
+use crate::repository::{Repository, Stage};
 
 pub use self::error::Error;
 
 /// The local Git repository.
 #[derive(Clone)]
 pub struct Git {
-    repository: ThreadSafeRepository,
-    revision: Revision,
-    cache: Cache,
+    inner: Staged<Inner>,
 }
 
 impl Git {
     /// Opens a Git repository.
     pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
         Ok(Self {
-            repository: ThreadSafeRepository::open(path)?,
-            revision: Revision::Head,
-            cache: Cache::new(),
+            inner: Staged::new(Inner {
+                repository: ThreadSafeRepository::open(path)?,
+                revision: Revision::Head,
+                cache: Cache::new(),
+            }),
         })
     }
 
     /// Initializes a Git repository.
     pub fn init(path: impl AsRef<Path>) -> Result<Self, Error> {
         Ok(Self {
-            repository: ThreadSafeRepository::init(path, Kind::WithWorktree, Options::default())?,
-            revision: Revision::Head,
-            cache: Cache::new(),
+            inner: Staged::new(Inner {
+                repository: ThreadSafeRepository::init(
+                    path,
+                    Kind::WithWorktree,
+                    Options::default(),
+                )?,
+                revision: Revision::Head,
+                cache: Cache::new(),
+            }),
         })
     }
 }
@@ -54,12 +61,12 @@ impl Git {
 impl Git {
     /// Gets the revision.
     pub fn revision(&self) -> &Revision {
-        &self.revision
+        &self.inner.inner.revision
     }
 
     /// Sets the revision.
     pub fn set_revision(&mut self, revision: impl Into<Revision>) {
-        self.revision = revision.into();
+        self.inner.inner.revision = revision.into();
     }
 
     /// Builds the repository with the given revision.
@@ -99,7 +106,49 @@ impl Repository for Git {
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
 
-        if !matches!(&self.revision, Revision::Sha(_)) {
+        self.inner.get_file(path)
+    }
+
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+        self.inner.get_index()
+    }
+}
+
+impl Stage for Git {
+    fn add_file(
+        &mut self,
+        path: impl Into<RelativePathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<&mut Self, Self::Error> {
+        let path = prepare_path(Cow::Owned(path.into()))?;
+
+        self.inner.add_file(path.into_owned(), file)?;
+
+        Ok(self)
+    }
+
+    fn remove_file(
+        &mut self,
+        path: impl AsRef<RelativePath>,
+    ) -> Result<Option<Bytes>, Self::Error> {
+        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
+
+        self.inner.remove_file(path)
+    }
+}
+
+#[derive(Clone)]
+struct Inner {
+    repository: ThreadSafeRepository,
+    revision: Revision,
+    cache: Cache,
+}
+
+impl Repository for Inner {
+    type Error = Error;
+
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
+        if !matches!(self.revision, Revision::Sha(_)) {
             return Ok(Some(self.get_file_uncached(path.as_ref())?));
         }
 
@@ -122,7 +171,7 @@ impl Repository for Git {
     }
 }
 
-impl Git {
+impl Inner {
     fn get_index_uncached(&self) -> Result<BTreeSet<RelativePathBuf>, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
