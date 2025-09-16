@@ -143,8 +143,6 @@ impl Repository for GitHub {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
-
         self.inner.get_file(path)
     }
 
@@ -159,9 +157,7 @@ impl Stage for GitHub {
         path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
-        let path = prepare_path(Cow::Owned(path.into()))?;
-
-        self.inner.add_file(path.into_owned(), file)?;
+        self.inner.add_file(path, file)?;
 
         Ok(self)
     }
@@ -170,8 +166,6 @@ impl Stage for GitHub {
         &mut self,
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
-        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
-
         self.inner.remove_file(path)
     }
 }

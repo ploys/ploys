@@ -1,6 +1,5 @@
 mod error;
 
-use std::borrow::Cow;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
@@ -11,7 +10,6 @@ use walkdir::WalkDir;
 pub use self::error::Error;
 
 use crate::repository::adapters::staged::Staged;
-use crate::repository::path::prepare_path;
 use crate::repository::{Commit, Repository, Stage};
 
 /// A file system repository.
@@ -55,8 +53,6 @@ impl Repository for FileSystem {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
-
         self.inner.get_file(path)
     }
 
@@ -71,9 +67,7 @@ impl Stage for FileSystem {
         path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
-        let path = prepare_path(Cow::Owned(path.into()))?;
-
-        self.inner.add_file(path.into_owned(), file)?;
+        self.inner.add_file(path, file)?;
 
         Ok(self)
     }
@@ -82,8 +76,6 @@ impl Stage for FileSystem {
         &mut self,
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
-        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
-
         self.inner.remove_file(path)
     }
 }
