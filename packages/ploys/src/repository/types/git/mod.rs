@@ -4,7 +4,6 @@
 
 mod error;
 
-use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -18,7 +17,6 @@ use relative_path::{RelativePath, RelativePathBuf};
 
 use crate::repository::adapters::staged::Staged;
 use crate::repository::cache::Cache;
-use crate::repository::path::prepare_path;
 use crate::repository::revision::Revision;
 use crate::repository::{Repository, Stage};
 
@@ -104,8 +102,6 @@ impl Repository for Git {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
-
         self.inner.get_file(path)
     }
 
@@ -120,9 +116,7 @@ impl Stage for Git {
         path: impl Into<RelativePathBuf>,
         file: impl Into<Bytes>,
     ) -> Result<&mut Self, Self::Error> {
-        let path = prepare_path(Cow::Owned(path.into()))?;
-
-        self.inner.add_file(path.into_owned(), file)?;
+        self.inner.add_file(path, file)?;
 
         Ok(self)
     }
@@ -131,8 +125,6 @@ impl Stage for Git {
         &mut self,
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
-        let path = prepare_path(Cow::Borrowed(path.as_ref()))?;
-
         self.inner.remove_file(path)
     }
 }
