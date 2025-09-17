@@ -78,6 +78,48 @@ impl From<gix::traverse::tree::breadthfirst::Error> for Error {
     }
 }
 
+impl From<gix::object::tree::editor::init::Error> for Error {
+    fn from(err: gix::object::tree::editor::init::Error) -> Self {
+        Self::Gix(err.into())
+    }
+}
+
+impl From<gix::object::tree::editor::write::Error> for Error {
+    fn from(err: gix::object::tree::editor::write::Error) -> Self {
+        Self::Gix(err.into())
+    }
+}
+
+impl From<gix::objs::tree::editor::Error> for Error {
+    fn from(err: gix::objs::tree::editor::Error) -> Self {
+        Self::Gix(err.into())
+    }
+}
+
+impl From<gix::object::write::Error> for Error {
+    fn from(err: gix::object::write::Error) -> Self {
+        Self::Gix(err.into())
+    }
+}
+
+impl From<gix::commit::Error> for Error {
+    fn from(err: gix::commit::Error) -> Self {
+        Self::Gix(err.into())
+    }
+}
+
+impl From<gix::reference::find::existing::Error> for Error {
+    fn from(err: gix::reference::find::existing::Error) -> Self {
+        Self::Gix(err.into())
+    }
+}
+
+impl From<gix::repository::edit_tree::Error> for Error {
+    fn from(err: gix::repository::edit_tree::Error) -> Self {
+        Self::Gix(err.into())
+    }
+}
+
 /// A Git error.
 #[derive(Debug)]
 pub enum GixError {
@@ -95,6 +137,20 @@ pub enum GixError {
     ObjectKind(Box<gix::object::peel::to_kind::Error>),
     /// A tree traversal error.
     Traverse(Box<gix::traverse::tree::breadthfirst::Error>),
+    /// A tree editor error.
+    TreeEditor(Box<gix::objs::tree::editor::Error>),
+    /// A tree editor initialization error.
+    TreeEditorInit(Box<gix::object::tree::editor::init::Error>),
+    /// A tree editor write error.
+    TreeEditorWrite(Box<gix::object::tree::editor::write::Error>),
+    /// An object write error.
+    ObjectWrite(Box<gix::object::write::Error>),
+    /// A commit error.
+    Commit(Box<gix::commit::Error>),
+    /// A find reference error.
+    FindReference(Box<gix::reference::find::existing::Error>),
+    /// An edit tree error.
+    EditTree(Box<gix::repository::edit_tree::Error>),
 }
 
 impl Display for GixError {
@@ -107,6 +163,13 @@ impl Display for GixError {
             Self::ObjectFind(err) => Display::fmt(err, f),
             Self::ObjectKind(err) => Display::fmt(err, f),
             Self::Traverse(err) => Display::fmt(err, f),
+            Self::TreeEditor(err) => Display::fmt(err, f),
+            Self::TreeEditorInit(err) => Display::fmt(err, f),
+            Self::TreeEditorWrite(err) => Display::fmt(err, f),
+            Self::ObjectWrite(err) => Display::fmt(err, f),
+            Self::Commit(err) => Display::fmt(err, f),
+            Self::FindReference(err) => Display::fmt(err, f),
+            Self::EditTree(err) => Display::fmt(err, f),
         }
     }
 }
@@ -152,5 +215,47 @@ impl From<gix::object::peel::to_kind::Error> for GixError {
 impl From<gix::traverse::tree::breadthfirst::Error> for GixError {
     fn from(err: gix::traverse::tree::breadthfirst::Error) -> Self {
         Self::Traverse(Box::new(err))
+    }
+}
+
+impl From<gix::object::tree::editor::init::Error> for GixError {
+    fn from(err: gix::object::tree::editor::init::Error) -> Self {
+        Self::TreeEditorInit(Box::new(err))
+    }
+}
+
+impl From<gix::object::tree::editor::write::Error> for GixError {
+    fn from(err: gix::object::tree::editor::write::Error) -> Self {
+        Self::TreeEditorWrite(Box::new(err))
+    }
+}
+
+impl From<gix::objs::tree::editor::Error> for GixError {
+    fn from(err: gix::objs::tree::editor::Error) -> Self {
+        Self::TreeEditor(Box::new(err))
+    }
+}
+
+impl From<gix::object::write::Error> for GixError {
+    fn from(err: gix::object::write::Error) -> Self {
+        Self::ObjectWrite(Box::new(err))
+    }
+}
+
+impl From<gix::commit::Error> for GixError {
+    fn from(err: gix::commit::Error) -> Self {
+        Self::Commit(Box::new(err))
+    }
+}
+
+impl From<gix::reference::find::existing::Error> for GixError {
+    fn from(err: gix::reference::find::existing::Error) -> Self {
+        Self::FindReference(Box::new(err))
+    }
+}
+
+impl From<gix::repository::edit_tree::Error> for GixError {
+    fn from(err: gix::repository::edit_tree::Error) -> Self {
+        Self::EditTree(Box::new(err))
     }
 }

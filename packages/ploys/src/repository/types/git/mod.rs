@@ -3,24 +3,26 @@
 //! This module contains the utilities related to local Git project management.
 
 mod error;
+mod params;
 
 use std::collections::BTreeSet;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
-use gix::ThreadSafeRepository;
 use gix::config::File;
 use gix::create::{Kind, Options};
 use gix::traverse::tree::Recorder;
+use gix::{ObjectId, ThreadSafeRepository};
 use relative_path::{RelativePath, RelativePathBuf};
 
 use crate::repository::adapters::staged::Staged;
 use crate::repository::cache::Cache;
-use crate::repository::revision::Revision;
-use crate::repository::{Repository, Stage};
+use crate::repository::revision::{Reference, Revision};
+use crate::repository::{Commit, Repository, Stage};
 
 pub use self::error::Error;
+pub use self::params::CommitParams;
 
 /// The local Git repository.
 #[derive(Clone)]
@@ -126,6 +128,78 @@ impl Stage for Git {
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
         self.inner.remove_file(path)
+    }
+}
+
+impl Commit for Git {
+    type Context = CommitParams;
+
+    fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error> {
+        let context = context.into();
+        let repo = self.inner.inner.repository.to_thread_local();
+        let revision = self.inner.inner.revision.to_string();
+
+        let (mut editor, parent) = match &self.inner.inner.revision {
+            Revision::Head if repo.head()?.is_unborn() => (
+                repo.edit_tree(ObjectId::empty_tree(repo.object_hash()))?,
+                None,
+            ),
+            _ => {
+                let object_id = repo.rev_parse_single(&*revision)?;
+                let commit_id = object_id.object()?.peel_to_commit()?.id();
+                let editor = object_id.object()?.peel_to_tree()?.edit()?;
+
+                (editor, Some(commit_id))
+            }
+        };
+
+        for (path, file) in self.inner.drain() {
+            match file {
+                Some(bytes) => {
+                    let blob_id = repo.write_blob(&bytes)?;
+
+                    editor.upsert(path.as_str(), gix::object::tree::EntryKind::Blob, blob_id)?;
+                }
+                None => {
+                    editor.remove(path.as_str())?;
+                }
+            }
+        }
+
+        let tree_id = editor.write()?;
+
+        match &self.inner.inner.revision {
+            Revision::Head | Revision::Reference(Reference::Branch(_)) => {
+                repo.commit(revision, context.message(), tree_id, parent)?;
+            }
+            _ => {
+                let author = repo
+                    .author()
+                    .ok_or(gix::commit::Error::AuthorMissing)?
+                    .map_err(gix::commit::Error::from)?;
+                let committer = repo
+                    .committer()
+                    .ok_or(gix::commit::Error::CommitterMissing)?
+                    .map_err(gix::commit::Error::from)?;
+
+                let commit = gix::objs::Commit {
+                    message: context.message().into(),
+                    tree: tree_id.into(),
+                    author: author.into(),
+                    committer: committer.into(),
+                    encoding: None,
+                    parents: parent.into_iter().map(Into::into).collect(),
+                    extra_headers: Default::default(),
+                };
+
+                let commit_id = repo.write_object(&commit)?;
+
+                self.inner.inner.revision = Revision::Sha(commit_id.to_string());
+                self.inner.inner.cache = Cache::new();
+            }
+        }
+
+        Ok(())
     }
 }
 
