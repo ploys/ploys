@@ -182,15 +182,21 @@ impl Repository for Inner {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Some(self.get_file_uncached(path.as_ref())?));
-        }
+        let res = if !matches!(self.revision, Revision::Sha(_)) {
+            self.get_file_uncached(path.as_ref()).map(Some)
+        } else {
+            self.cache.get_or_try_init(
+                path,
+                |path| self.get_file_uncached(path),
+                || self.get_index_uncached(),
+            )
+        };
 
-        self.cache.get_or_try_init(
-            path,
-            |path| self.get_file_uncached(path),
-            || self.get_index_uncached(),
-        )
+        match res {
+            Ok(file) => Ok(file),
+            Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
+            Err(err) => Err(err),
+        }
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
