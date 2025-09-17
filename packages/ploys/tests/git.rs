@@ -39,7 +39,13 @@ fn test_repository() -> Result<(), GitError> {
         Some("[project]\nname = \"example\"".into())
     );
 
-    let mut repo = Git::open(dir.path())?.with_revision(Revision::branch("main"));
+    let branch_name = gix::open(dir.path())?
+        .head()?
+        .referent_name()
+        .map(|name| name.shorten().to_string())
+        .unwrap_or_else(|| gix::init::DEFAULT_BRANCH_NAME.to_string());
+
+    let mut repo = Git::open(dir.path())?.with_revision(Revision::branch(branch_name));
 
     repo.add_file("Cargo.toml", "[package]\nname = \"example\"")?;
     repo.commit("Fourth commit")?;
