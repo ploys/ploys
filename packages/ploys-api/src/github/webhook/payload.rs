@@ -102,13 +102,6 @@ pub struct RepositoryDispatchPayload {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum RefType {
-    Tag,
-    Branch,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct Repository {
     pub id: u64,
     pub full_name: String,
