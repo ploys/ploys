@@ -10,7 +10,7 @@ mod spec;
 
 use std::borrow::Cow;
 use std::collections::BTreeSet;
-use std::io::{self, Read};
+use std::io::Read;
 
 use bytes::Bytes;
 use relative_path::{RelativePath, RelativePathBuf};
@@ -20,8 +20,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
 use crate::package::BumpOrVersion;
+use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
-use crate::repository::cache::Cache;
 use crate::repository::path::prepare_path;
 use crate::repository::revision::Revision;
 use crate::repository::{GitLike, Remote, Repository, Stage};
@@ -33,7 +33,7 @@ pub use self::spec::GitHubRepoSpec;
 /// The remote GitHub repository.
 #[derive(Clone)]
 pub struct GitHub {
-    inner: Staged<Inner>,
+    inner: Staged<Cached<Inner>>,
 }
 
 impl GitHub {
@@ -47,12 +47,14 @@ impl GitHub {
         R: TryInto<GitHubRepoSpec, Error: Into<Error>>,
     {
         Ok(Self {
-            inner: Staged::new(Inner {
-                repository: Repo::new(repo.try_into().map_err(Into::into)?)?,
-                revision: Revision::head(),
-                token: None,
-                cache: Cache::new(),
-            }),
+            inner: Staged::new(
+                Cached::new(Inner {
+                    repository: Repo::new(repo.try_into().map_err(Into::into)?)?,
+                    revision: Revision::head(),
+                    token: None,
+                })
+                .enabled(false),
+            ),
         })
     }
 }
@@ -60,13 +62,20 @@ impl GitHub {
 impl GitHub {
     /// Builds the repository with the given revision.
     pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
-        self.inner.inner.revision = revision.into();
+        self.inner.inner.inner_mut().revision = revision.into();
+
+        if let Revision::Sha(_) = self.inner.inner.inner().revision {
+            self.inner.inner.enable(true);
+        } else {
+            self.inner.inner.enable(false);
+        }
+
         self
     }
 
     /// Builds the repository with the given authentication token.
     pub fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
-        self.inner.inner.token = Some(token.into());
+        self.inner.inner.inner_mut().token = Some(token.into());
         self
     }
 
@@ -74,8 +83,9 @@ impl GitHub {
     pub fn validated(self) -> Result<Self, Error> {
         self.inner
             .inner
+            .inner()
             .repository
-            .validate(self.inner.inner.token.as_deref())?;
+            .validate(self.inner.inner.inner().token.as_deref())?;
 
         Ok(self)
     }
@@ -99,14 +109,15 @@ impl GitHub {
             sha: String,
         }
 
-        match &self.inner.inner.revision {
+        match &self.inner.inner.inner().revision {
             Revision::Sha(sha) => Ok(sha.clone()),
             Revision::Head => {
                 let sha = self
                     .inner
                     .inner
+                    .inner()
                     .repository
-                    .get("git/trees/HEAD", self.inner.inner.token.as_deref())
+                    .get("git/trees/HEAD", self.inner.inner.inner().token.as_deref())
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
                     .send()?
@@ -120,10 +131,11 @@ impl GitHub {
                 let sha = self
                     .inner
                     .inner
+                    .inner()
                     .repository
                     .get(
                         format!("git/ref/{reference}"),
-                        self.inner.inner.token.as_deref(),
+                        self.inner.inner.inner().token.as_deref(),
                     )
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
@@ -175,66 +187,12 @@ struct Inner {
     repository: Repo,
     revision: Revision,
     token: Option<String>,
-    cache: Cache,
 }
 
 impl Repository for Inner {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        let res = if !matches!(self.revision, Revision::Sha(_)) {
-            self.get_file_uncached(path.as_ref()).map(Some)
-        } else {
-            self.cache.get_or_try_init(
-                path,
-                |path| self.get_file_uncached(path),
-                || self.get_index_uncached(),
-            )
-        };
-
-        match res {
-            Ok(file) => Ok(file),
-            Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
-            Err(err) => Err(err),
-        }
-    }
-
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
-        if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Box::new(self.get_index_uncached()?.into_iter())
-                as Box<dyn Iterator<Item = RelativePathBuf>>);
-        }
-
-        Ok(Box::new(
-            self.cache.get_or_try_index(|| self.get_index_uncached())?,
-        ))
-    }
-}
-
-impl Inner {
-    fn get_index_uncached(&self) -> Result<BTreeSet<RelativePathBuf>, Error> {
-        let entries = self
-            .repository
-            .get(
-                format!("git/trees/{}", self.revision),
-                self.token.as_deref(),
-            )
-            .header("Accept", "application/vnd.github+json")
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .query(&[("recursive", "true")])
-            .send()?
-            .error_for_status()?
-            .json::<TreeResponse>()?
-            .tree
-            .into_iter()
-            .filter(|entry| entry.r#type == "blob")
-            .map(|entry| entry.path)
-            .collect::<BTreeSet<_>>();
-
-        Ok(entries)
-    }
-
-    fn get_file_uncached(&self, path: impl AsRef<RelativePath>) -> Result<Bytes, Error> {
         let mut response = self
             .repository
             .get(
@@ -253,12 +211,34 @@ impl Inner {
 
                     response.read_to_end(&mut contents)?;
 
-                    Ok(contents.into())
+                    Ok(Some(contents.into()))
                 }
-                _ => Err(io::Error::from(io::ErrorKind::NotFound))?,
+                _ => Ok(None),
             },
-            _ => Err(io::Error::from(io::ErrorKind::NotFound))?,
+            _ => Ok(None),
         }
+    }
+
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+        let entries = self
+            .repository
+            .get(
+                format!("git/trees/{}", self.revision),
+                self.token.as_deref(),
+            )
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .query(&[("recursive", "true")])
+            .send()?
+            .error_for_status()?
+            .json::<TreeResponse>()?
+            .tree
+            .into_iter()
+            .filter(|entry| entry.r#type == "blob")
+            .map(|entry| entry.path)
+            .collect::<BTreeSet<_>>();
+
+        Ok(entries.into_iter())
     }
 }
 
@@ -330,8 +310,9 @@ impl GitLike for GitHub {
             let sha = self
                 .inner
                 .inner
+                .inner()
                 .repository
-                .post("git/blobs", self.inner.inner.token.as_deref())
+                .post("git/blobs", self.inner.inner.inner().token.as_deref())
                 .header("Accept", "application/vnd.github+json")
                 .header("X-GitHub-Api-Version", "2022-11-28")
                 .json(&CreateBlob {
@@ -357,8 +338,9 @@ impl GitLike for GitHub {
         let tree_sha = self
             .inner
             .inner
+            .inner()
             .repository
-            .post("git/trees", self.inner.inner.token.as_deref())
+            .post("git/trees", self.inner.inner.inner().token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&tree)
@@ -373,8 +355,9 @@ impl GitLike for GitHub {
         let commit_sha = self
             .inner
             .inner
+            .inner()
             .repository
-            .post("git/commits", self.inner.inner.token.as_deref())
+            .post("git/commits", self.inner.inner.inner().token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&CreateCommit {
@@ -402,8 +385,9 @@ impl GitLike for GitHub {
         let default_branch = self
             .inner
             .inner
+            .inner()
             .repository
-            .get("", self.inner.inner.token.as_deref())
+            .get("", self.inner.inner.inner().token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
@@ -428,8 +412,9 @@ impl GitLike for GitHub {
 
         self.inner
             .inner
+            .inner()
             .repository
-            .post("git/refs", self.inner.inner.token.as_deref())
+            .post("git/refs", self.inner.inner.inner().token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewBranch {
@@ -452,10 +437,11 @@ impl GitLike for GitHub {
 
         self.inner
             .inner
+            .inner()
             .repository
             .patch(
                 format!("git/refs/heads/{name}"),
-                self.inner.inner.token.as_deref(),
+                self.inner.inner.inner().token.as_deref(),
             )
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
@@ -485,8 +471,9 @@ impl Remote for GitHub {
 
         self.inner
             .inner
+            .inner()
             .repository
-            .post("dispatches", self.inner.inner.token.as_deref())
+            .post("dispatches", self.inner.inner.inner().token.as_deref())
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&RepositoryDispatchEvent {
                 event_type: String::from("ploys-package-release-request"),
@@ -510,11 +497,11 @@ impl Remote for GitHub {
         is_primary: bool,
     ) -> Result<Release, Self::Error> {
         self::changelog::get_release(
-            &self.inner.inner.repository,
+            &self.inner.inner.inner().repository,
             package,
             version,
             is_primary,
-            self.inner.inner.token.as_deref(),
+            self.inner.inner.inner().token.as_deref(),
         )
     }
 
@@ -541,8 +528,9 @@ impl Remote for GitHub {
         let number = self
             .inner
             .inner
+            .inner()
             .repository
-            .post("pulls", self.inner.inner.token.as_deref())
+            .post("pulls", self.inner.inner.inner().token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewPullRequest {
@@ -607,8 +595,9 @@ impl Remote for GitHub {
         let id = self
             .inner
             .inner
+            .inner()
             .repository
-            .post("releases", self.inner.inner.token.as_deref())
+            .post("releases", self.inner.inner.inner().token.as_deref())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewRelease {
