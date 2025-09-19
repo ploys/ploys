@@ -69,13 +69,23 @@ impl Git {
 
     /// Sets the revision.
     pub fn set_revision(&mut self, revision: impl Into<Revision>) {
-        self.inner.inner.inner_mut().revision = revision.into();
+        let revision = revision.into();
 
-        if let Revision::Sha(_) = self.inner.inner.inner().revision {
+        if let Revision::Sha(_) = &revision {
             self.inner.inner.enable(true);
+
+            if revision != self.inner.inner.inner().revision {
+                self.inner.inner.clear();
+            }
         } else {
+            if let Revision::Sha(_) = self.inner.inner.inner().revision {
+                self.inner.inner.clear();
+            }
+
             self.inner.inner.enable(false);
         }
+
+        self.inner.inner.inner_mut().revision = revision;
     }
 
     /// Builds the repository with the given revision.
@@ -204,7 +214,6 @@ impl Commit for Git {
                 let commit_id = repo.write_object(&commit)?;
 
                 self.set_revision(Revision::Sha(commit_id.to_string()));
-                self.inner.inner.clear();
             }
         }
 
