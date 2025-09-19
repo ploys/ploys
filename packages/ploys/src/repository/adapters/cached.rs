@@ -14,7 +14,7 @@ use crate::repository::Repository;
 pub struct Cached<T> {
     inner: T,
     index: Arc<OnceCell<BTreeSet<RelativePathBuf>>>,
-    cache: Arc<OnceMap<RelativePathBuf, Box<OnceCell<Option<Bytes>>>>>,
+    cache: Arc<OnceMap<RelativePathBuf, Box<Option<Bytes>>>>,
     enabled: bool,
 }
 
@@ -68,16 +68,11 @@ where
             return self.inner.get_file(path);
         }
 
-        self.cache.map_try_insert(
-            path.as_ref().to_owned(),
-            |path| {
-                self.inner
-                    .get_file(path)
-                    .map(OnceCell::with_value)
-                    .map(Box::new)
-            },
-            |path, item| item.get_or_try_init(|| self.inner.get_file(path)).cloned(),
-        )?
+        self.cache
+            .try_insert(path.as_ref().to_owned(), |path| {
+                self.inner.get_file(path).map(Box::new)
+            })
+            .cloned()
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
