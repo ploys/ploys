@@ -14,7 +14,7 @@ use crate::repository::Repository;
 pub struct Cached<T> {
     inner: T,
     index: Arc<OnceCell<BTreeSet<RelativePathBuf>>>,
-    cache: Arc<OnceMap<RelativePathBuf, Box<Option<Bytes>>>>,
+    files: Arc<OnceMap<RelativePathBuf, Box<Option<Bytes>>>>,
     enabled: bool,
 }
 
@@ -24,7 +24,7 @@ impl<T> Cached<T> {
         Self {
             inner: repo,
             index: Arc::new(OnceCell::new()),
-            cache: Arc::new(OnceMap::new()),
+            files: Arc::new(OnceMap::new()),
             enabled: true,
         }
     }
@@ -53,7 +53,7 @@ impl<T> Cached<T> {
     /// Clears the cache.
     pub fn clear(&mut self) {
         self.index = Arc::new(OnceCell::new());
-        self.cache = Arc::new(OnceMap::new());
+        self.files = Arc::new(OnceMap::new());
     }
 }
 
@@ -68,7 +68,7 @@ where
             return self.inner.get_file(path);
         }
 
-        self.cache
+        self.files
             .try_insert(path.as_ref().to_owned(), |path| {
                 self.inner.get_file(path).map(Box::new)
             })
