@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use bytes::Bytes;
+use either::Either;
 use once_cell::sync::OnceCell;
 use once_map::OnceMap;
 use relative_path::{RelativePath, RelativePathBuf};
@@ -14,6 +15,7 @@ pub struct Cached<T> {
     inner: T,
     index: Arc<OnceCell<BTreeSet<RelativePathBuf>>>,
     cache: Arc<OnceMap<RelativePathBuf, Box<OnceCell<Option<Bytes>>>>>,
+    enabled: bool,
 }
 
 impl<T> Cached<T> {
@@ -23,7 +25,19 @@ impl<T> Cached<T> {
             inner: repo,
             index: Arc::new(OnceCell::new()),
             cache: Arc::new(OnceMap::new()),
+            enabled: true,
         }
+    }
+
+    /// Enables or disables the cache.
+    pub fn enable(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
+    /// Builds the cached repository adapter as enabled or disabled.
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enable(enabled);
+        self
     }
 
     /// Gets the inner repository.
@@ -50,6 +64,10 @@ where
     type Error = T::Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
+        if !self.enabled {
+            return self.inner.get_file(path);
+        }
+
         self.cache.map_try_insert(
             path.as_ref().to_owned(),
             |path| {
@@ -63,11 +81,16 @@ where
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
-        Ok(self
-            .index
-            .get_or_try_init(|| self.inner.get_index().map(Iterator::collect))?
-            .iter()
-            .map(Clone::clone))
+        if !self.enabled {
+            return self.inner.get_index().map(Either::Left);
+        }
+
+        Ok(Either::Right(
+            self.index
+                .get_or_try_init(|| self.inner.get_index().map(Iterator::collect))?
+                .iter()
+                .map(Clone::clone),
+        ))
     }
 }
 
@@ -125,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cached_repository() {
+    fn test_cached_repository_enabled() {
         let repo = Cached::new(Inner::default());
 
         assert_eq!(
@@ -148,5 +171,28 @@ mod tests {
         assert_eq!(repo.get_file("a").unwrap(), Some(Bytes::from("A!")));
         assert_eq!(repo.get_file("b").unwrap(), Some(Bytes::from("B?")));
         assert_eq!(repo.get_file("c").unwrap(), Some(Bytes::from("C.")));
+    }
+
+    #[test]
+    fn test_cached_repository_disabled() {
+        let repo = Cached::new(Inner::default()).enabled(false);
+
+        assert_eq!(
+            repo.get_index().unwrap().collect::<Vec<_>>(),
+            vec!["a", "b", "c"]
+        );
+        assert_eq!(repo.get_file("a").unwrap(), Some(Bytes::from("A!")));
+        assert_eq!(repo.get_file("b").unwrap(), Some(Bytes::from("B?")));
+        assert_eq!(repo.get_file("c").unwrap(), Some(Bytes::from("C.")));
+
+        assert_eq!(repo.inner().get_index().unwrap().count(), 0);
+        assert_eq!(repo.inner().get_file("a").unwrap(), None);
+        assert_eq!(repo.inner().get_file("b").unwrap(), None);
+        assert_eq!(repo.inner().get_file("c").unwrap(), None);
+
+        assert_eq!(repo.get_index().unwrap().count(), 0);
+        assert_eq!(repo.get_file("a").unwrap(), None);
+        assert_eq!(repo.get_file("b").unwrap(), None);
+        assert_eq!(repo.get_file("c").unwrap(), None);
     }
 }
