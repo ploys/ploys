@@ -3,7 +3,6 @@
 //! This module includes utilities for inspecting and managing repositories
 //! located on the local file system or in a remote version control system.
 
-mod cache;
 mod remote;
 mod spec;
 mod vcs;

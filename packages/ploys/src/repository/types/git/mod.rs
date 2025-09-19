@@ -6,7 +6,6 @@ mod error;
 mod params;
 
 use std::collections::BTreeSet;
-use std::io;
 use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
@@ -16,8 +15,8 @@ use gix::traverse::tree::Recorder;
 use gix::{ObjectId, ThreadSafeRepository};
 use relative_path::{RelativePath, RelativePathBuf};
 
+use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
-use crate::repository::cache::Cache;
 use crate::repository::revision::{Reference, Revision};
 use crate::repository::{Commit, Repository, Stage};
 
@@ -27,33 +26,37 @@ pub use self::params::CommitParams;
 /// The local Git repository.
 #[derive(Clone)]
 pub struct Git {
-    inner: Staged<Inner>,
+    inner: Staged<Cached<Inner>>,
 }
 
 impl Git {
     /// Opens a Git repository.
     pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
         Ok(Self {
-            inner: Staged::new(Inner {
-                repository: ThreadSafeRepository::open(path)?,
-                revision: Revision::Head,
-                cache: Cache::new(),
-            }),
+            inner: Staged::new(
+                Cached::new(Inner {
+                    repository: ThreadSafeRepository::open(path)?,
+                    revision: Revision::Head,
+                })
+                .enabled(false),
+            ),
         })
     }
 
     /// Initializes a Git repository.
     pub fn init(path: impl AsRef<Path>) -> Result<Self, Error> {
         Ok(Self {
-            inner: Staged::new(Inner {
-                repository: ThreadSafeRepository::init(
-                    path,
-                    Kind::WithWorktree,
-                    Options::default(),
-                )?,
-                revision: Revision::Head,
-                cache: Cache::new(),
-            }),
+            inner: Staged::new(
+                Cached::new(Inner {
+                    repository: ThreadSafeRepository::init(
+                        path,
+                        Kind::WithWorktree,
+                        Options::default(),
+                    )?,
+                    revision: Revision::Head,
+                })
+                .enabled(false),
+            ),
         })
     }
 }
@@ -61,12 +64,28 @@ impl Git {
 impl Git {
     /// Gets the revision.
     pub fn revision(&self) -> &Revision {
-        &self.inner.inner.revision
+        &self.inner.inner.inner().revision
     }
 
     /// Sets the revision.
     pub fn set_revision(&mut self, revision: impl Into<Revision>) {
-        self.inner.inner.revision = revision.into();
+        let revision = revision.into();
+
+        if let Revision::Sha(_) = &revision {
+            self.inner.inner.enable(true);
+
+            if revision != self.inner.inner.inner().revision {
+                self.inner.inner.clear();
+            }
+        } else {
+            if let Revision::Sha(_) = self.inner.inner.inner().revision {
+                self.inner.inner.clear();
+            }
+
+            self.inner.inner.enable(false);
+        }
+
+        self.inner.inner.inner_mut().revision = revision;
     }
 
     /// Builds the repository with the given revision.
@@ -136,10 +155,10 @@ impl Commit for Git {
 
     fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error> {
         let context = context.into();
-        let repo = self.inner.inner.repository.to_thread_local();
-        let revision = self.inner.inner.revision.to_string();
+        let repo = self.inner.inner.inner().repository.to_thread_local();
+        let revision = self.inner.inner.inner().revision.to_string();
 
-        let (mut editor, parent) = match &self.inner.inner.revision {
+        let (mut editor, parent) = match &self.inner.inner.inner().revision {
             Revision::Head if repo.head()?.is_unborn() => (
                 repo.edit_tree(ObjectId::empty_tree(repo.object_hash()))?,
                 None,
@@ -168,7 +187,7 @@ impl Commit for Git {
 
         let tree_id = editor.write()?;
 
-        match &self.inner.inner.revision {
+        match &self.inner.inner.inner().revision {
             Revision::Head | Revision::Reference(Reference::Branch(_)) => {
                 repo.commit(revision, context.message(), tree_id, parent)?;
             }
@@ -194,8 +213,7 @@ impl Commit for Git {
 
                 let commit_id = repo.write_object(&commit)?;
 
-                self.inner.inner.revision = Revision::Sha(commit_id.to_string());
-                self.inner.inner.cache = Cache::new();
+                self.set_revision(Revision::Sha(commit_id.to_string()));
             }
         }
 
@@ -207,44 +225,28 @@ impl Commit for Git {
 struct Inner {
     repository: ThreadSafeRepository,
     revision: Revision,
-    cache: Cache,
 }
 
 impl Repository for Inner {
     type Error = Error;
 
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
-        let res = if !matches!(self.revision, Revision::Sha(_)) {
-            self.get_file_uncached(path.as_ref()).map(Some)
-        } else {
-            self.cache.get_or_try_init(
-                path,
-                |path| self.get_file_uncached(path),
-                || self.get_index_uncached(),
-            )
+        let spec = self.revision.to_string();
+        let repo = self.repository.to_thread_local();
+        let mut tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
+
+        let Some(entry) = tree.peel_to_entry_by_path(path.as_ref().as_str())? else {
+            return Ok(None);
         };
 
-        match res {
-            Ok(file) => Ok(file),
-            Err(Error::Io(err)) if err.kind() == io::ErrorKind::NotFound => Ok(None),
-            Err(err) => Err(err),
+        if entry.mode().is_blob() {
+            Ok(Some(entry.object()?.detached().data.into()))
+        } else {
+            Ok(None)
         }
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
-        if !matches!(&self.revision, Revision::Sha(_)) {
-            return Ok(Box::new(self.get_index_uncached()?.into_iter())
-                as Box<dyn Iterator<Item = RelativePathBuf>>);
-        }
-
-        Ok(Box::new(
-            self.cache.get_or_try_index(|| self.get_index_uncached())?,
-        ))
-    }
-}
-
-impl Inner {
-    fn get_index_uncached(&self) -> Result<BTreeSet<RelativePathBuf>, Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
         let tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
@@ -260,22 +262,6 @@ impl Inner {
             .map(|entry| RelativePathBuf::from(entry.filepath.to_string()))
             .collect::<BTreeSet<_>>();
 
-        Ok(entries)
-    }
-
-    fn get_file_uncached(&self, path: impl AsRef<RelativePath>) -> Result<Bytes, Error> {
-        let spec = self.revision.to_string();
-        let repo = self.repository.to_thread_local();
-        let mut tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
-
-        let entry = tree
-            .peel_to_entry_by_path(path.as_ref().as_str())?
-            .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
-
-        if entry.mode().is_blob() {
-            Ok(entry.object()?.detached().data.into())
-        } else {
-            Err(io::Error::from(io::ErrorKind::NotFound))?
-        }
+        Ok(entries.into_iter())
     }
 }
