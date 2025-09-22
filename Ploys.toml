@@ -1,4 +1,5 @@
 [project]
 name = "ploys"
 description = "Manage projects, packages, releases and deployments"
+authors = ["Daniel Balcomb <daniel.balcomb@gmail.com>"]
 repository = "https://github.com/ploys/ploys"
