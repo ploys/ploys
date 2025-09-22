@@ -77,6 +77,23 @@ impl Config {
         self
     }
 
+    /// Gets the project authors.
+    pub fn project_authors(&self) -> impl Iterator<Item = &str> {
+        self.project().authors()
+    }
+
+    /// Sets the project authors.
+    pub fn set_project_authors(&mut self, authors: impl IntoIterator<Item = String>) -> &mut Self {
+        self.project_mut().set_authors(authors);
+        self
+    }
+
+    /// Builds the config with the given project authors.
+    pub fn with_project_authors(mut self, authors: impl IntoIterator<Item = String>) -> Self {
+        self.set_project_authors(authors);
+        self
+    }
+
     /// The project section.
     pub fn project(&self) -> Project<'_> {
         Project::from_table(

@@ -143,6 +143,27 @@ impl<T> Project<T> {
         self.set_repository(repository);
         self
     }
+
+    /// Gets the project authors.
+    pub fn authors(&self) -> impl Iterator<Item = &str> {
+        self.config.project_authors()
+    }
+
+    /// Sets the project authors.
+    pub fn set_authors(
+        &mut self,
+        authors: impl IntoIterator<Item = impl Into<String>>,
+    ) -> &mut Self {
+        self.config
+            .set_project_authors(authors.into_iter().map(Into::into));
+        self
+    }
+
+    /// Builds the project with the given authors.
+    pub fn with_authors(mut self, authors: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.set_authors(authors);
+        self
+    }
 }
 
 impl<T> Project<T>
@@ -609,7 +630,8 @@ mod tests {
     fn test_builder() {
         let project = Project::new("example")
             .with_description("An example project.")
-            .with_repository("ploys/example".parse::<RepoSpec>().unwrap());
+            .with_repository("ploys/example".parse::<RepoSpec>().unwrap())
+            .with_authors(["Joe Bloggs <joe.bloggs@example.com>"]);
 
         assert_eq!(project.name(), "example");
         assert_eq!(project.description().unwrap(), "An example project.");
@@ -617,12 +639,17 @@ mod tests {
             project.repository().unwrap(),
             "ploys/example".parse::<RepoSpec>().unwrap()
         );
+        assert_eq!(
+            project.authors().collect::<Vec<_>>(),
+            ["Joe Bloggs <joe.bloggs@example.com>"]
+        );
 
         let mut project = project.reloaded().unwrap();
 
         assert_eq!(project.name(), "example");
         assert_eq!(project.description(), None);
         assert_eq!(project.repository(), None);
+        assert_eq!(project.authors().count(), 0);
 
         let package_a = Package::new_cargo("example-one");
         let package_b = Package::new_cargo("example-two")

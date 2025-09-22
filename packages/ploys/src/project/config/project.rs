@@ -1,4 +1,5 @@
-use toml_edit::{Item, TableLike, Value};
+use either::Either;
+use toml_edit::{Array, Item, TableLike, Value};
 
 use crate::repository::RepoSpec;
 
@@ -19,6 +20,17 @@ impl<'a> Project<'a> {
     /// Gets the project repository.
     pub fn repository(&self) -> Option<RepoSpec> {
         self.0.get("repository")?.as_str()?.parse().ok()
+    }
+
+    /// Gets the project authors.
+    pub fn authors(&self) -> impl Iterator<Item = &'a str> + use<'a> {
+        match self.0.get("authors") {
+            Some(item) => match item.as_array() {
+                Some(arr) => Either::Right(arr.iter().filter_map(|value| value.as_str())),
+                None => Either::Left(std::iter::empty()),
+            },
+            None => Either::Left(std::iter::empty()),
+        }
     }
 }
 
@@ -73,6 +85,26 @@ impl ProjectMut<'_> {
         let item = self.0.entry("repository").or_insert_with(Item::default);
 
         *item = Item::Value(Value::from(repo.into().to_string()));
+
+        self
+    }
+
+    /// Gets the project authors.
+    pub fn authors(&self) -> impl Iterator<Item = &str> {
+        match self.0.get("authors") {
+            Some(item) => match item.as_array() {
+                Some(arr) => Either::Right(arr.iter().filter_map(|value| value.as_str())),
+                None => Either::Left(std::iter::empty()),
+            },
+            None => Either::Left(std::iter::empty()),
+        }
+    }
+
+    /// Sets the project authors.
+    pub fn set_authors(&mut self, authors: impl IntoIterator<Item = String>) -> &mut Self {
+        let item = self.0.entry("authors").or_insert_with(Item::default);
+
+        *item = Item::Value(Value::Array(Array::from_iter(authors)));
 
         self
     }
