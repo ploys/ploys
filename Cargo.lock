@@ -2730,6 +2730,7 @@ dependencies = [
  "clap-verbosity-flag",
  "console",
  "dialoguer",
+ "itertools 0.14.0",
  "ploys",
  "predicates",
  "strum 0.26.3",
