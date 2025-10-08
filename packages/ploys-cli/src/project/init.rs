@@ -4,8 +4,6 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Error, bail};
 use clap::{Args, ValueEnum};
 use dialoguer::{Input, Select};
-use ploys::changelog::Changelog;
-use ploys::package::Package;
 use ploys::project::Project;
 use ploys::repository::RepoSpec;
 use ploys::repository::types::git::Git;
@@ -29,10 +27,6 @@ pub struct Init {
     /// The project repository.
     #[arg(long)]
     repository: Option<RepoSpec>,
-
-    /// The project template.
-    #[arg(long, value_enum)]
-    template: Option<Template>,
 
     /// The version control system.
     #[arg(long, value_enum)]
@@ -91,20 +85,6 @@ impl Init {
             }
         };
 
-        let template = match self.template {
-            Some(template) => template,
-            None if !is_terminal => Template::None,
-            None => {
-                let selection = Select::new()
-                    .with_prompt("Template")
-                    .items(Template::VARIANTS)
-                    .default(0)
-                    .interact()?;
-
-                Template::VARIANTS[selection]
-            }
-        };
-
         let vcs = match self.vcs {
             Some(vcs) => vcs,
             None if !is_terminal => Vcs::None,
@@ -150,62 +130,15 @@ impl Init {
             project.set_description(description);
         }
 
+        if !authors.is_empty() {
+            project.set_authors(authors);
+        }
+
         if let Some(repository) = repository {
             project.set_repository(repository);
         }
 
-        match template {
-            Template::CargoBin => {
-                let mut package = Package::new_cargo(name);
-
-                if let Some(description) = project.description() {
-                    package.set_description(description);
-                }
-
-                if let Some(repository) = project.repository() {
-                    package.set_repository(repository.to_url());
-                }
-
-                if !authors.is_empty() {
-                    for author in authors {
-                        package.add_author(author);
-                    }
-                }
-
-                package.add_file(
-                    "src/main.rs",
-                    "fn main() {\n    println!(\"Hello, world!\");\n}\n",
-                )?;
-                package.add_file("CHANGELOG.md", Changelog::new().to_string().into_bytes())?;
-                project.add_package(package)?;
-            }
-            Template::CargoLib => {
-                let mut package = Package::new_cargo(name);
-
-                if let Some(description) = project.description() {
-                    package.set_description(description);
-                }
-
-                if let Some(repository) = project.repository() {
-                    package.set_repository(repository.to_url());
-                }
-
-                if !authors.is_empty() {
-                    for author in authors {
-                        package.add_author(author);
-                    }
-                }
-
-                package.add_file("src/lib.rs", "\n")?;
-                package.add_file("CHANGELOG.md", Changelog::new().to_string().into_bytes())?;
-                project.add_package(package)?;
-            }
-            Template::None => {}
-        }
-
-        if let Vcs::Git = vcs
-            && let Template::CargoBin | Template::CargoLib = template
-        {
+        if let Vcs::Git = vcs {
             project.add_file(".gitignore", "/target\n")?;
         }
 
@@ -234,16 +167,6 @@ impl Init {
 
         Ok(())
     }
-}
-
-#[derive(Clone, Copy, Debug, Display, VariantArray, ValueEnum)]
-enum Template {
-    #[strum(to_string = "Cargo (binary)")]
-    CargoBin,
-    #[strum(to_string = "Cargo (library)")]
-    CargoLib,
-    #[strum(to_string = "None")]
-    None,
 }
 
 #[derive(Clone, Copy, Debug, Display, VariantArray, ValueEnum)]
