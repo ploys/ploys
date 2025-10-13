@@ -60,8 +60,13 @@ impl GitHub {
 }
 
 impl GitHub {
-    /// Builds the repository with the given revision.
-    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
+    /// Gets the revision.
+    pub fn revision(&self) -> &Revision {
+        &self.inner.inner.inner().revision
+    }
+
+    /// Sets the revision.
+    pub fn set_revision(&mut self, revision: impl Into<Revision>) {
         let revision = revision.into();
 
         if let Revision::Sha(_) = &revision {
@@ -79,6 +84,11 @@ impl GitHub {
         }
 
         self.inner.inner.inner_mut().revision = revision;
+    }
+
+    /// Builds the repository with the given revision.
+    pub fn with_revision(mut self, revision: impl Into<Revision>) -> Self {
+        self.set_revision(revision);
         self
     }
 
