@@ -5,6 +5,7 @@
 
 mod changelog;
 mod error;
+mod params;
 mod repo;
 mod spec;
 
@@ -12,6 +13,7 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::io::Read;
 
+use base64::prelude::{BASE64_STANDARD, Engine};
 use bytes::Bytes;
 use relative_path::{RelativePath, RelativePathBuf};
 use reqwest::header::CONTENT_TYPE;
@@ -23,10 +25,11 @@ use crate::package::BumpOrVersion;
 use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
 use crate::repository::path::prepare_path;
-use crate::repository::revision::Revision;
-use crate::repository::{GitLike, Remote, Repository, Stage};
+use crate::repository::revision::{Reference, Revision};
+use crate::repository::{Commit, GitLike, Remote, Repository, Stage};
 
 pub use self::error::Error;
+pub use self::params::CommitParams;
 pub use self::repo::Repo;
 pub use self::spec::GitHubRepoSpec;
 
@@ -198,6 +201,166 @@ impl Stage for GitHub {
         path: impl AsRef<RelativePath>,
     ) -> Result<Option<Bytes>, Self::Error> {
         self.inner.remove_file(path)
+    }
+}
+
+impl Commit for GitHub {
+    type Context = CommitParams;
+
+    fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error> {
+        #[derive(Serialize)]
+        struct CreateBlob {
+            content: String,
+            encoding: String,
+        }
+
+        #[derive(Deserialize)]
+        struct NewBlob {
+            sha: String,
+        }
+
+        #[derive(Serialize)]
+        struct CreateTree {
+            tree: Vec<TreeObject>,
+            base_tree: String,
+        }
+
+        #[derive(Serialize)]
+        struct TreeObject {
+            path: RelativePathBuf,
+            mode: String,
+            r#type: String,
+            sha: Option<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct NewTree {
+            sha: String,
+        }
+
+        #[derive(Serialize)]
+        struct CreateCommit {
+            message: String,
+            tree: String,
+            parents: Vec<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct NewCommit {
+            sha: String,
+        }
+
+        let context = context.into();
+        let base_sha = self.sha()?;
+        let files = self.inner.drain().collect::<Vec<_>>();
+
+        let mut tree = CreateTree {
+            tree: Vec::new(),
+            base_tree: base_sha.clone(),
+        };
+
+        for (path, file) in files {
+            match file {
+                Some(bytes) => {
+                    let payload = match std::str::from_utf8(&bytes) {
+                        Ok(string) => CreateBlob {
+                            content: string.to_owned(),
+                            encoding: String::from("utf-8"),
+                        },
+                        Err(_) => CreateBlob {
+                            content: BASE64_STANDARD.encode(bytes),
+                            encoding: String::from("base64"),
+                        },
+                    };
+
+                    let sha = self
+                        .inner
+                        .inner
+                        .inner()
+                        .repository
+                        .post("git/blobs", self.inner.inner.inner().token.as_deref())
+                        .header("Accept", "application/vnd.github+json")
+                        .header("X-GitHub-Api-Version", "2022-11-28")
+                        .json(&payload)
+                        .send()
+                        .map_err(Error::from)?
+                        .error_for_status()
+                        .map_err(Error::from)?
+                        .json::<NewBlob>()
+                        .map_err(Error::from)?
+                        .sha;
+
+                    tree.tree.push(TreeObject {
+                        path,
+                        mode: String::from("100644"),
+                        r#type: String::from("blob"),
+                        sha: Some(sha),
+                    });
+                }
+                None => {
+                    tree.tree.push(TreeObject {
+                        path,
+                        mode: String::from("100644"),
+                        r#type: String::from("blob"),
+                        sha: None,
+                    });
+                }
+            }
+        }
+
+        let tree_sha = self
+            .inner
+            .inner
+            .inner()
+            .repository
+            .post("git/trees", self.inner.inner.inner().token.as_deref())
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&tree)
+            .send()
+            .map_err(Error::from)?
+            .error_for_status()
+            .map_err(Error::from)?
+            .json::<NewTree>()
+            .map_err(Error::from)?
+            .sha;
+
+        let commit_sha = self
+            .inner
+            .inner
+            .inner()
+            .repository
+            .post("git/commits", self.inner.inner.inner().token.as_deref())
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&CreateCommit {
+                message: context.message().to_owned(),
+                tree: tree_sha,
+                parents: vec![base_sha],
+            })
+            .send()
+            .map_err(Error::from)?
+            .error_for_status()
+            .map_err(Error::from)?
+            .json::<NewCommit>()
+            .map_err(Error::from)?
+            .sha;
+
+        match self.revision() {
+            Revision::Head => {
+                let branch_name = self.get_default_branch()?;
+
+                self.update_branch(&branch_name, &commit_sha)?;
+            }
+            Revision::Reference(Reference::Branch(branch_name)) => {
+                self.update_branch(branch_name, &commit_sha)?;
+            }
+            Revision::Sha(_) | Revision::Reference(Reference::Tag(_)) => {
+                self.set_revision(Revision::Sha(commit_sha));
+            }
+        }
+
+        Ok(())
     }
 }
 
