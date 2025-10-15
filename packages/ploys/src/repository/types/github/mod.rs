@@ -402,6 +402,17 @@ impl Repository for Inner {
     }
 
     fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+        #[derive(Deserialize)]
+        struct TreeResponse {
+            tree: Vec<TreeResponseEntry>,
+        }
+
+        #[derive(Deserialize)]
+        struct TreeResponseEntry {
+            path: RelativePathBuf,
+            r#type: String,
+        }
+
         let entries = self
             .repository
             .get(
@@ -651,6 +662,12 @@ impl Remote for GitHub {
             version: String,
         }
 
+        #[derive(Serialize)]
+        struct RepositoryDispatchEvent<T> {
+            event_type: String,
+            client_payload: T,
+        }
+
         self.inner
             .inner
             .inner()
@@ -808,21 +825,4 @@ impl From<GitHubRepoSpec> for GitHub {
     fn from(repo: GitHubRepoSpec) -> Self {
         Self::open(repo).expect("valid repo specification")
     }
-}
-
-#[derive(Deserialize)]
-struct TreeResponse {
-    tree: Vec<TreeResponseEntry>,
-}
-
-#[derive(Deserialize)]
-struct TreeResponseEntry {
-    path: RelativePathBuf,
-    r#type: String,
-}
-
-#[derive(Serialize)]
-struct RepositoryDispatchEvent<T> {
-    event_type: String,
-    client_payload: T,
 }
