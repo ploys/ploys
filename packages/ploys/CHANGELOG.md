@@ -5,6 +5,48 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-10-15
+
+### Changed
+
+- Replace repository file `Cow<[u8]>` with `Bytes` ([#256](https://github.com/ploys/ploys/pull/256))
+- Replace repository file `Cow<Path>` with `PathBuf` ([#257](https://github.com/ploys/ploys/pull/257))
+- Redesign `Memory` repository with `Arc` and `Mutex` ([#258](https://github.com/ploys/ploys/pull/258))
+- Update returned `Package` to use cloned repository ([#259](https://github.com/ploys/ploys/pull/259))
+- Remove implementation of `Repository` for references ([#260](https://github.com/ploys/ploys/pull/260))
+- Add `Repository` extension `Stage` trait ([#261](https://github.com/ploys/ploys/pull/261))
+- Rename `Memory` repository to `Staging` ([#262](https://github.com/ploys/ploys/pull/262))
+- Remove `Arc` and `Mutex` from `Staging` repository ([#264](https://github.com/ploys/ploys/pull/264))
+- Add `Stage::remove_file` method ([#265](https://github.com/ploys/ploys/pull/265))
+- Add `Staged` repository adapter for `Project` and `Package` ([#266](https://github.com/ploys/ploys/pull/266))
+- Add `Stage` bound to `Project` and `Package` file methods ([#267](https://github.com/ploys/ploys/pull/267))
+- Implement `Stage` for `FileSystem` ([#268](https://github.com/ploys/ploys/pull/268))
+- Remove `Staged` adapter from `Project` and `Package` ([#269](https://github.com/ploys/ploys/pull/269))
+- Add custom error type for `FileSystem` repository ([#270](https://github.com/ploys/ploys/pull/270))
+- Add path validation to `FileSystem::open` ([#271](https://github.com/ploys/ploys/pull/271))
+- Add `Commit` trait with `FileSystem` implementation ([#272](https://github.com/ploys/ploys/pull/272))
+- Add `Stage` and `Commit` trait helper methods ([#273](https://github.com/ploys/ploys/pull/273))
+- Implement `IntoIterator` for `Staging` ([#274](https://github.com/ploys/ploys/pull/274))
+- Refactor `Project::write` method implementation ([#275](https://github.com/ploys/ploys/pull/275))
+- Add `Project::write` method for `FileSystem` repository ([#276](https://github.com/ploys/ploys/pull/276))
+- Move `Drain` iterator to separate module ([#279](https://github.com/ploys/ploys/pull/279))
+- Move repository implementations to `types` module ([#281](https://github.com/ploys/ploys/pull/281))
+- Remove `Staging` repository infallible file methods ([#282](https://github.com/ploys/ploys/pull/282))
+- Update `Repository` and `Package` to use relative paths ([#283](https://github.com/ploys/ploys/pull/283))
+- Add repository path validation ([#284](https://github.com/ploys/ploys/pull/284))
+- Add `Subdirectory` repository adapter ([#285](https://github.com/ploys/ploys/pull/285))
+- Move `Staged` repository to `adapters` module ([#286](https://github.com/ploys/ploys/pull/286))
+- Implement `Stage` for `Git` and `GitHub` ([#287](https://github.com/ploys/ploys/pull/287))
+- Bump `gix` to `0.73.0` ([#288](https://github.com/ploys/ploys/pull/288))
+- Remove redundant calls to `prepare_path` ([#289](https://github.com/ploys/ploys/pull/289))
+- Fix repository `get_file` error on missing file ([#290](https://github.com/ploys/ploys/pull/290))
+- Implement `Commit` for `Git` ([#291](https://github.com/ploys/ploys/pull/291))
+- Add `Cached` repository adapter ([#294](https://github.com/ploys/ploys/pull/294))
+- Add project authors configuration ([#296](https://github.com/ploys/ploys/pull/296))
+- Add consistent `GitHub` repository revision methods ([#301](https://github.com/ploys/ploys/pull/301))
+- Implement `Commit` for `GitHub` ([#302](https://github.com/ploys/ploys/pull/302))
+- Move GitHub body and response structs to methods ([#303](https://github.com/ploys/ploys/pull/303))
+
 ## [0.4.0] - 2025-08-14
 
 ### Changed
@@ -173,6 +215,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add project commit methods ([#57](https://github.com/ploys/ploys/pull/57))
 - Add release workflow publish job ([#73](https://github.com/ploys/ploys/pull/73))
 
+[0.5.0]: https://github.com/ploys/ploys/releases/tag/0.5.0
 [0.4.0]: https://github.com/ploys/ploys/releases/tag/0.4.0
 [0.3.0]: https://github.com/ploys/ploys/releases/tag/0.3.0
 [0.2.0]: https://github.com/ploys/ploys/releases/tag/0.2.0
