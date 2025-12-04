@@ -1,40 +1,46 @@
 mod github;
+mod serve;
 mod state;
 
-use std::sync::Arc;
+use anyhow::Error;
+use clap::{Parser, Subcommand};
+use clap_verbosity_flag::Verbosity;
 
-use anyhow::Context;
-use axum::routing::post;
-use axum::{Extension, Router};
-use shuttle_runtime::SecretStore;
+use self::serve::Serve;
 
-use self::github::webhook::secret::WebhookSecret;
-use self::state::AppState;
+/// Controls the API for managing projects, packages, releases and deployments.
+#[derive(Parser)]
+#[command(name = "ploys", version, arg_required_else_help = true)]
+struct Args {
+    #[clap(subcommand)]
+    command: Command,
+    #[command(flatten)]
+    verbose: Verbosity,
+}
 
-#[shuttle_runtime::main]
-async fn axum(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> shuttle_axum::ShuttleAxum {
-    let state = AppState {
-        github_app_client_id: Arc::from(
-            secret_store
-                .get("GITHUB_APP_CLIENT_ID")
-                .context("Missing GITHUB_APP_CLIENT_ID secret.")?,
-        ),
-        github_app_private_key: Arc::from(
-            secret_store
-                .get("GITHUB_APP_PRIVATE_KEY")
-                .context("Missing GITHUB_APP_PRIVATE_KEY secret.")?,
-        ),
-    };
+impl Args {
+    /// Executes the program.
+    async fn exec(self) -> Result<(), Error> {
+        match self.command {
+            Command::Serve(command) => command.exec().await,
+        }
+    }
+}
 
-    let router = Router::new()
-        .route(
-            "/github/webhook",
-            post(self::github::webhook::receive).layer(Extension(WebhookSecret::from_store(
-                &secret_store,
-                "GITHUB_APP_WEBHOOK_SECRET",
-            )?)),
-        )
-        .with_state(state);
+/// The base command.
+#[derive(Subcommand)]
+enum Command {
+    /// Serves the API.
+    Serve(Serve),
+}
 
-    Ok(router.into())
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    let args = Args::parse();
+
+    tracing_subscriber::fmt()
+        .with_max_level(args.verbose.tracing_level_filter())
+        .init();
+
+    args.exec().await
 }
