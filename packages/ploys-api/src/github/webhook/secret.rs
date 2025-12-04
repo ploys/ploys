@@ -1,17 +1,13 @@
-use anyhow::{Error, anyhow};
-use shuttle_runtime::SecretStore;
-
 #[derive(Clone)]
 pub struct WebhookSecret {
     pub value: String,
 }
 
 impl WebhookSecret {
-    /// Gets the secret from the secret store.
-    pub fn from_store(store: &SecretStore, name: &str) -> Result<Self, Error> {
-        match store.get(name) {
-            Some(value) => Ok(Self { value }),
-            None => Err(anyhow!("Missing GitHub App webhook secret.")),
+    /// Constructs a new webhook secret.
+    pub fn new(value: impl Into<String>) -> Self {
+        Self {
+            value: value.into(),
         }
     }
 }
