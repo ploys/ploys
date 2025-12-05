@@ -16,6 +16,12 @@ jobs:
     strategy:
       matrix:
         include:
+          - label: linux, aarch64
+            target: aarch64-unknown-linux-gnu
+            toolchain: stable
+            os: ubuntu-24.04-arm
+            cache: linux-aarch64
+
           - label: linux, x86_64
             target: x86_64-unknown-linux-gnu
             toolchain: stable
