@@ -30,7 +30,7 @@ jobs:
   build:
     name: Build (${{ matrix.label }})
     runs-on: ${{ matrix.os }}
-    if: ${{ contains(github.event.release.tag_name, 'ploys-cli') }}
+    if: ${{ contains(github.event.release.tag_name, 'ploys-api') || contains(github.event.release.tag_name, 'ploys-cli') }}
     permissions:
       contents: write
 
@@ -72,8 +72,17 @@ jobs:
           targets: ${{ matrix.target }}
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Upload
+      - name: Upload (ploys-api)
         uses: taiki-e/upload-rust-binary-action@v1
+        if: ${{ contains(github.event.release.tag_name, 'ploys-api') }}
+        with:
+          bin: ploys-api
+          target: ${{ matrix.target }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload (ploys-cli)
+        uses: taiki-e/upload-rust-binary-action@v1
+        if: ${{ contains(github.event.release.tag_name, 'ploys-cli') }}
         with:
           bin: ploys
           target: ${{ matrix.target }}
