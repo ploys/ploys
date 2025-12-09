@@ -11,7 +11,7 @@ jobs:
     if: ${{ !contains(github.event.release.tag_name, 'ploys') || contains(github.event.release.tag_name, 'ploys-cli') }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup
         uses: dtolnay/rust-toolchain@master
@@ -33,7 +33,7 @@ jobs:
     if: ${{ contains(github.event.release.tag_name, 'ploys-api') || contains(github.event.release.tag_name, 'ploys-cli') }}
     permissions:
       contents: write
-
+      packages: write
     strategy:
       matrix:
         include:
@@ -41,11 +41,13 @@ jobs:
             target: aarch64-unknown-linux-gnu
             toolchain: stable
             os: ubuntu-24.04-arm
+            platform: linux/arm64
 
           - label: linux, x86_64
             target: x86_64-unknown-linux-gnu
             toolchain: stable
             os: ubuntu-latest
+            platform: linux/amd64
 
           - label: macos, aarch64
             target: aarch64-apple-darwin
@@ -64,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup
         uses: dtolnay/rust-toolchain@master
@@ -87,3 +89,30 @@ jobs:
           bin: ploys
           target: ${{ matrix.target }}
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker Image (ploys-api)
+        if: ${{ contains(github.event.release.tag_name, 'ploys-api') && contains(matrix.platform, 'linux/') }}
+        uses: ./.github/actions/docker-build
+        with:
+          package: ploys-api
+          password: ${{ secrets.GITHUB_TOKEN }}
+          platform: ${{ matrix.platform }}
+          location: ./target/${{ matrix.target }}/release
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    if: ${{ contains(github.event.release.tag_name, 'ploys-api') }}
+    permissions:
+      contents: read
+      packages: write
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Package Docker Image
+        uses: ./.github/actions/docker-package
+        with:
+          package: ploys-api
+          password: ${{ secrets.GITHUB_TOKEN }}
