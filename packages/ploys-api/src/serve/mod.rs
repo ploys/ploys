@@ -5,6 +5,7 @@ use axum::routing::post;
 use axum::{Extension, Router};
 use clap::Args;
 use tokio::net::TcpListener;
+use tokio::signal;
 
 use crate::github::webhook::secret::WebhookSecret;
 use crate::state::AppState;
@@ -44,8 +45,36 @@ impl Serve {
 
         let listener = TcpListener::bind(self.addr).await?;
 
-        axum::serve(listener, router).await?;
+        axum::serve(listener, router)
+            .with_graceful_shutdown(shutdown_signal())
+            .await?;
 
         Ok(())
     }
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    tracing::info!("received shutdown signal");
 }
