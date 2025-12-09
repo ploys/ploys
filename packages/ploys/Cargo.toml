@@ -36,7 +36,8 @@ walkdir = { version = "2.5.0", optional = true }
 
 [dependencies.reqwest]
 version = "0.12.9"
-features = ["blocking", "json"]
+features = ["blocking", "json", "rustls-tls", "charset", "http2", "system-proxy"]
+default-features = false
 optional = true
 
 [dev-dependencies]
