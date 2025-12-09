@@ -1,0 +1,79 @@
+name: "Docker Metadata"
+description: "Gets Docker metadata for a Cargo package"
+inputs:
+  package:
+    description: "The package name"
+    required: true
+  prefix:
+    description: "The published package name prefix"
+    default: ""
+  registry:
+    description: "The container registry address"
+    default: "ghcr.io"
+  username:
+    description: "The container registry username"
+    default: ""
+outputs:
+  version:
+    description: "The package version"
+    value: ${{ steps.image_meta.outputs.version || steps.image_meta_release.outputs.version }}
+  annotations:
+    description: "The metadata annotations"
+    value: ${{ steps.image_meta.outputs.annotations || steps.image_meta_release.outputs.annotations }}
+  labels:
+    description: "The metadata labels"
+    value: ${{ steps.image_meta.outputs.labels || steps.image_meta_release.outputs.labels }}
+  tags:
+    description: "The metadata tags"
+    value: ${{ steps.image_meta.outputs.tags || steps.image_meta_release.outputs.tags }}
+runs:
+  using: composite
+  steps:
+    - name: Get Package Metadata
+      id: package_meta
+      shell: bash
+      run: |
+        package_name="${{ inputs.package }}"
+        package_meta=$(cargo metadata --no-deps --format-version 1 | jq -r ".packages[] | select(.name==\"$package_name\")")
+        package_desc=$(echo "$package_meta" | jq -r '.description')
+        package_lice=$(echo "$package_meta" | jq -r '.license')
+        package_vers=$(echo "$package_meta" | jq -r '.version')
+
+        {
+          echo "labels<<EOF"
+          echo "org.opencontainers.image.title=$package_name"
+          echo "org.opencontainers.image.description=$package_desc"
+          echo "org.opencontainers.image.licenses=$package_lice"
+          echo "org.opencontainers.image.version=$package_vers"
+          echo "EOF"
+          echo "version=$package_vers"
+        } >> $GITHUB_OUTPUT
+
+    - name: Get Image Metadata
+      id: image_meta
+      if: ${{ github.event_name != 'release' && github.event.action != 'created' }}
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ inputs.registry }}/${{ inputs.username != '' && inputs.username || github.repository_owner }}/${{ inputs.prefix }}${{ inputs.package }}
+        labels: ${{ steps.package_meta.outputs.labels }}
+        annotations: ${{ steps.package_meta.outputs.labels }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha
+        flavor: latest=false
+
+    - name: Get Image Metadata (release)
+      id: image_meta_release
+      if: ${{ github.event_name == 'release' && github.event.action == 'created' }}
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ inputs.registry }}/${{ inputs.username != '' && inputs.username || github.repository_owner }}/${{ inputs.prefix }}${{ inputs.package }}
+        labels: ${{ steps.package_meta.outputs.labels }}
+        annotations: ${{ steps.package_meta.outputs.labels }}
+        tags: |
+          type=semver,pattern={{version}},value=${{ steps.package_meta.outputs.version }}
+          type=semver,pattern={{major}}.{{minor}},value=${{ steps.package_meta.outputs.version }}
+          type=semver,pattern={{major}},value=${{ steps.package_meta.outputs.version }}
+          type=sha
+        flavor: latest=true
