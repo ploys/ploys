@@ -28,7 +28,7 @@ impl<'a, T> Packages<'a, T> {
 
 impl<'a, T> Iterator for Packages<'a, T>
 where
-    T: Repository,
+    T: Repository + Clone,
 {
     type Item = Package<T>;
 
@@ -85,7 +85,7 @@ where
     }
 }
 
-impl<T> FusedIterator for Packages<'_, T> where T: Repository {}
+impl<T> FusedIterator for Packages<'_, T> where T: Repository + Clone {}
 
 #[allow(clippy::large_enum_variant)]
 enum State<'a, T> {
@@ -103,7 +103,7 @@ struct ManifestPackages<'a, T> {
 
 impl<'a, T> Iterator for ManifestPackages<'a, T>
 where
-    T: Repository,
+    T: Repository + Clone,
 {
     type Item = Package<T>;
 
@@ -145,4 +145,4 @@ where
     }
 }
 
-impl<T> FusedIterator for ManifestPackages<'_, T> where T: Repository {}
+impl<T> FusedIterator for ManifestPackages<'_, T> where T: Repository + Clone {}
