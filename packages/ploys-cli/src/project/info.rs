@@ -92,7 +92,7 @@ impl Info {
 
     pub fn print<T>(&self, project: Project<T>) -> Result<(), Error>
     where
-        T: Repository + Clone,
+        T: Repository,
     {
         println!("{}:\n", style("Project").underlined().bold());
         println!("Name:        {}", project.name());

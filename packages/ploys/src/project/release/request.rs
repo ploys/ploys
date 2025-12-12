@@ -93,7 +93,7 @@ impl<T> ReleaseRequestBuilder<'_, T> {
 
 impl<T> ReleaseRequestBuilder<'_, T>
 where
-    T: Remote + Clone,
+    T: Remote,
 {
     /// Finishes the release request.
     pub fn finish(mut self) -> Result<ReleaseRequest, crate::project::Error<T::Error>> {

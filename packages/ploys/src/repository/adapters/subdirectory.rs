@@ -73,6 +73,32 @@ impl<T> Subdirectory<T> {
     }
 }
 
+impl<T> Subdirectory<&T>
+where
+    T: Clone,
+{
+    /// Detaches the inner repository from the reference by cloning it.
+    pub(crate) fn detached(self) -> Subdirectory<T> {
+        Subdirectory {
+            repo: self.repo.clone(),
+            path: self.path,
+        }
+    }
+}
+
+impl<T> Subdirectory<&mut T>
+where
+    T: Clone,
+{
+    /// Detaches the inner repository from the reference by cloning it.
+    pub(crate) fn detached(self) -> Subdirectory<T> {
+        Subdirectory {
+            repo: self.repo.clone(),
+            path: self.path,
+        }
+    }
+}
+
 impl<T> Repository for Subdirectory<T>
 where
     T: Repository,
