@@ -36,6 +36,36 @@ pub trait Repository {
     fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error>;
 }
 
+impl<T> Repository for &T
+where
+    T: Repository,
+{
+    type Error = T::Error;
+
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
+        (**self).get_file(path)
+    }
+
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+        (**self).get_index()
+    }
+}
+
+impl<T> Repository for &mut T
+where
+    T: Repository,
+{
+    type Error = T::Error;
+
+    fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
+        (**self).get_file(path)
+    }
+
+    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+        (**self).get_index()
+    }
+}
+
 /// Defines the ability to stage files in a repository.
 pub trait Stage: Repository {
     /// Adds the given file to the index.
@@ -89,6 +119,28 @@ pub trait Stage: Repository {
     -> Result<Option<Bytes>, Self::Error>;
 }
 
+impl<T> Stage for &mut T
+where
+    T: Stage,
+{
+    fn add_file(
+        &mut self,
+        path: impl Into<RelativePathBuf>,
+        file: impl Into<Bytes>,
+    ) -> Result<&mut Self, Self::Error> {
+        (**self).add_file(path, file)?;
+
+        Ok(self)
+    }
+
+    fn remove_file(
+        &mut self,
+        path: impl AsRef<RelativePath>,
+    ) -> Result<Option<Bytes>, Self::Error> {
+        (**self).remove_file(path)
+    }
+}
+
 /// Defines the ability to commit files in a repository.
 pub trait Commit: Stage {
     /// The associated commit context.
@@ -105,5 +157,16 @@ pub trait Commit: Stage {
         self.commit(context)?;
 
         Ok(self)
+    }
+}
+
+impl<T> Commit for &mut T
+where
+    T: Commit,
+{
+    type Context = T::Context;
+
+    fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error> {
+        (**self).commit(context)
     }
 }

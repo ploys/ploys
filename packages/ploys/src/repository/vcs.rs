@@ -23,3 +23,61 @@ pub trait GitLike: Repository {
     /// Updates the branch to point to the given SHA.
     fn update_branch(&self, name: &str, sha: &str) -> Result<(), Self::Error>;
 }
+
+impl<T> GitLike for &T
+where
+    T: GitLike,
+{
+    fn sha(&self) -> Result<String, Self::Error> {
+        (**self).sha()
+    }
+
+    fn commit(
+        &self,
+        message: &str,
+        files: Vec<(RelativePathBuf, String)>,
+    ) -> Result<String, Self::Error> {
+        (**self).commit(message, files)
+    }
+
+    fn get_default_branch(&self) -> Result<String, Self::Error> {
+        (**self).get_default_branch()
+    }
+
+    fn create_branch(&self, name: &str) -> Result<(), Self::Error> {
+        (**self).create_branch(name)
+    }
+
+    fn update_branch(&self, name: &str, sha: &str) -> Result<(), Self::Error> {
+        (**self).update_branch(name, sha)
+    }
+}
+
+impl<T> GitLike for &mut T
+where
+    T: GitLike,
+{
+    fn sha(&self) -> Result<String, Self::Error> {
+        (**self).sha()
+    }
+
+    fn commit(
+        &self,
+        message: &str,
+        files: Vec<(RelativePathBuf, String)>,
+    ) -> Result<String, Self::Error> {
+        (**self).commit(message, files)
+    }
+
+    fn get_default_branch(&self) -> Result<String, Self::Error> {
+        (**self).get_default_branch()
+    }
+
+    fn create_branch(&self, name: &str) -> Result<(), Self::Error> {
+        (**self).create_branch(name)
+    }
+
+    fn update_branch(&self, name: &str, sha: &str) -> Result<(), Self::Error> {
+        (**self).update_branch(name, sha)
+    }
+}
