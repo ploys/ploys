@@ -349,6 +349,56 @@ impl<T> Package<T> {
     }
 }
 
+impl<T> Package<&T>
+where
+    T: Clone,
+{
+    /// Detaches the package from the backing repository.
+    ///
+    /// This allows a package obtained from an existing project to be modified
+    /// by cloning the inner repository. The changes made to this package are
+    /// not kept in sync with the project or original repository instance.
+    ///
+    /// Note that this will clone the entire repository including all staged
+    /// changes across all files and packages. This is to ensure that any
+    /// ability to access sibling packages or project configuration uses the
+    /// state at the point where the package is detached. Otherwise, adding a
+    /// new package, retrieving it, and then detaching it would leave the
+    /// package in a state where it is no longer part of the workspace.
+    pub fn detached(self) -> Package<T> {
+        Package {
+            repository: self.repository.detached(),
+            manifest: self.manifest,
+            primary: self.primary,
+        }
+    }
+}
+
+impl<T> Package<&mut T>
+where
+    T: Clone,
+{
+    /// Detaches the package from the backing repository.
+    ///
+    /// This allows a package obtained from an existing project to be modified
+    /// by cloning the inner repository. The changes made to this package are
+    /// not kept in sync with the project or original repository instance.
+    ///
+    /// Note that this will clone the entire repository including all staged
+    /// changes across all files and packages. This is to ensure that any
+    /// ability to access sibling packages or project configuration uses the
+    /// state at the point where the package is detached. Otherwise, adding a
+    /// new package, retrieving it, and then detaching it would leave the
+    /// package in a state where it is no longer part of the workspace.
+    pub fn detached(self) -> Package<T> {
+        Package {
+            repository: self.repository.detached(),
+            manifest: self.manifest,
+            primary: self.primary,
+        }
+    }
+}
+
 impl<T> Package<T>
 where
     T: Remote,
@@ -396,14 +446,14 @@ where
 
 impl<T> Package<T>
 where
-    T: Repository + Clone,
+    T: Repository,
 {
     /// Constructs a package from a manifest.
     pub(super) fn from_manifest(
         project: &Project<T>,
         path: impl Into<RelativePathBuf>,
         manifest: Manifest,
-    ) -> Option<Self> {
+    ) -> Option<Package<&T>> {
         let kind = manifest.package_kind();
         let primary = match kind {
             PackageKind::Cargo => {
@@ -413,8 +463,8 @@ where
             }
         };
 
-        Some(Self {
-            repository: Subdirectory::new_unvalidated(project.repository.clone(), path.into()),
+        Some(Package {
+            repository: Subdirectory::new_unvalidated(&project.repository, path.into()),
             manifest: manifest.clone(),
             primary,
         })

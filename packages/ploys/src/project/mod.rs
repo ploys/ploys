@@ -304,10 +304,10 @@ where
 
 impl<T> Project<T>
 where
-    T: Repository + Clone,
+    T: Repository,
 {
     /// Gets a package with the given name.
-    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<T>> {
+    pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<&T>> {
         self.packages()
             .find(|package| package.name() == name.as_ref())
     }
@@ -353,11 +353,14 @@ where
         package: impl AsRef<str>,
         version: impl Into<BumpOrVersion>,
     ) -> Result<ReleaseRequestBuilder<'_, T>, Error<T::Error>> {
-        let package = self.get_package(package.as_ref()).ok_or_else(|| {
-            Error::Package(crate::package::Error::NotFound(
-                package.as_ref().to_string(),
-            ))
-        })?;
+        let package = self
+            .get_package(package.as_ref())
+            .ok_or_else(|| {
+                Error::Package(crate::package::Error::NotFound(
+                    package.as_ref().to_string(),
+                ))
+            })?
+            .detached();
 
         Ok(ReleaseRequestBuilder::new(self, package, version.into()))
     }
@@ -367,11 +370,14 @@ where
         &self,
         package: impl AsRef<str>,
     ) -> Result<ReleaseBuilder<'_, T>, Error<T::Error>> {
-        let package = self.get_package(package.as_ref()).ok_or_else(|| {
-            Error::Package(crate::package::Error::NotFound(
-                package.as_ref().to_string(),
-            ))
-        })?;
+        let package = self
+            .get_package(package.as_ref())
+            .ok_or_else(|| {
+                Error::Package(crate::package::Error::NotFound(
+                    package.as_ref().to_string(),
+                ))
+            })?
+            .detached();
 
         Ok(ReleaseBuilder::new(self, package))
     }
