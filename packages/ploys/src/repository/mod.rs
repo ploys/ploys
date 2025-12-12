@@ -26,7 +26,7 @@ pub use self::vcs::GitLike;
 /// Repositories use [`RelativePath`] to address files to avoid portability
 /// issues across operating systems. This uses a fixed `/` separator and is
 /// guaranteed to be valid UTF-8.
-pub trait Repository: Clone {
+pub trait Repository {
     type Error;
 
     /// Gets a file at the given path.
@@ -98,7 +98,10 @@ pub trait Commit: Stage {
     fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error>;
 
     /// Builds the repository with the staged file changes committed.
-    fn committed(mut self, context: impl Into<Self::Context>) -> Result<Self, Self::Error> {
+    fn committed(mut self, context: impl Into<Self::Context>) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
         self.commit(context)?;
 
         Ok(self)

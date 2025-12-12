@@ -304,7 +304,7 @@ where
 
 impl<T> Project<T>
 where
-    T: Repository,
+    T: Repository + Clone,
 {
     /// Gets a package with the given name.
     pub fn get_package(&self, name: impl AsRef<str>) -> Option<Package<T>> {
@@ -345,7 +345,7 @@ where
 
 impl<T> Project<T>
 where
-    T: Remote,
+    T: Remote + Clone,
 {
     /// Constructs a new package release request builder.
     pub fn create_package_release_request(

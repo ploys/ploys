@@ -396,7 +396,7 @@ where
 
 impl<T> Package<T>
 where
-    T: Repository,
+    T: Repository + Clone,
 {
     /// Constructs a package from a manifest.
     pub(super) fn from_manifest(
