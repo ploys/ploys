@@ -171,8 +171,7 @@ fn get_previous_version(
     let previous_version = versions
         .iter()
         .filter(|previous_version| *previous_version < version)
-        .filter(|previous_version| version.pre.is_empty() || previous_version.pre.is_empty())
-        .next_back();
+        .rfind(|previous_version| version.pre.is_empty() || previous_version.pre.is_empty());
 
     match previous_version {
         Some(previous_version) => Some(previous_version.clone()),
