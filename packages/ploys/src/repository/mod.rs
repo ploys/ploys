@@ -170,3 +170,15 @@ where
         (**self).commit(params)
     }
 }
+
+/// Defines the ability to open a repository.
+pub trait Open: Repository + Sized {
+    /// The associated open context.
+    type Context;
+
+    /// Opens a repository with the given context.
+    fn open<T, E>(ctx: T) -> Result<Self, Self::Error>
+    where
+        T: TryInto<Self::Context, Error = E>,
+        E: Into<Self::Error>;
+}

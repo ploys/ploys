@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::fmt::{self, Display};
 use std::io;
 
@@ -117,6 +118,12 @@ impl From<gix::reference::find::existing::Error> for Error {
 impl From<gix::repository::edit_tree::Error> for Error {
     fn from(err: gix::repository::edit_tree::Error) -> Self {
         Self::Gix(err.into())
+    }
+}
+
+impl From<Infallible> for Error {
+    fn from(err: Infallible) -> Self {
+        match err {}
     }
 }
 

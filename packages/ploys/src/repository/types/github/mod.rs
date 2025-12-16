@@ -26,7 +26,7 @@ use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
 use crate::repository::path::prepare_path;
 use crate::repository::revision::{Reference, Revision};
-use crate::repository::{Commit, GitLike, Remote, Repository, Stage};
+use crate::repository::{Commit, GitLike, Open, Remote, Repository, Stage};
 
 pub use self::error::Error;
 pub use self::params::CommitParams;
@@ -37,29 +37,6 @@ pub use self::spec::GitHubRepoSpec;
 #[derive(Clone)]
 pub struct GitHub {
     inner: Staged<Cached<Inner>>,
-}
-
-impl GitHub {
-    /// Opens a GitHub repository.
-    ///
-    /// Note that this does not validate the existence of the repository as it
-    /// may require an authentication token. Call `validated` to ensure that a
-    /// private repository exists after calling `with_authentication_token`.
-    pub fn open<R>(repo: R) -> Result<Self, Error>
-    where
-        R: TryInto<GitHubRepoSpec, Error: Into<Error>>,
-    {
-        Ok(Self {
-            inner: Staged::new(
-                Cached::new(Inner {
-                    repository: Repo::new(repo.try_into().map_err(Into::into)?)?,
-                    revision: Revision::head(),
-                    token: None,
-                })
-                .enabled(false),
-            ),
-        })
-    }
 }
 
 impl GitHub {
@@ -361,6 +338,32 @@ impl Commit for GitHub {
         }
 
         Ok(())
+    }
+}
+
+impl Open for GitHub {
+    type Context = GitHubRepoSpec;
+
+    /// Opens a GitHub repository.
+    ///
+    /// Note that this does not validate the existence of the repository as it
+    /// may require an authentication token. Call `validated` to ensure that a
+    /// private repository exists after calling `with_authentication_token`.
+    fn open<C, E>(ctx: C) -> Result<Self, Self::Error>
+    where
+        C: TryInto<Self::Context, Error = E>,
+        E: Into<Self::Error>,
+    {
+        Ok(Self {
+            inner: Staged::new(
+                Cached::new(Inner {
+                    repository: Repo::new(ctx.try_into().map_err(Into::into)?)?,
+                    revision: Revision::head(),
+                    token: None,
+                })
+                .enabled(false),
+            ),
+        })
     }
 }
 

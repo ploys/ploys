@@ -1,7 +1,7 @@
 use ploys::project::{Error, Project};
 use ploys::repository::revision::Revision;
 use ploys::repository::types::git::{Error as GitError, Git};
-use ploys::repository::{Commit, Repository, Stage};
+use ploys::repository::{Commit, Open, Repository, Stage};
 use tempfile::tempdir;
 
 #[test]

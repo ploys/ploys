@@ -1,6 +1,6 @@
 use ploys::project::{Error, Project};
 use ploys::repository::types::fs::{Error as FsError, FileSystem};
-use ploys::repository::{Commit, Stage};
+use ploys::repository::{Commit, Open, Stage};
 use tempfile::tempdir;
 
 #[test]

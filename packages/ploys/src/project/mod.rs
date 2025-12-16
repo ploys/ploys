@@ -390,7 +390,7 @@ mod fs {
 
     use crate::repository::types::fs::{Error as FsError, FileSystem};
     use crate::repository::types::staging::Staging;
-    use crate::repository::{Commit, Repository, Stage};
+    use crate::repository::{Commit, Open, Repository, Stage};
 
     use super::{Error, Project};
 
@@ -459,6 +459,7 @@ mod fs {
 mod git {
     use std::path::PathBuf;
 
+    use crate::repository::Open;
     use crate::repository::revision::Revision;
     use crate::repository::types::git::{Error as GitError, Git};
 
@@ -495,6 +496,7 @@ mod git {
 
 #[cfg(feature = "github")]
 mod github {
+    use crate::repository::Open;
     use crate::repository::revision::Revision;
     use crate::repository::types::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
 
@@ -568,6 +570,7 @@ mod github {
 
 #[cfg(all(feature = "fs", feature = "git"))]
 mod fs_git {
+    use crate::repository::Open;
     use crate::repository::revision::Revision;
     use crate::repository::types::fs::FileSystem;
     use crate::repository::types::git::{Error as GitError, Git};

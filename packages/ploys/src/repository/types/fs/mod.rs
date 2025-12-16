@@ -10,7 +10,7 @@ use walkdir::WalkDir;
 pub use self::error::Error;
 
 use crate::repository::adapters::staged::Staged;
-use crate::repository::{Commit, Repository, Stage};
+use crate::repository::{Commit, Open, Repository, Stage};
 
 /// A file system repository.
 #[derive(Clone)]
@@ -19,25 +19,6 @@ pub struct FileSystem {
 }
 
 impl FileSystem {
-    /// Opens a file system repository.
-    pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
-        let path = path.into();
-
-        let Ok(meta) = path.metadata() else {
-            return Err(Error::Directory(path));
-        };
-
-        if !meta.is_dir() {
-            return Err(Error::Directory(path));
-        }
-
-        Ok(Self {
-            inner: Staged::new(Inner {
-                path: path.canonicalize()?,
-            }),
-        })
-    }
-
     /// Opens a file system repository in the current directory.
     pub fn current_dir() -> Result<Self, Error> {
         Self::open(std::env::current_dir()?)
@@ -121,6 +102,32 @@ impl Commit for FileSystem {
         }
 
         Ok(())
+    }
+}
+
+impl Open for FileSystem {
+    type Context = PathBuf;
+
+    fn open<C, E>(ctx: C) -> Result<Self, Self::Error>
+    where
+        C: TryInto<Self::Context, Error = E>,
+        E: Into<Self::Error>,
+    {
+        let path = ctx.try_into().map_err(Into::into)?;
+
+        let Ok(meta) = path.metadata() else {
+            return Err(Error::Directory(path));
+        };
+
+        if !meta.is_dir() {
+            return Err(Error::Directory(path));
+        }
+
+        Ok(Self {
+            inner: Staged::new(Inner {
+                path: path.canonicalize()?,
+            }),
+        })
     }
 }
 

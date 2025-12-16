@@ -18,7 +18,7 @@ use relative_path::{RelativePath, RelativePathBuf};
 use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
 use crate::repository::revision::{Reference, Revision};
-use crate::repository::{Commit, Repository, Stage};
+use crate::repository::{Commit, Open, Repository, Stage};
 
 pub use self::error::Error;
 pub use self::params::CommitParams;
@@ -30,19 +30,6 @@ pub struct Git {
 }
 
 impl Git {
-    /// Opens a Git repository.
-    pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
-        Ok(Self {
-            inner: Staged::new(
-                Cached::new(Inner {
-                    repository: ThreadSafeRepository::open(path)?,
-                    revision: Revision::Head,
-                })
-                .enabled(false),
-            ),
-        })
-    }
-
     /// Initializes a Git repository.
     pub fn init(path: impl AsRef<Path>) -> Result<Self, Error> {
         Ok(Self {
@@ -218,6 +205,26 @@ impl Commit for Git {
         }
 
         Ok(())
+    }
+}
+
+impl Open for Git {
+    type Context = PathBuf;
+
+    fn open<C, E>(ctx: C) -> Result<Self, Self::Error>
+    where
+        C: TryInto<Self::Context, Error = E>,
+        E: Into<Self::Error>,
+    {
+        Ok(Self {
+            inner: Staged::new(
+                Cached::new(Inner {
+                    repository: ThreadSafeRepository::open(ctx.try_into().map_err(Into::into)?)?,
+                    revision: Revision::Head,
+                })
+                .enabled(false),
+            ),
+        })
     }
 }
 
