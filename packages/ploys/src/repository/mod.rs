@@ -143,18 +143,18 @@ where
 
 /// Defines the ability to commit files in a repository.
 pub trait Commit: Stage {
-    /// The associated commit context.
-    type Context;
+    /// The associated commit parameters.
+    type Params;
 
     /// Commits the staged file changes to the repository.
-    fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error>;
+    fn commit(&mut self, params: impl Into<Self::Params>) -> Result<(), Self::Error>;
 
     /// Builds the repository with the staged file changes committed.
-    fn committed(mut self, context: impl Into<Self::Context>) -> Result<Self, Self::Error>
+    fn committed(mut self, params: impl Into<Self::Params>) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
-        self.commit(context)?;
+        self.commit(params)?;
 
         Ok(self)
     }
@@ -164,9 +164,9 @@ impl<T> Commit for &mut T
 where
     T: Commit,
 {
-    type Context = T::Context;
+    type Params = T::Params;
 
-    fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error> {
-        (**self).commit(context)
+    fn commit(&mut self, params: impl Into<Self::Params>) -> Result<(), Self::Error> {
+        (**self).commit(params)
     }
 }

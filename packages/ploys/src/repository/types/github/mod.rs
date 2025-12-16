@@ -205,9 +205,9 @@ impl Stage for GitHub {
 }
 
 impl Commit for GitHub {
-    type Context = CommitParams;
+    type Params = CommitParams;
 
-    fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error> {
+    fn commit(&mut self, params: impl Into<Self::Params>) -> Result<(), Self::Error> {
         #[derive(Serialize)]
         struct CreateBlob {
             content: String,
@@ -250,7 +250,7 @@ impl Commit for GitHub {
             sha: String,
         }
 
-        let context = context.into();
+        let params = params.into();
         let base_sha = self.sha()?;
         let files = self.inner.drain().collect::<Vec<_>>();
 
@@ -334,7 +334,7 @@ impl Commit for GitHub {
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&CreateCommit {
-                message: context.message().to_owned(),
+                message: params.message().to_owned(),
                 tree: tree_sha,
                 parents: vec![base_sha],
             })

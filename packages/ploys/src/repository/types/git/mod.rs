@@ -151,10 +151,10 @@ impl Stage for Git {
 }
 
 impl Commit for Git {
-    type Context = CommitParams;
+    type Params = CommitParams;
 
-    fn commit(&mut self, context: impl Into<Self::Context>) -> Result<(), Self::Error> {
-        let context = context.into();
+    fn commit(&mut self, params: impl Into<Self::Params>) -> Result<(), Self::Error> {
+        let context = params.into();
         let repo = self.inner.inner.inner().repository.to_thread_local();
         let revision = self.inner.inner.inner().revision.to_string();
 
