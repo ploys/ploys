@@ -81,9 +81,9 @@ impl Stage for FileSystem {
 }
 
 impl Commit for FileSystem {
-    type Context = ();
+    type Params = ();
 
-    fn commit(&mut self, _: impl Into<Self::Context>) -> Result<(), Self::Error> {
+    fn commit(&mut self, _: impl Into<Self::Params>) -> Result<(), Self::Error> {
         let base_path = self.path().to_owned();
 
         for (path, file) in self.inner.drain() {
