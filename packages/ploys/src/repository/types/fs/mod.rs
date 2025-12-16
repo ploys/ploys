@@ -108,9 +108,9 @@ impl Commit for FileSystem {
 impl Open for FileSystem {
     type Context = PathBuf;
 
-    fn open<C, E>(ctx: C) -> Result<Self, Self::Error>
+    fn open<T, E>(ctx: T) -> Result<Self, Self::Error>
     where
-        C: TryInto<Self::Context, Error = E>,
+        T: TryInto<Self::Context, Error = E>,
         E: Into<Self::Error>,
     {
         let path = ctx.try_into().map_err(Into::into)?;

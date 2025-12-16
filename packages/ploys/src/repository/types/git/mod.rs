@@ -211,9 +211,9 @@ impl Commit for Git {
 impl Open for Git {
     type Context = PathBuf;
 
-    fn open<C, E>(ctx: C) -> Result<Self, Self::Error>
+    fn open<T, E>(ctx: T) -> Result<Self, Self::Error>
     where
-        C: TryInto<Self::Context, Error = E>,
+        T: TryInto<Self::Context, Error = E>,
         E: Into<Self::Error>,
     {
         Ok(Self {
