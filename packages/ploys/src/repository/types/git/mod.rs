@@ -154,7 +154,7 @@ impl Commit for Git {
     type Params = CommitParams;
 
     fn commit(&mut self, params: impl Into<Self::Params>) -> Result<(), Self::Error> {
-        let context = params.into();
+        let params = params.into();
         let repo = self.inner.inner.inner().repository.to_thread_local();
         let revision = self.inner.inner.inner().revision.to_string();
 
@@ -189,7 +189,7 @@ impl Commit for Git {
 
         match &self.inner.inner.inner().revision {
             Revision::Head | Revision::Reference(Reference::Branch(_)) => {
-                repo.commit(revision, context.message(), tree_id, parent)?;
+                repo.commit(revision, params.message(), tree_id, parent)?;
             }
             _ => {
                 let author = repo
@@ -202,7 +202,7 @@ impl Commit for Git {
                     .map_err(gix::commit::Error::from)?;
 
                 let commit = gix::objs::Commit {
-                    message: context.message().into(),
+                    message: params.message().into(),
                     tree: tree_id.into(),
                     author: author.into(),
                     committer: committer.into(),
