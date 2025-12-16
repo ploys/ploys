@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::fmt::{self, Display};
 use std::io;
 use std::path::PathBuf;
@@ -40,5 +41,11 @@ impl From<std::io::Error> for Error {
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
         Self::Io(err.into())
+    }
+}
+
+impl From<Infallible> for Error {
+    fn from(err: Infallible) -> Self {
+        match err {}
     }
 }
