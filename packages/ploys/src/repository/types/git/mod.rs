@@ -6,7 +6,6 @@ mod error;
 mod params;
 
 use std::borrow::Cow;
-use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
@@ -268,8 +267,8 @@ impl Repository for Inner {
             .into_iter()
             .filter(|entry| entry.mode.is_blob())
             .map(|entry| RelativePathBuf::from(entry.filepath.to_string()))
-            .collect::<BTreeSet<_>>();
+            .map(Cow::Owned);
 
-        Ok(entries.into_iter().map(Cow::Owned))
+        Ok(entries)
     }
 }
