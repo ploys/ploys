@@ -65,14 +65,15 @@ where
         }
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         Ok(self
             .files
             .keys()
-            .cloned()
+            .map(RelativePathBuf::as_relative_path)
+            .map(Cow::Borrowed)
             .merge(self.inner.get_index()?)
             .unique()
-            .filter(|path| self.files.get(path).is_none_or(Option::is_some)))
+            .filter(|path| self.files.get(path.as_ref()).is_none_or(Option::is_some)))
     }
 }
 
@@ -105,7 +106,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use relative_path::RelativePathBuf;
+    use std::borrow::Cow;
+
+    use relative_path::RelativePath;
 
     use crate::repository::types::staging::Staging;
     use crate::repository::{Repository, Stage};
@@ -128,8 +131,8 @@ mod tests {
         let index = outer.get_index().unwrap().collect::<Vec<_>>();
 
         assert_eq!(index.len(), 2);
-        assert!(index.contains(&RelativePathBuf::from("a")));
-        assert!(index.contains(&RelativePathBuf::from("b")));
+        assert!(index.contains(&Cow::Borrowed(RelativePath::new("a"))));
+        assert!(index.contains(&Cow::Borrowed(RelativePath::new("b"))));
 
         outer.add_file("c", "C").unwrap();
         outer.remove_file("a").unwrap();
@@ -141,8 +144,8 @@ mod tests {
         let index = outer.get_index().unwrap().collect::<Vec<_>>();
 
         assert_eq!(index.len(), 2);
-        assert!(index.contains(&RelativePathBuf::from("b")));
-        assert!(index.contains(&RelativePathBuf::from("c")));
+        assert!(index.contains(&Cow::Borrowed(RelativePath::new("b"))));
+        assert!(index.contains(&Cow::Borrowed(RelativePath::new("c"))));
 
         assert_eq!(outer.inner.get_file("a"), Ok(Some("A".into())));
         assert_eq!(outer.inner.get_file("b"), Ok(Some("B".into())));

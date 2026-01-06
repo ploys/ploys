@@ -1,5 +1,6 @@
 mod error;
 
+use std::borrow::Cow;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
@@ -37,7 +38,7 @@ impl Repository for FileSystem {
         self.inner.get_file(path)
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         self.inner.get_index()
     }
 }
@@ -147,7 +148,7 @@ impl Repository for Inner {
         }
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         let index = WalkDir::new(&self.path)
             .into_iter()
             .filter_entry(|entry| {
@@ -163,6 +164,6 @@ impl Repository for Inner {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(index.into_iter())
+        Ok(index.into_iter().map(Cow::Owned))
     }
 }
