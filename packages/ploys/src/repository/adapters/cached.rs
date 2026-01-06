@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
@@ -75,27 +76,34 @@ where
             .cloned()
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         if !self.enabled {
             return self.inner.get_index().map(Either::Left);
         }
 
         Ok(Either::Right(
             self.index
-                .get_or_try_init(|| self.inner.get_index().map(Iterator::collect))?
+                .get_or_try_init(|| {
+                    self.inner
+                        .get_index()
+                        .map(|iter| iter.map(Cow::into_owned))
+                        .map(Iterator::collect)
+                })?
                 .iter()
-                .map(Clone::clone),
+                .map(RelativePathBuf::as_relative_path)
+                .map(Cow::Borrowed),
         ))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
     use std::cell::RefCell;
     use std::convert::Infallible;
 
     use bytes::Bytes;
-    use relative_path::{RelativePath, RelativePathBuf};
+    use relative_path::RelativePath;
 
     use crate::repository::Repository;
 
@@ -120,7 +128,7 @@ mod tests {
             }
         }
 
-        fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+        fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
             Ok(vec![
                 self.a.borrow().is_some().then_some("a"),
                 self.b.borrow().is_some().then_some("b"),
@@ -128,7 +136,8 @@ mod tests {
             ]
             .into_iter()
             .flatten()
-            .map(RelativePathBuf::from))
+            .map(RelativePath::new)
+            .map(Cow::Borrowed))
         }
     }
 
@@ -148,7 +157,11 @@ mod tests {
 
         assert_eq!(
             repo.get_index().unwrap().collect::<Vec<_>>(),
-            vec!["a", "b", "c"]
+            vec![
+                Cow::Borrowed(RelativePath::new("a")),
+                Cow::Borrowed(RelativePath::new("b")),
+                Cow::Borrowed(RelativePath::new("c"))
+            ]
         );
         assert_eq!(repo.get_file("a").unwrap(), Some(Bytes::from("A!")));
         assert_eq!(repo.get_file("b").unwrap(), Some(Bytes::from("B?")));
@@ -161,7 +174,11 @@ mod tests {
 
         assert_eq!(
             repo.get_index().unwrap().collect::<Vec<_>>(),
-            vec!["a", "b", "c"]
+            vec![
+                Cow::Borrowed(RelativePath::new("a")),
+                Cow::Borrowed(RelativePath::new("b")),
+                Cow::Borrowed(RelativePath::new("c"))
+            ]
         );
         assert_eq!(repo.get_file("a").unwrap(), Some(Bytes::from("A!")));
         assert_eq!(repo.get_file("b").unwrap(), Some(Bytes::from("B?")));
@@ -174,7 +191,11 @@ mod tests {
 
         assert_eq!(
             repo.get_index().unwrap().collect::<Vec<_>>(),
-            vec!["a", "b", "c"]
+            vec![
+                Cow::Borrowed(RelativePath::new("a")),
+                Cow::Borrowed(RelativePath::new("b")),
+                Cow::Borrowed(RelativePath::new("c"))
+            ]
         );
         assert_eq!(repo.get_file("a").unwrap(), Some(Bytes::from("A!")));
         assert_eq!(repo.get_file("b").unwrap(), Some(Bytes::from("B?")));

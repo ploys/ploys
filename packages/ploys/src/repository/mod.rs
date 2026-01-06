@@ -12,6 +12,8 @@ pub mod path;
 pub mod revision;
 pub mod types;
 
+use std::borrow::Cow;
+
 use bytes::Bytes;
 use relative_path::{RelativePath, RelativePathBuf};
 
@@ -33,7 +35,7 @@ pub trait Repository {
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error>;
 
     /// Gets the index.
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error>;
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error>;
 }
 
 impl<T> Repository for &T
@@ -46,7 +48,7 @@ where
         (**self).get_file(path)
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         (**self).get_index()
     }
 }
@@ -61,7 +63,7 @@ where
         (**self).get_file(path)
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         (**self).get_index()
     }
 }

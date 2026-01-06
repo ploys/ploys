@@ -1,7 +1,8 @@
+use std::borrow::Cow;
 use std::iter::FusedIterator;
 use std::path::Path;
 
-use relative_path::RelativePathBuf;
+use relative_path::RelativePath;
 use strum::IntoEnumIterator;
 
 use crate::package::manifest::Members;
@@ -98,7 +99,7 @@ struct ManifestPackages<'a, T> {
     project: &'a Project<T>,
     manifest: Manifest,
     members: Members,
-    files: Box<dyn Iterator<Item = RelativePathBuf> + 'a>,
+    files: Box<dyn Iterator<Item = Cow<'a, RelativePath>> + 'a>,
 }
 
 impl<'a, T> Iterator for ManifestPackages<'a, T>
@@ -120,7 +121,8 @@ where
                 continue;
             };
 
-            if path != manifest_path && !self.members.includes(Path::new(parent.as_str())) {
+            if path.as_ref() != manifest_path && !self.members.includes(Path::new(parent.as_str()))
+            {
                 continue;
             }
 

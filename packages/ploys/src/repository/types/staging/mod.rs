@@ -36,8 +36,12 @@ impl Repository for Staging {
         Ok(self.files.get(&*path).cloned())
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
-        Ok(self.files.keys().cloned())
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
+        Ok(self
+            .files
+            .keys()
+            .map(RelativePathBuf::as_ref)
+            .map(Cow::Borrowed))
     }
 }
 

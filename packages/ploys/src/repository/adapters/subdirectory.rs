@@ -109,11 +109,14 @@ where
         self.repo.get_file(self.path.join(path))
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
-        Ok(self.repo.get_index()?.filter_map(|path| {
-            path.strip_prefix(&self.path)
-                .map(RelativePath::to_relative_path_buf)
-                .ok()
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
+        Ok(self.repo.get_index()?.filter_map(|path| match path {
+            Cow::Owned(path) => path
+                .strip_prefix(&self.path)
+                .map(ToOwned::to_owned)
+                .map(Cow::Owned)
+                .ok(),
+            Cow::Borrowed(path) => path.strip_prefix(&self.path).map(Cow::Borrowed).ok(),
         }))
     }
 }
@@ -186,8 +189,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use bytes::Bytes;
-    use relative_path::RelativePathBuf;
+    use relative_path::RelativePath;
 
     use crate::repository::types::staging::Staging;
     use crate::repository::{Repository, Stage};
@@ -217,8 +222,8 @@ mod tests {
 
         assert_eq!(root_index.len(), 2);
 
-        assert!(root_index.contains(&RelativePathBuf::from("hello.txt")));
-        assert!(root_index.contains(&RelativePathBuf::from("foo/bar.txt")));
+        assert!(root_index.contains(&Cow::Borrowed(RelativePath::new("hello.txt"))));
+        assert!(root_index.contains(&Cow::Borrowed(RelativePath::new("foo/bar.txt"))));
 
         let foo = Subdirectory::new(staging, "foo").unwrap();
 
@@ -230,7 +235,7 @@ mod tests {
 
         assert_eq!(foo_index.len(), 1);
 
-        assert!(foo_index.contains(&RelativePathBuf::from("bar.txt")));
+        assert!(foo_index.contains(&Cow::Borrowed(RelativePath::new("bar.txt"))));
     }
 
     #[test]

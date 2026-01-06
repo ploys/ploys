@@ -10,7 +10,6 @@ mod repo;
 mod spec;
 
 use std::borrow::Cow;
-use std::collections::BTreeSet;
 use std::io::Read;
 
 use base64::prelude::{BASE64_STANDARD, Engine};
@@ -157,7 +156,7 @@ impl Repository for GitHub {
         self.inner.get_file(path)
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         self.inner.get_index()
     }
 }
@@ -404,7 +403,7 @@ impl Repository for Inner {
         }
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         #[derive(Deserialize)]
         struct TreeResponse {
             tree: Vec<TreeResponseEntry>,
@@ -432,9 +431,9 @@ impl Repository for Inner {
             .into_iter()
             .filter(|entry| entry.r#type == "blob")
             .map(|entry| entry.path)
-            .collect::<BTreeSet<_>>();
+            .map(Cow::Owned);
 
-        Ok(entries.into_iter())
+        Ok(entries)
     }
 }
 

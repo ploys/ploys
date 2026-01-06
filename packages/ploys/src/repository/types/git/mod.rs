@@ -5,7 +5,7 @@
 mod error;
 mod params;
 
-use std::collections::BTreeSet;
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
@@ -113,7 +113,7 @@ impl Repository for Git {
         self.inner.get_file(path)
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         self.inner.get_index()
     }
 }
@@ -253,7 +253,7 @@ impl Repository for Inner {
         }
     }
 
-    fn get_index(&self) -> Result<impl Iterator<Item = RelativePathBuf>, Self::Error> {
+    fn get_index(&self) -> Result<impl Iterator<Item = Cow<'_, RelativePath>>, Self::Error> {
         let spec = self.revision.to_string();
         let repo = self.repository.to_thread_local();
         let tree = repo.rev_parse_single(&*spec)?.object()?.peel_to_tree()?;
@@ -267,8 +267,8 @@ impl Repository for Inner {
             .into_iter()
             .filter(|entry| entry.mode.is_blob())
             .map(|entry| RelativePathBuf::from(entry.filepath.to_string()))
-            .collect::<BTreeSet<_>>();
+            .map(Cow::Owned);
 
-        Ok(entries.into_iter())
+        Ok(entries)
     }
 }
