@@ -13,11 +13,15 @@ pub struct Changelog {
     package: String,
 
     /// Query the specified version.
-    #[clap(long, conflicts_with = "unreleased")]
+    #[clap(long, conflicts_with_all = ["latest", "unreleased"])]
     version: Option<Version>,
 
+    /// Query only the latest changes.
+    #[clap(long, conflicts_with_all = ["version", "unreleased"])]
+    latest: bool,
+
     /// Query only the unreleased changes.
-    #[clap(long, conflicts_with = "version")]
+    #[clap(long, conflicts_with_all = ["version", "latest"])]
     unreleased: bool,
 
     /// The remote GitHub repository owner/repo or URL.
@@ -56,6 +60,17 @@ impl Changelog {
 
                 let Some(release) = changelog.get_release(version.to_string()) else {
                     bail!("Invalid version {version}");
+                };
+
+                println!("{release:#}");
+            }
+            None if self.latest => {
+                let Some(changelog) = package.changelog() else {
+                    bail!("Missing changelog");
+                };
+
+                let Some(release) = changelog.releases().next() else {
+                    bail!("Missing release");
                 };
 
                 println!("{release:#}");
