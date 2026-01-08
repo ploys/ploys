@@ -1,9 +1,11 @@
+mod changelog;
 mod init;
 mod release;
 
 use anyhow::Error;
 use clap::{Args, Subcommand};
 
+use self::changelog::Changelog;
 use self::init::Init;
 use self::release::Release;
 
@@ -20,6 +22,7 @@ impl Package {
         match self.command {
             Command::Init(init) => init.exec(),
             Command::Release(release) => release.exec(),
+            Command::Changelog(changelog) => changelog.exec(),
         }
     }
 }
@@ -31,4 +34,6 @@ enum Command {
     Init(Init),
     /// Creates a new release.
     Release(Release),
+    /// Queries a package changelog.
+    Changelog(Changelog),
 }
