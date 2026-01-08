@@ -34,6 +34,6 @@ enum Command {
     Init(Init),
     /// Creates a new release.
     Release(Release),
-    /// Queries the package changelog.
+    /// Queries a package changelog.
     Changelog(Changelog),
 }

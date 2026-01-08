@@ -12,9 +12,13 @@ pub struct Changelog {
     /// The package identifier.
     package: String,
 
-    /// The package version.
-    #[clap(long)]
+    /// Query the specified version.
+    #[clap(long, conflicts_with = "unreleased")]
     version: Option<Version>,
+
+    /// Query only the unreleased changes.
+    #[clap(long, conflicts_with = "version")]
+    unreleased: bool,
 
     /// The remote GitHub repository owner/repo or URL.
     #[clap(long)]
@@ -44,24 +48,34 @@ impl Changelog {
             .get_package(&self.package)
             .ok_or(ploys::package::Error::<Infallible>::NotFound(self.package))?;
 
-        let release = match self.version {
-            Some(version) => match package.changelog() {
-                Some(changelog) => match changelog.get_release(version.to_string()) {
-                    Some(release) => release.to_owned(),
-                    None => package.build_release_notes(&version)?,
-                },
-                None => package.build_release_notes(&version)?,
-            },
-            None => {
-                let version = Version::new(package.version().major + 1, 0, 0);
+        match self.version {
+            Some(version) => {
+                let Some(changelog) = package.changelog() else {
+                    bail!("Missing changelog");
+                };
 
-                package
-                    .build_release_notes(&version)?
-                    .with_version("Unreleased")
+                let Some(release) = changelog.get_release(version.to_string()) else {
+                    bail!("Invalid version {version}");
+                };
+
+                println!("{release:#}");
             }
-        };
+            None if self.unreleased => {
+                let version = Version::new(package.version().major + 1, 0, 0);
+                let release = package
+                    .build_release_notes(&version)?
+                    .with_version("Unreleased");
 
-        println!("{release:#}");
+                println!("{release:#}");
+            }
+            None => {
+                let Some(changelog) = package.changelog() else {
+                    bail!("Missing changelog");
+                };
+
+                println!("{changelog:#}");
+            }
+        }
 
         Ok(())
     }
