@@ -34,6 +34,18 @@ impl Release {
         &self.version
     }
 
+    /// Sets the release version.
+    pub fn set_version(&mut self, version: impl Into<String>) -> &mut Self {
+        self.version = version.into();
+        self
+    }
+
+    /// Builds the release with the given version.
+    pub fn with_version(mut self, version: impl Into<String>) -> Self {
+        self.set_version(version);
+        self
+    }
+
     /// Gets the release date.
     pub fn date(&self) -> Option<&str> {
         self.date.as_deref()
