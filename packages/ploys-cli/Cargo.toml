@@ -14,7 +14,7 @@ clap = { version = "4.3.21", features = ["derive", "env"] }
 console = "0.15.7"
 dialoguer = "0.11.0"
 itertools = "0.14.0"
-ploys = { version = "0.5.0", path = "../ploys" }
+ploys = { version = "0.6.0", path = "../ploys" }
 semver = "1.0.19"
 strum = { version = "0.26.3", features = ["derive"] }
 tracing = "0.1.41"

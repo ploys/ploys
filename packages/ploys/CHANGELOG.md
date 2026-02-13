@@ -5,6 +5,22 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-02-13
+
+### Changed
+
+- Update `reqwest` to use `rustls-tls` feature ([#312](https://github.com/ploys/ploys/pull/312))
+- Remove `Clone` bound from `Repository` trait ([#316](https://github.com/ploys/ploys/pull/316))
+- Resolve `clippy::filter_next` lint ([#317](https://github.com/ploys/ploys/pull/317))
+- Implement `Repository` traits for references ([#318](https://github.com/ploys/ploys/pull/318))
+- Update returned `Package` to use repository reference ([#319](https://github.com/ploys/ploys/pull/319))
+- Rename `Commit` associated `Context` to `Params` ([#320](https://github.com/ploys/ploys/pull/320))
+- Add repository `Open` trait ([#321](https://github.com/ploys/ploys/pull/321))
+- Use `Cow<RelativePath>` for repository index ([#322](https://github.com/ploys/ploys/pull/322))
+- Add methods to alter the changelog release version ([#323](https://github.com/ploys/ploys/pull/323))
+- Add package license symlinks ([#325](https://github.com/ploys/ploys/pull/325))
+- Add package README files ([#326](https://github.com/ploys/ploys/pull/326))
+
 ## [0.5.0] - 2025-10-15
 
 ### Changed
@@ -215,6 +231,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add project commit methods ([#57](https://github.com/ploys/ploys/pull/57))
 - Add release workflow publish job ([#73](https://github.com/ploys/ploys/pull/73))
 
+[0.6.0]: https://github.com/ploys/ploys/releases/tag/0.6.0
 [0.5.0]: https://github.com/ploys/ploys/releases/tag/0.5.0
 [0.4.0]: https://github.com/ploys/ploys/releases/tag/0.4.0
 [0.3.0]: https://github.com/ploys/ploys/releases/tag/0.3.0
