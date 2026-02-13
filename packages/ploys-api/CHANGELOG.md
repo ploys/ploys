@@ -5,6 +5,19 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-02-13
+
+### Changed
+
+- Remove unused `RefType` enum ([#293](https://github.com/ploys/ploys/pull/293))
+- Remove Shuttle integration ([#309](https://github.com/ploys/ploys/pull/309))
+- Add release assets for `ploys-api` package ([#311](https://github.com/ploys/ploys/pull/311))
+- Update `reqwest` to use `rustls-tls` feature ([#312](https://github.com/ploys/ploys/pull/312))
+- Add graceful server shutdown ([#313](https://github.com/ploys/ploys/pull/313))
+- Add GitHub container registry package releases ([#314](https://github.com/ploys/ploys/pull/314))
+- Add package license symlinks ([#325](https://github.com/ploys/ploys/pull/325))
+- Add package README files ([#326](https://github.com/ploys/ploys/pull/326))
+
 ## [0.4.0] - 2025-08-14
 
 ### Changed
@@ -54,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `shuttle-runtime` to `0.48.0` ([#68](https://github.com/ploys/ploys/pull/68))
 - Add release workflow with deploy job ([#69](https://github.com/ploys/ploys/pull/69))
 
+[0.5.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.5.0
 [0.4.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.4.0
 [0.3.0]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.3.0
 [0.2.1]: https://github.com/ploys/ploys/releases/tag/ploys-api-0.2.1
