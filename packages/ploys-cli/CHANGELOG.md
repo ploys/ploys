@@ -5,6 +5,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-02-13
+
+### Changed
+
+- Add `package changelog` command ([#324](https://github.com/ploys/ploys/pull/324))
+- Add package license symlinks ([#325](https://github.com/ploys/ploys/pull/325))
+- Add package README files ([#326](https://github.com/ploys/ploys/pull/326))
+
 ## [0.4.0] - 2025-10-15
 
 ### Changed
@@ -54,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add release workflow publish for `ploys-cli` package ([#79](https://github.com/ploys/ploys/pull/79))
 - Set `ploys` dependency version ([#80](https://github.com/ploys/ploys/pull/80))
 
+[0.5.0]: https://github.com/ploys/ploys/releases/tag/ploys-cli-0.5.0
 [0.4.0]: https://github.com/ploys/ploys/releases/tag/ploys-cli-0.4.0
 [0.3.0]: https://github.com/ploys/ploys/releases/tag/ploys-cli-0.3.0
 [0.2.0]: https://github.com/ploys/ploys/releases/tag/ploys-cli-0.2.0
