@@ -41,7 +41,7 @@ features = ["json", "rustls-tls", "charset", "http2", "system-proxy"]
 default-features = false
 
 [dependencies.ploys]
-version = "0.5.0"
+version = "0.6.0"
 path = "../ploys"
 features = ["github"]
 default-features = false
