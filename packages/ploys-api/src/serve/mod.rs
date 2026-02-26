@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Error;
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::{Extension, Router};
 use clap::Args;
 use tokio::net::TcpListener;
@@ -36,6 +36,7 @@ impl Serve {
         };
 
         let router = Router::new()
+            .route("/github", get(crate::github::get))
             .route(
                 "/github/webhook",
                 post(crate::github::webhook::receive)
