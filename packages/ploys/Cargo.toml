@@ -9,10 +9,9 @@ license = "MIT OR Apache-2.0"
 edition = "2024"
 
 [features]
-default = ["fs", "git", "github"]
+default = ["fs", "git"]
 fs = ["dep:walkdir"]
 git = ["dep:gix"]
-github = ["dep:reqwest"]
 
 [dependencies]
 base64 = "0.22.1"
@@ -38,7 +37,6 @@ walkdir = { version = "2.5.0", optional = true }
 version = "0.12.9"
 features = ["blocking", "json", "rustls-tls", "charset", "http2", "system-proxy"]
 default-features = false
-optional = true
 
 [dev-dependencies]
 indoc = "2.0.5"

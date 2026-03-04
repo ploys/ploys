@@ -88,7 +88,6 @@ impl From<crate::repository::types::git::Error> for Error<crate::repository::typ
     }
 }
 
-#[cfg(feature = "github")]
 impl From<crate::repository::types::github::Error>
     for Error<crate::repository::types::github::Error>
 {
