@@ -41,7 +41,6 @@ impl RepoSpec {
     }
 
     /// Gets a GitHub repository specification.
-    #[cfg(feature = "github")]
     pub fn to_github(&self) -> Option<super::types::github::GitHubRepoSpec> {
         match self {
             Self::Url(url) => match url.host()? {
@@ -102,7 +101,6 @@ impl From<ShortRepoSpec> for RepoSpec {
     }
 }
 
-#[cfg(feature = "github")]
 impl From<super::types::github::GitHubRepoSpec> for RepoSpec {
     fn from(github: super::types::github::GitHubRepoSpec) -> Self {
         Self::Short(ShortRepoSpec::GitHub(github))
@@ -113,10 +111,8 @@ impl From<super::types::github::GitHubRepoSpec> for RepoSpec {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, EnumIs, EnumTryAs)]
 pub enum ShortRepoSpec {
     /// A default (GitHub) repository specification.
-    #[cfg(feature = "github")]
     Default(super::types::github::GitHubRepoSpec),
     /// A GitHub repository specification.
-    #[cfg(feature = "github")]
     GitHub(super::types::github::GitHubRepoSpec),
 }
 
@@ -124,24 +120,16 @@ impl ShortRepoSpec {
     /// Gets the repository URL.
     pub fn to_url(&self) -> Url {
         match self {
-            #[cfg(feature = "github")]
             Self::Default(spec) | Self::GitHub(spec) => spec.to_url(),
-            #[cfg(not(feature = "github"))]
-            _ => unreachable!(),
         }
     }
 }
 
 impl Display for ShortRepoSpec {
-    #[cfg_attr(not(feature = "github"), allow(unused_variables))]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            #[cfg(feature = "github")]
             Self::Default(spec) => write!(f, "{spec}"),
-            #[cfg(feature = "github")]
             Self::GitHub(spec) => write!(f, "github:{spec}"),
-            #[cfg(not(feature = "github"))]
-            _ => unreachable!(),
         }
     }
 }
@@ -149,23 +137,17 @@ impl Display for ShortRepoSpec {
 impl FromStr for ShortRepoSpec {
     type Err = Error;
 
-    #[cfg_attr(not(feature = "github"), allow(unused_variables))]
     fn from_str(spec: &str) -> Result<Self, Self::Err> {
         match spec.split_once(':') {
             Some((kind, rest)) => match kind {
-                #[cfg(feature = "github")]
                 "github" => Ok(Self::GitHub(rest.parse()?)),
                 _ => Err(Error::unsupported(spec)),
             },
-            #[cfg(feature = "github")]
             None => Ok(Self::Default(spec.parse()?)),
-            #[cfg(not(feature = "github"))]
-            None => Err(Error::unsupported(spec)),
         }
     }
 }
 
-#[cfg(feature = "github")]
 impl From<super::types::github::GitHubRepoSpec> for ShortRepoSpec {
     fn from(github: super::types::github::GitHubRepoSpec) -> Self {
         Self::GitHub(github)
@@ -206,7 +188,7 @@ impl Display for Error {
 
 #[cfg(test)]
 mod tests {
-    #[cfg_attr(feature = "github", test)]
+    #[test]
     fn test_parse() {
         use super::RepoSpec;
 

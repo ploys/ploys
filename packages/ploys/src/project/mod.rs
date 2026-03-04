@@ -494,7 +494,6 @@ mod git {
     }
 }
 
-#[cfg(feature = "github")]
 mod github {
     use crate::repository::Open;
     use crate::repository::revision::Revision;
