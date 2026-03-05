@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
-use anyhow::{Error, bail};
+use anyhow::Error;
 use clap::Args;
 use console::style;
 use ploys::project::Project;
 use ploys::repository::revision::Revision;
-use ploys::repository::{RepoSpec, Repository};
+use ploys::repository::{RepoAddr, Repository};
 
 /// Gets the project information.
 #[derive(Args)]
@@ -16,7 +16,7 @@ pub struct Info {
 
     /// The remote repository specification.
     #[arg(long, conflicts_with_all = ["path"])]
-    remote: Option<RepoSpec>,
+    remote: Option<RepoAddr>,
 
     /// The repository head.
     #[arg(long)]
@@ -43,17 +43,15 @@ impl Info {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
         match &self.remote {
-            Some(remote) => {
-                let Some(github) = remote.to_github() else {
-                    bail!("Unsupported remote repository: {remote}");
-                };
-
+            Some(repo) => {
                 let revision = self.revision().unwrap_or_else(Revision::head);
                 let project = match &self.token {
                     Some(token) => Project::github_with_revision_and_authentication_token(
-                        github, revision, token,
+                        repo.clone(),
+                        revision,
+                        token,
                     )?,
-                    None => Project::github_with_revision(github, revision)?,
+                    None => Project::github_with_revision(repo.clone(), revision)?,
                 };
 
                 self.print(project)?;
@@ -102,7 +100,7 @@ impl Info {
         }
 
         if let Some(repository) = project.repository() {
-            println!("Repository:  {}", repository.to_url());
+            println!("Repository:  {repository:#}");
         }
 
         println!("\n{}:\n", style("Packages").underlined().bold());

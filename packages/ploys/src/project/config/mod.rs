@@ -11,7 +11,7 @@ use std::str::FromStr;
 
 use toml_edit::{DocumentMut, Item, Table, value};
 
-use crate::repository::RepoSpec;
+use crate::repository::RepoAddr;
 
 pub use self::error::Error;
 pub use self::project::{Project, ProjectMut};
@@ -61,18 +61,18 @@ impl Config {
     }
 
     /// Gets the project repository.
-    pub fn project_repository(&self) -> Option<RepoSpec> {
+    pub fn project_repository(&self) -> Option<RepoAddr> {
         self.project().repository()
     }
 
     /// Sets the project repository.
-    pub fn set_project_repository(&mut self, repository: impl Into<RepoSpec>) -> &mut Self {
+    pub fn set_project_repository(&mut self, repository: impl Into<RepoAddr>) -> &mut Self {
         self.project_mut().set_repository(repository);
         self
     }
 
     /// Builds the config with the given project repository.
-    pub fn with_project_repository(mut self, repository: impl Into<RepoSpec>) -> Self {
+    pub fn with_project_repository(mut self, repository: impl Into<RepoAddr>) -> Self {
         self.set_project_repository(repository);
         self
     }
@@ -158,7 +158,7 @@ impl FromStr for Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::repository::RepoSpec;
+    use crate::repository::RepoAddr;
 
     use super::Config;
 
@@ -166,13 +166,13 @@ mod tests {
     fn test_builder() {
         let config = Config::new("example")
             .with_project_description("An example project.")
-            .with_project_repository("ploys/example".parse::<RepoSpec>().unwrap());
+            .with_project_repository("ploys/example".parse::<RepoAddr>().unwrap());
 
         assert_eq!(config.project_name(), "example");
         assert_eq!(config.project_description().unwrap(), "An example project.");
         assert_eq!(
             config.project_repository().unwrap(),
-            "ploys/example".parse::<RepoSpec>().unwrap()
+            "ploys/example".parse::<RepoAddr>().unwrap()
         );
 
         let expected = indoc::indoc! {r#"

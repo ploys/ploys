@@ -5,7 +5,7 @@ use anyhow::{Context, Error, bail};
 use clap::{Args, ValueEnum};
 use dialoguer::{Input, Select};
 use ploys::project::Project;
-use ploys::repository::RepoSpec;
+use ploys::repository::RepoAddr;
 use ploys::repository::types::git::Git;
 use strum::{Display, VariantArray};
 
@@ -26,7 +26,7 @@ pub struct Init {
 
     /// The project repository.
     #[arg(long)]
-    repository: Option<RepoSpec>,
+    repository: Option<RepoAddr>,
 
     /// The version control system.
     #[arg(long, value_enum)]

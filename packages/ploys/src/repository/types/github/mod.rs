@@ -7,7 +7,6 @@ mod changelog;
 mod error;
 mod params;
 mod repo;
-mod spec;
 
 use std::borrow::Cow;
 use std::io::Read;
@@ -23,6 +22,7 @@ use crate::changelog::Release;
 use crate::package::BumpOrVersion;
 use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
+use crate::repository::addr::RepoAddr;
 use crate::repository::path::prepare_path;
 use crate::repository::revision::{Reference, Revision};
 use crate::repository::{Commit, GitLike, Open, Remote, Repository, Stage};
@@ -30,7 +30,6 @@ use crate::repository::{Commit, GitLike, Open, Remote, Repository, Stage};
 pub use self::error::Error;
 pub use self::params::CommitParams;
 pub use self::repo::Repo;
-pub use self::spec::GitHubRepoSpec;
 
 /// The remote GitHub repository.
 #[derive(Clone)]
@@ -341,7 +340,7 @@ impl Commit for GitHub {
 }
 
 impl Open for GitHub {
-    type Context = GitHubRepoSpec;
+    type Context = RepoAddr;
 
     /// Opens a GitHub repository.
     ///
@@ -823,8 +822,8 @@ impl Remote for GitHub {
     }
 }
 
-impl From<GitHubRepoSpec> for GitHub {
-    fn from(repo: GitHubRepoSpec) -> Self {
+impl From<RepoAddr> for GitHub {
+    fn from(repo: RepoAddr) -> Self {
         Self::open(repo).expect("valid repo specification")
     }
 }

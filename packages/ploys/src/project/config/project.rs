@@ -1,7 +1,7 @@
 use either::Either;
 use toml_edit::{Array, Item, TableLike, Value};
 
-use crate::repository::RepoSpec;
+use crate::repository::RepoAddr;
 
 /// The project table.
 pub struct Project<'a>(&'a dyn TableLike);
@@ -18,7 +18,7 @@ impl<'a> Project<'a> {
     }
 
     /// Gets the project repository.
-    pub fn repository(&self) -> Option<RepoSpec> {
+    pub fn repository(&self) -> Option<RepoAddr> {
         self.0.get("repository")?.as_str()?.parse().ok()
     }
 
@@ -76,12 +76,12 @@ impl ProjectMut<'_> {
     }
 
     /// Gets the project repository.
-    pub fn repository(&self) -> Option<RepoSpec> {
+    pub fn repository(&self) -> Option<RepoAddr> {
         self.0.get("repository")?.as_str()?.parse().ok()
     }
 
     /// Sets the project repository.
-    pub fn set_repository(&mut self, repo: impl Into<RepoSpec>) -> &mut Self {
+    pub fn set_repository(&mut self, repo: impl Into<RepoAddr>) -> &mut Self {
         let item = self.0.entry("repository").or_insert_with(Item::default);
 
         *item = Item::Value(Value::from(repo.into().to_string()));

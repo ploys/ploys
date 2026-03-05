@@ -22,7 +22,7 @@
 //! ## GitHub
 //!
 //! To open a remote GitHub project use the [`Project::github`] constructor and
-//! pass in a string in the `owner/repo` format. The target identifier must
+//! pass in a string in the `owner/name` format. The target identifier must
 //! match an existing GitHub repository.
 //!
 //! ```no_run
@@ -49,7 +49,7 @@ use crate::package::lockfile::CargoLockfile;
 use crate::package::manifest::CargoManifest;
 use crate::package::{BumpOrVersion, Package, PackageKind};
 use crate::repository::types::staging::Staging;
-use crate::repository::{Remote, RepoSpec, Repository, Stage};
+use crate::repository::{Remote, RepoAddr, Repository, Stage};
 
 pub use self::config::Config;
 pub use self::error::Error;
@@ -128,18 +128,18 @@ impl<T> Project<T> {
     }
 
     /// Gets the project repository.
-    pub fn repository(&self) -> Option<RepoSpec> {
+    pub fn repository(&self) -> Option<RepoAddr> {
         self.config.project_repository()
     }
 
     /// Sets the project repository.
-    pub fn set_repository(&mut self, repository: impl Into<RepoSpec>) -> &mut Self {
+    pub fn set_repository(&mut self, repository: impl Into<RepoAddr>) -> &mut Self {
         self.config.set_project_repository(repository);
         self
     }
 
     /// Builds the project with the given repository.
-    pub fn with_repository(mut self, repository: impl Into<RepoSpec>) -> Self {
+    pub fn with_repository(mut self, repository: impl Into<RepoAddr>) -> Self {
         self.set_repository(repository);
         self
     }
@@ -495,9 +495,9 @@ mod git {
 }
 
 mod github {
-    use crate::repository::Open;
     use crate::repository::revision::Revision;
-    use crate::repository::types::github::{Error as GitHubError, GitHub, GitHubRepoSpec};
+    use crate::repository::types::github::{Error as GitHubError, GitHub};
+    use crate::repository::{Open, RepoAddr};
 
     use super::{Error, Project};
 
@@ -506,7 +506,7 @@ mod github {
         /// Opens a project from a [`GitHub`] repository.
         pub fn github<R>(repo: R) -> Result<Self, Error<GitHubError>>
         where
-            R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
+            R: TryInto<RepoAddr, Error: Into<GitHubError>>,
         {
             Self::open(GitHub::open(repo)?.validated()?)
         }
@@ -514,7 +514,7 @@ mod github {
         /// Opens a project from a [`GitHub`] repository and revision.
         pub fn github_with_revision<R, V>(repo: R, revision: V) -> Result<Self, Error<GitHubError>>
         where
-            R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
+            R: TryInto<RepoAddr, Error: Into<GitHubError>>,
             V: Into<Revision>,
         {
             Self::open(GitHub::open(repo)?.with_revision(revision).validated()?)
@@ -527,7 +527,7 @@ mod github {
             token: T,
         ) -> Result<Self, Error<GitHubError>>
         where
-            R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
+            R: TryInto<RepoAddr, Error: Into<GitHubError>>,
             T: Into<String>,
         {
             Self::open(
@@ -545,7 +545,7 @@ mod github {
             token: T,
         ) -> Result<Self, Error<GitHubError>>
         where
-            R: TryInto<GitHubRepoSpec, Error: Into<GitHubError>>,
+            R: TryInto<RepoAddr, Error: Into<GitHubError>>,
             V: Into<Revision>,
             T: Into<String>,
         {
@@ -630,7 +630,7 @@ mod tests {
     use crate::package::lockfile::CargoLockfile;
     use crate::package::manifest::CargoManifest;
     use crate::repository::types::staging::Staging;
-    use crate::repository::{RepoSpec, Stage};
+    use crate::repository::{RepoAddr, Stage};
 
     use super::Project;
 
@@ -638,14 +638,14 @@ mod tests {
     fn test_builder() {
         let project = Project::new("example")
             .with_description("An example project.")
-            .with_repository("ploys/example".parse::<RepoSpec>().unwrap())
+            .with_repository("ploys/example".parse::<RepoAddr>().unwrap())
             .with_authors(["Joe Bloggs <joe.bloggs@example.com>"]);
 
         assert_eq!(project.name(), "example");
         assert_eq!(project.description().unwrap(), "An example project.");
         assert_eq!(
             project.repository().unwrap(),
-            "ploys/example".parse::<RepoSpec>().unwrap()
+            "ploys/example".parse::<RepoAddr>().unwrap()
         );
         assert_eq!(
             project.authors().collect::<Vec<_>>(),
