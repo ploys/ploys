@@ -7,7 +7,7 @@ use ploys::repository::RepoAddr;
 /// Gets the project information.
 #[derive(Args)]
 pub struct Info {
-    /// The repository address (owner/name) or URL.
+    /// The repository address (owner/name) or GitHub URL.
     repo: RepoAddr,
 
     /// The authentication token for GitHub API access.
