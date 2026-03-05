@@ -1,6 +1,6 @@
 mod error;
 
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -9,7 +9,7 @@ use url::Url;
 pub use self::error::Error;
 
 /// A repository address.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct RepoAddr(Url);
 
 impl RepoAddr {
@@ -62,6 +62,12 @@ impl RepoAddr {
     /// Gets the repository URL.
     pub fn url(&self) -> &Url {
         &self.0
+    }
+}
+
+impl Debug for RepoAddr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("RepoAddr").field(&self.full_name()).finish()
     }
 }
 
