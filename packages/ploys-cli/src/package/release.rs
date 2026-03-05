@@ -15,7 +15,7 @@ pub struct Release {
     /// The package version or level (major, minor, patch, rc, beta, alpha).
     version: BumpOrVersion,
 
-    /// The remote GitHub repository owner/repo or URL.
+    /// The remote GitHub repository owner/name or URL.
     #[clap(long)]
     remote: Option<RepoAddr>,
 

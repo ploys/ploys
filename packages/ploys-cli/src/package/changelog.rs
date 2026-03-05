@@ -24,7 +24,7 @@ pub struct Changelog {
     #[clap(long, conflicts_with_all = ["version", "latest"])]
     unreleased: bool,
 
-    /// The remote GitHub repository owner/repo or URL.
+    /// The remote GitHub repository owner/name or URL.
     #[clap(long)]
     remote: Option<RepoAddr>,
 

@@ -22,7 +22,7 @@
 //! ## GitHub
 //!
 //! To open a remote GitHub project use the [`Project::github`] constructor and
-//! pass in a string in the `owner/repo` format. The target identifier must
+//! pass in a string in the `owner/name` format. The target identifier must
 //! match an existing GitHub repository.
 //!
 //! ```no_run
