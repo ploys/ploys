@@ -15,7 +15,7 @@ pub struct RepoAddr(Url);
 impl RepoAddr {
     /// Constructs a new repository address.
     ///
-    /// This requires that both `owner` and `repo` match the following regular
+    /// This requires that both `owner` and `name` match the following regular
     /// expression: `^[a-zA-Z0-9\-_\.]+$`
     pub fn new(owner: impl AsRef<str>, name: impl AsRef<str>) -> Result<Self, Error> {
         let owner = owner.as_ref();
