@@ -3,8 +3,8 @@
 //! This module includes utilities for inspecting and managing repositories
 //! located on the local file system or in a remote version control system.
 
+mod addr;
 mod remote;
-mod spec;
 mod vcs;
 
 pub mod adapters;
@@ -17,8 +17,8 @@ use std::borrow::Cow;
 use bytes::Bytes;
 use relative_path::{RelativePath, RelativePathBuf};
 
+pub use self::addr::{Error as RepoAddrError, RepoAddr};
 pub use self::remote::Remote;
-pub use self::spec::{Error as RepoSpecError, RepoSpec, ShortRepoSpec};
 pub use self::vcs::GitLike;
 
 /// Defines a file repository.

@@ -23,7 +23,7 @@ use crate::changelog::Changelog;
 use crate::project::Project;
 use crate::repository::adapters::subdirectory::Subdirectory;
 use crate::repository::types::staging::Staging;
-use crate::repository::{Remote, Repository, Stage};
+use crate::repository::{Remote, RepoAddr, Repository, Stage};
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 pub use self::error::Error;
@@ -126,7 +126,7 @@ impl<T> Package<T> {
     }
 
     /// Sets the package repository.
-    pub fn set_repository(&mut self, repository: impl Into<Url>) -> &mut Self {
+    pub fn set_repository(&mut self, repository: impl Into<RepoAddr>) -> &mut Self {
         match self.manifest_mut() {
             Manifest::Cargo(cargo) => {
                 cargo
@@ -140,7 +140,7 @@ impl<T> Package<T> {
     }
 
     /// Builds the package with the given repository.
-    pub fn with_repository(mut self, repository: impl Into<Url>) -> Self {
+    pub fn with_repository(mut self, repository: impl Into<RepoAddr>) -> Self {
         self.set_repository(repository);
         self
     }

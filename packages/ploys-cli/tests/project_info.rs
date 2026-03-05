@@ -13,7 +13,7 @@ fn test_project_info_command_fs_output() {
         .assert()
         .success()
         .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())
-        .stdout(predicate::str::is_match(r#"Repository:.*github\.com/ploys/ploys"#).unwrap());
+        .stdout(predicate::str::is_match(r#"Repository:.*ploys/ploys"#).unwrap());
 }
 
 #[test]
@@ -27,7 +27,7 @@ fn test_project_info_command_git_output() {
         .assert()
         .success()
         .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())
-        .stdout(predicate::str::is_match(r#"Repository:.*github\.com/ploys/ploys"#).unwrap());
+        .stdout(predicate::str::is_match(r#"Repository:.*ploys/ploys"#).unwrap());
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn test_project_info_command_github_output() {
         .assert()
         .success()
         .stdout(predicate::str::is_match(r#"Name:[ \t]*ploys"#).unwrap())
-        .stdout(predicate::str::is_match(r#"Repository:.*github\.com/ploys/ploys"#).unwrap());
+        .stdout(predicate::str::is_match(r#"Repository:.*ploys/ploys"#).unwrap());
 
     Command::cargo_bin("ploys")
         .unwrap()

@@ -3,7 +3,7 @@ use std::convert::Infallible;
 use anyhow::{Context, Error, bail};
 use clap::Args;
 use ploys::project::Project;
-use ploys::repository::RepoSpec;
+use ploys::repository::RepoAddr;
 use semver::Version;
 
 /// The changelog command.
@@ -26,7 +26,7 @@ pub struct Changelog {
 
     /// The remote GitHub repository owner/repo or URL.
     #[clap(long)]
-    remote: Option<RepoSpec>,
+    remote: Option<RepoAddr>,
 
     /// The authentication token for GitHub API access.
     #[clap(long, env = "GITHUB_TOKEN", hide_env_values = true)]
@@ -36,18 +36,14 @@ pub struct Changelog {
 impl Changelog {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
-        let remote = match self.remote {
-            Some(remote) => remote,
+        let repo = match self.remote {
+            Some(repo) => repo,
             None => Project::git(".")?
                 .repository()
                 .context("Missing remote repository")?,
         };
 
-        let Some(github) = remote.to_github() else {
-            bail!("Unsupported remote repository: {remote}");
-        };
-
-        let project = Project::github_with_authentication_token(github.to_string(), self.token)?;
+        let project = Project::github_with_authentication_token(repo, self.token)?;
         let package = project
             .get_package(&self.package)
             .ok_or(ploys::package::Error::<Infallible>::NotFound(self.package))?;

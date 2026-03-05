@@ -97,10 +97,7 @@ fn test_project() -> Result<(), Error<GitError>> {
     let project = Project::git("../..")?;
 
     assert_eq!(project.name(), "ploys");
-    assert_eq!(
-        project.repository().unwrap().to_url(),
-        "https://github.com/ploys/ploys".parse().unwrap()
-    );
+    assert_eq!(project.repository().unwrap().full_name(), "ploys/ploys");
 
     let packages = project.packages().collect::<Vec<_>>();
 

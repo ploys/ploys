@@ -1,10 +1,10 @@
 use std::convert::Infallible;
 
-use anyhow::{Context, Error, bail};
+use anyhow::{Context, Error};
 use clap::Args;
 use ploys::package::BumpOrVersion;
 use ploys::project::Project;
-use ploys::repository::RepoSpec;
+use ploys::repository::RepoAddr;
 
 /// The release command.
 #[derive(Args)]
@@ -17,7 +17,7 @@ pub struct Release {
 
     /// The remote GitHub repository owner/repo or URL.
     #[clap(long)]
-    remote: Option<RepoSpec>,
+    remote: Option<RepoAddr>,
 
     /// The authentication token for GitHub API access.
     #[clap(long, env = "GITHUB_TOKEN", hide_env_values = true)]
@@ -27,18 +27,14 @@ pub struct Release {
 impl Release {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
-        let remote = match self.remote {
-            Some(remote) => remote,
+        let repo = match self.remote {
+            Some(repo) => repo,
             None => Project::git(".")?
                 .repository()
                 .context("Missing remote repository")?,
         };
 
-        let Some(github) = remote.to_github() else {
-            bail!("Unsupported remote repository: {remote}");
-        };
-
-        let project = Project::github_with_authentication_token(github.to_string(), self.token)?;
+        let project = Project::github_with_authentication_token(repo, self.token)?;
 
         project
             .get_package(&self.package)

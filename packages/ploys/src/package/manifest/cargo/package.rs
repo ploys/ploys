@@ -2,6 +2,8 @@ use semver::Version;
 use toml_edit::{Array, Entry, Item, TableLike, Value, value};
 use url::Url;
 
+use crate::repository::RepoAddr;
+
 /// The package table.
 pub struct Package<'a>(pub(super) &'a dyn TableLike);
 
@@ -101,7 +103,7 @@ impl PackageMut<'_> {
     }
 
     /// Sets the package repository.
-    pub fn set_repository(&mut self, repository: impl Into<Url>) -> &mut Self {
+    pub fn set_repository(&mut self, repository: impl Into<RepoAddr>) -> &mut Self {
         let item = self.0.entry("repository").or_insert_with(Item::default);
 
         *item = Item::Value(Value::from(repository.into().to_string()));

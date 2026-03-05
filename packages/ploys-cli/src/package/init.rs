@@ -197,7 +197,7 @@ impl Init {
         }
 
         if let Some(repo) = project.repository() {
-            package.set_repository(repo.to_url());
+            package.set_repository(repo);
         }
 
         #[allow(irrefutable_let_patterns)]

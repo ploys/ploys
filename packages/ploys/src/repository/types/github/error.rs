@@ -2,7 +2,7 @@ use std::convert::Infallible;
 use std::fmt::{self, Display};
 use std::io;
 
-use crate::repository::RepoSpecError;
+use crate::repository::RepoAddrError;
 
 /// The GitHub repository error.
 #[derive(Debug)]
@@ -13,8 +13,8 @@ pub enum Error {
     Request(reqwest::Error),
     /// An I/O error.
     Io(io::Error),
-    /// A specification error.
-    Spec(RepoSpecError),
+    /// An address error.
+    Addr(RepoAddrError),
 }
 
 impl Display for Error {
@@ -23,7 +23,7 @@ impl Display for Error {
             Self::Path(err) => Display::fmt(err, f),
             Self::Request(transport) => Display::fmt(transport, f),
             Self::Io(err) => Display::fmt(err, f),
-            Self::Spec(err) => Display::fmt(err, f),
+            Self::Addr(err) => Display::fmt(err, f),
         }
     }
 }
@@ -34,7 +34,7 @@ impl std::error::Error for Error {
             Self::Path(err) => Some(err),
             Self::Request(err) => Some(err),
             Self::Io(err) => Some(err),
-            Self::Spec(err) => Some(err),
+            Self::Addr(err) => Some(err),
         }
     }
 }
@@ -45,9 +45,9 @@ impl From<crate::repository::path::Error> for Error {
     }
 }
 
-impl From<RepoSpecError> for Error {
-    fn from(err: RepoSpecError) -> Self {
-        Self::Spec(err)
+impl From<RepoAddrError> for Error {
+    fn from(err: RepoAddrError) -> Self {
+        Self::Addr(err)
     }
 }
 

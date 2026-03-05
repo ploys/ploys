@@ -2,36 +2,38 @@ use reqwest::Method;
 use reqwest::blocking::{Client, RequestBuilder};
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 
-use super::{Error, GitHubRepoSpec};
+use crate::repository::addr::RepoAddr;
+
+use super::Error;
 
 /// The GitHub repository information.
 #[derive(Clone, Debug)]
 pub struct Repo {
-    spec: GitHubRepoSpec,
+    addr: RepoAddr,
     client: Client,
 }
 
 impl Repo {
     /// Constructs a new repository.
-    pub(crate) fn new(spec: impl Into<GitHubRepoSpec>) -> Result<Self, Error> {
+    pub(crate) fn new(addr: impl Into<RepoAddr>) -> Result<Self, Error> {
         let mut headers = HeaderMap::new();
 
         headers.insert(USER_AGENT, HeaderValue::from_static("ploys/ploys"));
 
         Ok(Self {
-            spec: spec.into(),
+            addr: addr.into(),
             client: Client::builder().default_headers(headers).build()?,
         })
     }
 
     /// Gets the repository owner.
     pub fn owner(&self) -> &str {
-        self.spec.owner()
+        self.addr.owner()
     }
 
     /// Gets the repository name.
     pub fn name(&self) -> &str {
-        self.spec.repo()
+        self.addr.name()
     }
 
     /// Validates whether the remote repository exists.
@@ -49,10 +51,10 @@ impl Repo {
         P: AsRef<str>,
     {
         match path.as_ref() {
-            "" => format!("https://api.github.com/repos/{}", self.spec),
+            "" => format!("https://api.github.com/repos/{}", self.addr),
             path => format!(
                 "https://api.github.com/repos/{}/{}",
-                self.spec,
+                self.addr,
                 path.trim_start_matches('/')
             ),
         }
