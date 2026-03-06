@@ -15,9 +15,8 @@ pub(super) fn get_release(
     package: &str,
     version: &Version,
     is_primary: bool,
-    token: Option<&str>,
 ) -> Result<Release, Error> {
-    let tags = get_all_tags(repository, token)?;
+    let tags = get_all_tags(repository)?;
     let tagname = match is_primary {
         true => version.to_string(),
         false => format!("{package}-{version}"),
@@ -37,11 +36,11 @@ pub(super) fn get_release(
         .unwrap_or_else(OffsetDateTime::now_utc);
 
     let pull_requests = match (prev_tag, tag) {
-        (None, None) => self::all(repository, token)?,
-        (None, Some(tag)) => self::until(repository, &tag.name, &tag.target.oid, token)?,
+        (None, None) => self::all(repository)?,
+        (None, Some(tag)) => self::until(repository, &tag.name, &tag.target.oid)?,
         (Some(_), _) if prev_version.expect("prev") > *version => Vec::new(),
-        (Some(from), None) => self::between(repository, &from, "HEAD", token)?,
-        (Some(from), Some(to)) => self::between(repository, &from, &to.name, token)?,
+        (Some(from), None) => self::between(repository, &from, "HEAD")?,
+        (Some(from), Some(to)) => self::between(repository, &from, &to.name)?,
     };
 
     let package_label = format!("package: {package}");
@@ -109,13 +108,13 @@ query($owner: String!, $name: String!, $cursor: String) {
 "#;
 
 /// Gets all tags.
-fn get_all_tags(repository: &Repo, token: Option<&str>) -> Result<Vec<GitTag>, Error> {
+fn get_all_tags(repository: &Repo) -> Result<Vec<GitTag>, Error> {
     let mut tags = Vec::new();
     let mut cursor = None;
 
     loop {
         let response = repository
-            .graphql(token)
+            .graphql()
             .json(&Query {
                 query: ALL_TAGS_QUERY,
                 variables: Variables {
@@ -218,13 +217,13 @@ query($owner: String!, $name: String!, $cursor: String) {
 "#;
 
 /// Gets all pull requests.
-fn all(repository: &Repo, token: Option<&str>) -> Result<Vec<PullRequest>, Error> {
+fn all(repository: &Repo) -> Result<Vec<PullRequest>, Error> {
     let mut pull_requests = BTreeMap::<_, PullRequest>::new();
     let mut cursor = None;
 
     loop {
         let response = repository
-            .graphql(token)
+            .graphql()
             .json(&Query {
                 query: ALL_QUERY,
                 variables: Variables {
@@ -301,18 +300,13 @@ query($owner: String!, $name: String!, $to: String!, $cursor: String) {
 "#;
 
 /// Gets pull requests until the specified ref.
-fn until(
-    repository: &Repo,
-    to: &str,
-    sha: &str,
-    token: Option<&str>,
-) -> Result<Vec<PullRequest>, Error> {
+fn until(repository: &Repo, to: &str, sha: &str) -> Result<Vec<PullRequest>, Error> {
     let mut pull_requests = BTreeMap::<_, PullRequest>::new();
     let mut cursor = None;
 
     loop {
         let response = repository
-            .graphql(token)
+            .graphql()
             .json(&Query {
                 query: UNTIL_QUERY,
                 variables: Variables {
@@ -391,18 +385,13 @@ query($owner: String!, $name: String!, $from: String!, $to: String!, $cursor: St
 "#;
 
 /// Gets pull requests between two refs.
-fn between(
-    repository: &Repo,
-    from: &str,
-    to: &str,
-    token: Option<&str>,
-) -> Result<Vec<PullRequest>, Error> {
+fn between(repository: &Repo, from: &str, to: &str) -> Result<Vec<PullRequest>, Error> {
     let mut pull_requests = BTreeMap::<_, PullRequest>::new();
     let mut cursor = None;
 
     loop {
         let response = repository
-            .graphql(token)
+            .graphql()
             .json(&Query {
                 query: BETWEEN_QUERY,
                 variables: Variables {

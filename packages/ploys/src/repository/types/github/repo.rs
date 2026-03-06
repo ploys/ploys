@@ -1,7 +1,7 @@
 use reqwest::Method;
-use reqwest::blocking::{Client, RequestBuilder};
-use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::blocking::RequestBuilder;
 
+use crate::client::{Client, Credentials, Error as ClientError, Token};
 use crate::repository::addr::RepoAddr;
 
 use super::Error;
@@ -16,13 +16,13 @@ pub struct Repo {
 impl Repo {
     /// Constructs a new repository.
     pub(crate) fn new(addr: impl Into<RepoAddr>) -> Result<Self, Error> {
-        let mut headers = HeaderMap::new();
-
-        headers.insert(USER_AGENT, HeaderValue::from_static("ploys/ploys"));
-
         Ok(Self {
             addr: addr.into(),
-            client: Client::builder().default_headers(headers).build()?,
+            client: match Client::new() {
+                Ok(client) => client,
+                Err(ClientError::Request(err)) => return Err(Error::Request(err)),
+                Err(_) => unreachable!("client constructor only returns request error"),
+            },
         })
     }
 
@@ -36,9 +36,15 @@ impl Repo {
         self.addr.name()
     }
 
+    /// Sets the access token.
+    pub(super) fn set_access_token(&mut self, token: impl Into<Token>) {
+        self.client
+            .set_credentials(Credentials::new().with_access_token(token));
+    }
+
     /// Validates whether the remote repository exists.
-    pub(super) fn validate(&self, token: Option<&str>) -> Result<(), Error> {
-        self.head("", token).send()?.error_for_status()?;
+    pub(super) fn validate(&self) -> Result<(), Error> {
+        self.head("").send()?.error_for_status()?;
 
         Ok(())
     }
@@ -61,13 +67,16 @@ impl Repo {
     }
 
     /// Creates a HTTP request.
-    pub(super) fn request<P>(&self, method: Method, path: P, token: Option<&str>) -> RequestBuilder
+    pub(super) fn request<P>(&self, method: Method, path: P) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        let mut request = self.client.request(method, self.endpoint(path));
+        let mut request = self
+            .client
+            .http_client()
+            .request(method, self.endpoint(path));
 
-        if let Some(token) = token {
+        if let Some(token) = self.client.get_access_token() {
             request = request.bearer_auth(token);
         }
 
@@ -75,42 +84,45 @@ impl Repo {
     }
 
     /// Creates a HEAD request.
-    pub(super) fn head<P>(&self, path: P, token: Option<&str>) -> RequestBuilder
+    pub(super) fn head<P>(&self, path: P) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        self.request(Method::HEAD, path, token)
+        self.request(Method::HEAD, path)
     }
 
     /// Creates a GET request.
-    pub(super) fn get<P>(&self, path: P, token: Option<&str>) -> RequestBuilder
+    pub(super) fn get<P>(&self, path: P) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        self.request(Method::GET, path, token)
+        self.request(Method::GET, path)
     }
 
     /// Creates a POST request.
-    pub(super) fn post<P>(&self, path: P, token: Option<&str>) -> RequestBuilder
+    pub(super) fn post<P>(&self, path: P) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        self.request(Method::POST, path, token)
+        self.request(Method::POST, path)
     }
 
     /// Creates a PATCH request.
-    pub(super) fn patch<P>(&self, path: P, token: Option<&str>) -> RequestBuilder
+    pub(super) fn patch<P>(&self, path: P) -> RequestBuilder
     where
         P: AsRef<str>,
     {
-        self.request(Method::PATCH, path, token)
+        self.request(Method::PATCH, path)
     }
 
     /// Creates a GraphQL HTTP request.
-    pub(super) fn graphql(&self, token: Option<&str>) -> RequestBuilder {
-        let mut request = self.client.post("https://api.github.com/graphql");
+    pub(super) fn graphql(&self) -> RequestBuilder {
+        let mut request = self
+            .client
+            .http_client()
+            .post("https://api.github.com/graphql");
 
-        if let Some(token) = token {
+        if let Some(token) = self.client.get_access_token() {
             request = request.bearer_auth(token);
         }
 
