@@ -95,7 +95,6 @@ pub struct PullRequestPayload {
 #[derive(Debug, Deserialize)]
 pub struct RepositoryDispatchPayload {
     pub action: String,
-    pub branch: String,
     pub client_payload: Value,
     pub repository: Repository,
     pub installation: Installation,
@@ -116,7 +115,6 @@ pub struct Installation {
 pub struct PullRequest {
     pub head: Branch,
     pub merged: bool,
-    pub merge_commit_sha: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
