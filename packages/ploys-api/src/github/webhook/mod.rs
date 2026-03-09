@@ -8,7 +8,6 @@ use axum::extract::State;
 use axum_extra::TypedHeader;
 use ploys::package::BumpOrVersion;
 use ploys::project::Project;
-use ploys::repository::revision::Revision;
 use semver::Version;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
@@ -33,12 +32,9 @@ pub async fn receive(
     match payload {
         Payload::PullRequest(payload) => match &*payload.action {
             "closed" if payload.pull_request.merged => {
-                if payload.pull_request.head.r#ref.starts_with("release/")
-                    && let Some(sha) = &payload.pull_request.merge_commit_sha
-                {
+                if payload.pull_request.head.r#ref.starts_with("release/") {
                     create_release(
                         payload.pull_request.head.r#ref[8..].to_owned(),
-                        sha.clone(),
                         payload,
                         &state,
                     )
@@ -64,7 +60,6 @@ pub async fn receive(
 /// Creates a new release.
 async fn create_release(
     release: String,
-    sha: String,
     payload: PullRequestPayload,
     state: &AppState,
 ) -> Result<(), Error> {
@@ -73,7 +68,7 @@ async fn create_release(
             .await?;
 
     tokio::task::spawn_blocking(move || {
-        if let Err(err) = create_release_sync(token, release, sha, payload) {
+        if let Err(err) = create_release_sync(token, release, payload) {
             error!("Error creating release: {err}");
         }
     });
@@ -85,14 +80,9 @@ async fn create_release(
 fn create_release_sync(
     token: String,
     release: String,
-    sha: String,
     payload: PullRequestPayload,
 ) -> Result<(), Error> {
-    let project = Project::github_with_revision_and_authentication_token(
-        &payload.repository.full_name,
-        Revision::sha(sha),
-        &token,
-    )?;
+    let project = Project::github_with_authentication_token(&payload.repository.full_name, &token)?;
 
     let package = project
         .packages()
@@ -145,11 +135,7 @@ async fn request_release(
 fn create_release_request(token: String, payload: RepositoryDispatchPayload) -> Result<(), Error> {
     let ClientPayload { package, version } = serde_json::from_value(payload.client_payload)?;
 
-    let project = Project::github_with_revision_and_authentication_token(
-        &payload.repository.full_name,
-        Revision::branch(&payload.branch),
-        &token,
-    )?;
+    let project = Project::github_with_authentication_token(&payload.repository.full_name, &token)?;
 
     let package = project
         .get_package(&package)
