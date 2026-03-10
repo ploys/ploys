@@ -11,6 +11,7 @@ pub enum Error {
     Jwt(jsonwebtoken::errors::Error),
     Request(reqwest::Error),
     Project(ploys::project::Error<ploys::repository::types::github::Error>),
+    Client(ploys::client::Error),
     Utf8(FromUtf8Error),
     Json(serde_json::Error),
 }
@@ -21,6 +22,7 @@ impl Error {
             Self::Jwt(_) => StatusCode::FORBIDDEN,
             Self::Request(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Project(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Client(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Utf8(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Json(_) => StatusCode::UNPROCESSABLE_ENTITY,
         }
@@ -31,6 +33,7 @@ impl Error {
             Self::Jwt(error) => Cow::Owned(format!("JWT: {error}")),
             Self::Request(error) => Cow::Owned(format!("Request: {error}")),
             Self::Project(error) => Cow::Owned(format!("Project: {error}")),
+            Self::Client(error) => Cow::Owned(format!("Client: {error}")),
             Self::Utf8(error) => Cow::Owned(format!("UTF-8: {error}")),
             Self::Json(error) => Cow::Owned(format!("JSON: {error}")),
         }
@@ -49,6 +52,7 @@ impl std::error::Error for Error {
             Self::Jwt(err) => Some(err),
             Self::Request(err) => Some(err),
             Self::Project(err) => Some(err),
+            Self::Client(err) => Some(err),
             Self::Utf8(err) => Some(err),
             Self::Json(err) => Some(err),
         }
@@ -76,6 +80,12 @@ impl From<reqwest::Error> for Error {
 impl From<ploys::project::Error<ploys::repository::types::github::Error>> for Error {
     fn from(error: ploys::project::Error<ploys::repository::types::github::Error>) -> Self {
         Self::Project(error)
+    }
+}
+
+impl From<ploys::client::Error> for Error {
+    fn from(error: ploys::client::Error) -> Self {
+        Self::Client(error)
     }
 }
 

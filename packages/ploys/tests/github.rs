@@ -1,20 +1,15 @@
-use ploys::project::{Error, Project};
-use ploys::repository::revision::Revision;
-use ploys::repository::types::github::Error as GitHubError;
+use ploys::client::{Client, Credentials, Error};
 
 #[test]
 #[ignore]
-fn test_project() -> Result<(), Error<GitHubError>> {
-    let revision = std::env::var("GITHUB_SHA")
-        .map(Revision::Sha)
-        .unwrap_or_default();
+fn test_project() -> Result<(), Error> {
+    let mut client = Client::new()?;
 
-    let project = match std::env::var("GITHUB_TOKEN").ok() {
-        Some(token) => {
-            Project::github_with_revision_and_authentication_token("ploys/ploys", revision, token)?
-        }
-        None => Project::github_with_revision("ploys/ploys", revision)?,
-    };
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        client.set_credentials(Credentials::new().with_access_token(token));
+    }
+
+    let project = client.get_project("ploys/ploys")?;
 
     assert_eq!(project.name(), "ploys");
     assert_eq!(project.repository().unwrap().full_name(), "ploys/ploys");
