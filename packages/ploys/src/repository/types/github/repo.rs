@@ -1,7 +1,7 @@
 use reqwest::Method;
 use reqwest::blocking::RequestBuilder;
 
-use crate::client::{Client, Credentials, Error as ClientError, Token};
+use crate::client::{Client, Credentials, Token};
 use crate::repository::addr::RepoAddr;
 
 use super::Error;
@@ -15,15 +15,8 @@ pub struct Repo {
 
 impl Repo {
     /// Constructs a new repository.
-    pub(crate) fn new(addr: impl Into<RepoAddr>) -> Result<Self, Error> {
-        Ok(Self {
-            addr: addr.into(),
-            client: match Client::new() {
-                Ok(client) => client,
-                Err(ClientError::Request(err)) => return Err(Error::Request(err)),
-                Err(_) => unreachable!("client constructor only returns request error"),
-            },
-        })
+    pub(crate) fn new(client: Client, addr: RepoAddr) -> Self {
+        Self { addr, client }
     }
 
     /// Gets the repository owner.

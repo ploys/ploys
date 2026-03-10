@@ -3,7 +3,7 @@ mod error;
 
 use reqwest::blocking::Client as HttpClient;
 
-use crate::project::Project;
+use crate::project::{Error as ProjError, Project};
 use crate::repository::RepoAddr;
 use crate::repository::types::github::{Error as RepoError, GitHub};
 
@@ -41,13 +41,10 @@ impl Client {
     where
         R: TryInto<RepoAddr, Error: Into<RepoError>>,
     {
-        match self.get_access_token() {
-            Some(token) => Ok(Project::github_with_authentication_token(
-                repo,
-                token.value(),
-            )?),
-            None => Ok(Project::github(repo)?),
-        }
+        let repo = GitHub::new(self.clone(), repo).map_err(ProjError::Repository)?;
+        let proj = Project::open(repo)?;
+
+        Ok(proj)
     }
 
     /// Sets the client authentication credentials.

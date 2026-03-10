@@ -2,6 +2,7 @@ use std::convert::Infallible;
 
 use anyhow::{Context, Error, bail};
 use clap::Args;
+use ploys::client::{Client, Credentials};
 use ploys::project::Project;
 use ploys::repository::RepoAddr;
 use semver::Version;
@@ -43,7 +44,9 @@ impl Changelog {
                 .context("Missing remote repository")?,
         };
 
-        let project = Project::github_with_authentication_token(repo, self.token)?;
+        let credentials = Credentials::new().with_access_token(self.token);
+        let client = Client::new()?.with_credentials(credentials);
+        let project = client.get_project(repo)?;
         let package = project
             .get_package(&self.package)
             .ok_or(ploys::package::Error::<Infallible>::NotFound(self.package))?;

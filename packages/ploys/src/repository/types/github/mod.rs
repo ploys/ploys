@@ -19,6 +19,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
+use crate::client::{Client, Error as ClientError};
 use crate::package::BumpOrVersion;
 use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
@@ -38,6 +39,19 @@ pub struct GitHub {
 }
 
 impl GitHub {
+    /// Constructs a new GitHub repository.
+    pub(crate) fn new<R>(client: Client, repo: R) -> Result<Self, Error>
+    where
+        R: TryInto<RepoAddr, Error: Into<Error>>,
+    {
+        Ok(Self {
+            inner: Staged::new(Cached::new(Inner {
+                repository: Repo::new(client, repo.try_into().map_err(Into::into)?),
+                revision: Revision::Head,
+            })),
+        })
+    }
+
     /// Gets the revision.
     pub fn revision(&self) -> &Revision {
         &self.inner.inner.inner().revision
@@ -349,15 +363,13 @@ impl Open for GitHub {
         T: TryInto<Self::Context, Error = E>,
         E: Into<Self::Error>,
     {
-        Ok(Self {
-            inner: Staged::new(
-                Cached::new(Inner {
-                    repository: Repo::new(ctx.try_into().map_err(Into::into)?)?,
-                    revision: Revision::head(),
-                })
-                .enabled(false),
-            ),
-        })
+        let client = match Client::new() {
+            Ok(client) => client,
+            Err(ClientError::Request(err)) => return Err(Error::Request(err)),
+            Err(_) => unreachable!("client constructor only returns request error"),
+        };
+
+        Self::new(client, ctx)
     }
 }
 

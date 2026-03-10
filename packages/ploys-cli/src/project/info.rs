@@ -1,7 +1,7 @@
 use anyhow::Error;
 use clap::Args;
 use console::style;
-use ploys::project::Project;
+use ploys::client::{Client, Credentials};
 use ploys::repository::RepoAddr;
 
 /// Gets the project information.
@@ -18,10 +18,13 @@ pub struct Info {
 impl Info {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
-        let project = match self.token {
-            Some(token) => Project::github_with_authentication_token(self.repo, token)?,
-            None => Project::github(self.repo)?,
-        };
+        let mut client = Client::new()?;
+
+        if let Some(token) = self.token {
+            client.set_credentials(Credentials::new().with_access_token(token));
+        }
+
+        let project = client.get_project(self.repo)?;
 
         println!("{}:\n", style("Project").underlined().bold());
         println!("Name:        {}", project.name());
