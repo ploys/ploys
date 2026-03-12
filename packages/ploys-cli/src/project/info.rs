@@ -1,7 +1,7 @@
 use anyhow::Error;
 use clap::Args;
 use console::style;
-use ploys::client::{Client, Credentials};
+use ploys::client::{Client, Credentials, Token};
 use ploys::repository::RepoAddr;
 
 /// Gets the project information.
@@ -12,7 +12,7 @@ pub struct Info {
 
     /// The authentication token for GitHub API access.
     #[arg(long, env = "GITHUB_TOKEN", hide_env_values = true)]
-    token: Option<String>,
+    token: Option<Token>,
 }
 
 impl Info {

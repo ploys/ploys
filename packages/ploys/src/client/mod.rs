@@ -7,7 +7,7 @@ use crate::project::{Error as ProjError, Project};
 use crate::repository::RepoAddr;
 use crate::repository::types::github::{Error as RepoError, GitHub};
 
-pub use self::credentials::{Credentials, Token};
+pub use self::credentials::{Credentials, Token, TokenError};
 pub use self::error::Error;
 
 /// The project management client.

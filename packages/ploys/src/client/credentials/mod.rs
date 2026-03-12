@@ -1,6 +1,6 @@
 mod token;
 
-pub use self::token::Token;
+pub use self::token::{Error as TokenError, Token};
 
 /// The client authentication credentials.
 #[derive(Clone, Debug, Default)]
