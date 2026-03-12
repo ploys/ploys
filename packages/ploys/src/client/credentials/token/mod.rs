@@ -74,12 +74,12 @@ impl Token {
     /// [1]: https://github.blog/changelog/2021-03-31-authentication-token-format-updates-are-generally-available/
     /// [2]: https://github.blog/engineering/platform-security/behind-githubs-new-authentication-token-formats/
     pub fn token_type(&self) -> TokenType {
-        match &self.value[..4] {
-            "ghp_" => TokenType::Personal,
-            "gho_" => TokenType::OAuth,
-            "ghu_" => TokenType::User,
-            "ghs_" => TokenType::Installation,
-            "ghr_" => TokenType::Refresh,
+        match &self.value[..3] {
+            "ghp" => TokenType::Personal,
+            "gho" => TokenType::OAuth,
+            "ghu" => TokenType::User,
+            "ghs" => TokenType::Installation,
+            "ghr" => TokenType::Refresh,
             _ => unreachable!("construction via `FromStr` impl"),
         }
     }
