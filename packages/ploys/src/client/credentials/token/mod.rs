@@ -112,15 +112,10 @@ impl FromStr for Token {
         }
 
         match value.split_once('_') {
-            Some(("ghp" | "gho" | "ghu" | "ghs" | "ghr", key))
-                if !key.is_empty()
-                    && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') =>
-            {
-                Ok(Self {
-                    value: value.to_string(),
-                    expiry: None,
-                })
-            }
+            Some(("ghp" | "gho" | "ghu" | "ghs" | "ghr", key)) if !key.is_empty() => Ok(Self {
+                value: value.to_string(),
+                expiry: None,
+            }),
             _ => Err(Error::Invalid),
         }
     }
@@ -174,7 +169,6 @@ mod tests {
         assert_eq!(Token::new(""), Err(Error::Empty));
         assert_eq!(Token::new("gho"), Err(Error::Invalid));
         assert_eq!(Token::new("gho_"), Err(Error::Invalid));
-        assert_eq!(Token::new("gho_abc$"), Err(Error::Invalid));
         assert_eq!(Token::new("ghx_abc_DEF_123"), Err(Error::Invalid));
     }
 }
