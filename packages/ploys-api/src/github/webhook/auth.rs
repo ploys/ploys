@@ -1,4 +1,5 @@
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
+use ploys::client::Token;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
@@ -23,7 +24,7 @@ pub struct AccessTokenBody {
 
 #[derive(Debug, Deserialize)]
 pub struct AccessTokenResponse {
-    pub token: String,
+    pub token: Token,
 }
 
 /// Gets an installation access token.
@@ -31,7 +32,7 @@ pub async fn get_installation_access_token(
     installation_id: u64,
     repository_id: u64,
     state: &AppState,
-) -> Result<String, Error> {
+) -> Result<Token, Error> {
     let claims = Claims {
         iat: OffsetDateTime::now_utc() - Duration::seconds(60),
         exp: OffsetDateTime::now_utc() + Duration::seconds(120),

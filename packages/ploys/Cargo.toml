@@ -26,6 +26,7 @@ once_map = "0.4.22"
 relative-path = { version = "2.0.1", features = ["serde"] }
 semver = "1.0.19"
 serde = { version = "1.0.185", features = ["derive"] }
+serde_with = "3.17.0"
 strum = { version = "0.26.3", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde", "formatting", "parsing"] }
 toml_edit = { version = "0.22.14", features = ["serde"] }

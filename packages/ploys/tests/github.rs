@@ -1,4 +1,4 @@
-use ploys::client::{Client, Credentials, Error};
+use ploys::client::{Client, Credentials, Error, Token};
 
 #[test]
 #[ignore]
@@ -6,7 +6,7 @@ fn test_project() -> Result<(), Error> {
     let mut client = Client::new()?;
 
     if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-        client.set_credentials(Credentials::new().with_access_token(token));
+        client.set_credentials(Credentials::new().with_access_token(Token::new(token).unwrap()));
     }
 
     let project = client.get_project("ploys/ploys")?;

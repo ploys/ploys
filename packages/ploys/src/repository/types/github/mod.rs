@@ -19,7 +19,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
-use crate::client::{Client, Error as ClientError};
+use crate::client::{Client, Error as ClientError, Token};
 use crate::package::BumpOrVersion;
 use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
@@ -85,7 +85,7 @@ impl GitHub {
     }
 
     /// Builds the repository with the given authentication token.
-    pub fn with_authentication_token(mut self, token: impl Into<String>) -> Self {
+    pub fn with_authentication_token(mut self, token: impl Into<Token>) -> Self {
         self.inner
             .inner
             .inner_mut()

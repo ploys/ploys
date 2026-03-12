@@ -6,7 +6,7 @@ pub mod secret;
 
 use axum::extract::State;
 use axum_extra::TypedHeader;
-use ploys::client::{Client, Credentials};
+use ploys::client::{Client, Credentials, Token};
 use ploys::package::BumpOrVersion;
 use semver::Version;
 use serde::Deserialize;
@@ -78,7 +78,7 @@ async fn create_release(
 
 /// Creates a new release.
 fn create_release_sync(
-    token: String,
+    token: Token,
     release: String,
     payload: PullRequestPayload,
 ) -> Result<(), Error> {
@@ -133,7 +133,7 @@ async fn request_release(
 /// The `Project` is currently using blocking requests so this should be spawned
 /// using `tokio::task::spawn_blocking`. This also avoids any timeout issues for
 /// completing the webhook event request.
-fn create_release_request(token: String, payload: RepositoryDispatchPayload) -> Result<(), Error> {
+fn create_release_request(token: Token, payload: RepositoryDispatchPayload) -> Result<(), Error> {
     let ClientPayload { package, version } = serde_json::from_value(payload.client_payload)?;
 
     let client = Client::new()?.with_credentials(Credentials::new().with_access_token(token));

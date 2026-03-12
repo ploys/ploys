@@ -2,7 +2,7 @@ use std::convert::Infallible;
 
 use anyhow::{Context, Error, bail};
 use clap::Args;
-use ploys::client::{Client, Credentials};
+use ploys::client::{Client, Credentials, Token};
 use ploys::project::Project;
 use ploys::repository::RepoAddr;
 use semver::Version;
@@ -31,7 +31,7 @@ pub struct Changelog {
 
     /// The authentication token for GitHub API access.
     #[clap(long, env = "GITHUB_TOKEN", hide_env_values = true)]
-    token: String,
+    token: Token,
 }
 
 impl Changelog {
