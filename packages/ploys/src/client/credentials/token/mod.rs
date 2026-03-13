@@ -3,17 +3,15 @@ mod error;
 use std::fmt::{self, Debug, Display, from_fn};
 use std::str::FromStr;
 
-use serde::{Deserialize, Serialize};
-use serde_with::{DisplayFromStr, serde_as};
+use serde::{Deserialize, Deserializer, Serialize};
 use time::OffsetDateTime;
 
 pub use self::error::Error;
 
 /// An authentication token.
-#[serde_as]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Token {
-    #[serde_as(as = "DisplayFromStr")]
+    #[serde(deserialize_with = "Token::deserialize_value")]
     value: String,
     #[serde(
         default,
@@ -85,6 +83,56 @@ impl Token {
     }
 }
 
+impl Token {
+    /// Internally validates the value for parsing and deserialization.
+    fn validate_value(value: &str) -> Result<(), Error> {
+        if value.is_empty() {
+            return Err(Error::Empty);
+        }
+
+        match value.split_once('_') {
+            Some(("ghp" | "gho" | "ghu" | "ghs" | "ghr", key)) if !key.is_empty() => Ok(()),
+            _ => Err(Error::Invalid),
+        }
+    }
+
+    /// Internally deserializes the value with validation.
+    fn deserialize_value<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = String;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "a valid token string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Token::validate_value(value).map_err(serde::de::Error::custom)?;
+
+                Ok(value.to_string())
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Token::validate_value(&value).map_err(serde::de::Error::custom)?;
+
+                Ok(value)
+            }
+        }
+
+        deserializer.deserialize_str(Visitor)
+    }
+}
+
 impl Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match f.alternate() {
@@ -107,17 +155,12 @@ impl FromStr for Token {
     type Err = Error;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        if value.is_empty() {
-            return Err(Error::Empty);
-        }
+        Self::validate_value(value)?;
 
-        match value.split_once('_') {
-            Some(("ghp" | "gho" | "ghu" | "ghs" | "ghr", key)) if !key.is_empty() => Ok(Self {
-                value: value.to_string(),
-                expiry: None,
-            }),
-            _ => Err(Error::Invalid),
-        }
+        Ok(Self {
+            value: value.to_string(),
+            expiry: None,
+        })
     }
 }
 
@@ -147,6 +190,8 @@ pub enum TokenType {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::{from_value, json};
+
     use super::{Error, Token, TokenType};
 
     #[test]
@@ -170,5 +215,25 @@ mod tests {
         assert_eq!(Token::new("gho"), Err(Error::Invalid));
         assert_eq!(Token::new("gho_"), Err(Error::Invalid));
         assert_eq!(Token::new("ghx_abc_DEF_123"), Err(Error::Invalid));
+    }
+
+    #[test]
+    fn test_token_serde() {
+        assert!(from_value::<Token>(json!({ "value": "" })).is_err());
+        assert!(from_value::<Token>(json!({ "value": "gho" })).is_err());
+        assert!(from_value::<Token>(json!({ "value": "gho_" })).is_err());
+        assert!(from_value::<Token>(json!({ "value": "ghx_abc_DEF_123" })).is_err());
+
+        let ghp = from_value::<Token>(json!({ "value": "ghp_abc_DEF_123" })).unwrap();
+        let gho = from_value::<Token>(json!({ "value": "gho_abc_DEF_123" })).unwrap();
+        let ghu = from_value::<Token>(json!({ "value": "ghu_abc_DEF_123" })).unwrap();
+        let ghs = from_value::<Token>(json!({ "value": "ghs_abc_DEF_123" })).unwrap();
+        let ghr = from_value::<Token>(json!({ "value": "ghr_abc_DEF_123" })).unwrap();
+
+        assert_eq!(ghp, Token::new("ghp_abc_DEF_123").unwrap());
+        assert_eq!(gho, Token::new("gho_abc_DEF_123").unwrap());
+        assert_eq!(ghu, Token::new("ghu_abc_DEF_123").unwrap());
+        assert_eq!(ghs, Token::new("ghs_abc_DEF_123").unwrap());
+        assert_eq!(ghr, Token::new("ghr_abc_DEF_123").unwrap());
     }
 }
