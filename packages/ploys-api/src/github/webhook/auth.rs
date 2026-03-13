@@ -2,6 +2,7 @@ use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use ploys::client::Token;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use serde_with::{DisplayFromStr, serde_as};
 use time::{Duration, OffsetDateTime};
 
 use crate::state::AppState;
@@ -22,8 +23,10 @@ pub struct AccessTokenBody {
     pub repository_ids: Vec<u64>,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 pub struct AccessTokenResponse {
+    #[serde_as(as = "DisplayFromStr")]
     pub token: Token,
 }
 
