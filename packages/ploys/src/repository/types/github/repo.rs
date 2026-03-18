@@ -37,7 +37,7 @@ impl Repo {
 
     /// Validates whether the remote repository exists.
     pub(super) fn validate(&self) -> Result<(), Error> {
-        self.head("").send()?.error_for_status()?;
+        self.head("")?.send()?.error_for_status()?;
 
         Ok(())
     }
@@ -60,24 +60,24 @@ impl Repo {
     }
 
     /// Creates a HTTP request.
-    pub(super) fn request<P>(&self, method: Method, path: P) -> RequestBuilder
+    pub(super) fn request<P>(&self, method: Method, path: P) -> Result<RequestBuilder, Error>
     where
         P: AsRef<str>,
     {
         let mut request = self
             .client
-            .http_client()
+            .http_client()?
             .request(method, self.endpoint(path));
 
         if let Some(token) = self.client.get_access_token() {
             request = request.bearer_auth(token);
         }
 
-        request
+        Ok(request)
     }
 
     /// Creates a HEAD request.
-    pub(super) fn head<P>(&self, path: P) -> RequestBuilder
+    pub(super) fn head<P>(&self, path: P) -> Result<RequestBuilder, Error>
     where
         P: AsRef<str>,
     {
@@ -85,7 +85,7 @@ impl Repo {
     }
 
     /// Creates a GET request.
-    pub(super) fn get<P>(&self, path: P) -> RequestBuilder
+    pub(super) fn get<P>(&self, path: P) -> Result<RequestBuilder, Error>
     where
         P: AsRef<str>,
     {
@@ -93,7 +93,7 @@ impl Repo {
     }
 
     /// Creates a POST request.
-    pub(super) fn post<P>(&self, path: P) -> RequestBuilder
+    pub(super) fn post<P>(&self, path: P) -> Result<RequestBuilder, Error>
     where
         P: AsRef<str>,
     {
@@ -101,7 +101,7 @@ impl Repo {
     }
 
     /// Creates a PATCH request.
-    pub(super) fn patch<P>(&self, path: P) -> RequestBuilder
+    pub(super) fn patch<P>(&self, path: P) -> Result<RequestBuilder, Error>
     where
         P: AsRef<str>,
     {
@@ -109,16 +109,16 @@ impl Repo {
     }
 
     /// Creates a GraphQL HTTP request.
-    pub(super) fn graphql(&self) -> RequestBuilder {
+    pub(super) fn graphql(&self) -> Result<RequestBuilder, Error> {
         let mut request = self
             .client
-            .http_client()
+            .http_client()?
             .post("https://api.github.com/graphql");
 
         if let Some(token) = self.client.get_access_token() {
             request = request.bearer_auth(token);
         }
 
-        request
+        Ok(request)
     }
 }

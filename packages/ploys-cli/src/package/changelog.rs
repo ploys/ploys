@@ -45,7 +45,7 @@ impl Changelog {
         };
 
         let credentials = Credentials::new().with_access_token(self.token);
-        let client = Client::new()?.with_credentials(credentials);
+        let client = Client::new().with_credentials(credentials);
         let project = client.get_project(repo)?;
         let package = project
             .get_package(&self.package)
