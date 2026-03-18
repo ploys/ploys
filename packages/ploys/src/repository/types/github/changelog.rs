@@ -114,7 +114,7 @@ fn get_all_tags(repository: &Repo) -> Result<Vec<GitTag>, Error> {
 
     loop {
         let response = repository
-            .graphql()
+            .graphql()?
             .json(&Query {
                 query: ALL_TAGS_QUERY,
                 variables: Variables {
@@ -223,7 +223,7 @@ fn all(repository: &Repo) -> Result<Vec<PullRequest>, Error> {
 
     loop {
         let response = repository
-            .graphql()
+            .graphql()?
             .json(&Query {
                 query: ALL_QUERY,
                 variables: Variables {
@@ -306,7 +306,7 @@ fn until(repository: &Repo, to: &str, sha: &str) -> Result<Vec<PullRequest>, Err
 
     loop {
         let response = repository
-            .graphql()
+            .graphql()?
             .json(&Query {
                 query: UNTIL_QUERY,
                 variables: Variables {
@@ -391,7 +391,7 @@ fn between(repository: &Repo, from: &str, to: &str) -> Result<Vec<PullRequest>, 
 
     loop {
         let response = repository
-            .graphql()
+            .graphql()?
             .json(&Query {
                 query: BETWEEN_QUERY,
                 variables: Variables {

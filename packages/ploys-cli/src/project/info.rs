@@ -18,7 +18,7 @@ pub struct Info {
 impl Info {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
-        let mut client = Client::new()?;
+        let mut client = Client::new();
 
         if let Some(token) = self.token {
             client.set_credentials(Credentials::new().with_access_token(token));

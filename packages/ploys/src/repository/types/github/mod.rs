@@ -19,7 +19,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
-use crate::client::{Client, Error as ClientError, Token};
+use crate::client::{Client, Token};
 use crate::package::BumpOrVersion;
 use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
@@ -128,7 +128,7 @@ impl GitHub {
                     .inner
                     .inner()
                     .repository
-                    .get("git/trees/HEAD")
+                    .get("git/trees/HEAD")?
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
                     .send()?
@@ -144,7 +144,7 @@ impl GitHub {
                     .inner
                     .inner()
                     .repository
-                    .get(format!("git/ref/{reference}"))
+                    .get(format!("git/ref/{reference}"))?
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
                     .send()?
@@ -264,7 +264,7 @@ impl Commit for GitHub {
                         .inner
                         .inner()
                         .repository
-                        .post("git/blobs")
+                        .post("git/blobs")?
                         .header("Accept", "application/vnd.github+json")
                         .header("X-GitHub-Api-Version", "2022-11-28")
                         .json(&payload)
@@ -299,7 +299,7 @@ impl Commit for GitHub {
             .inner
             .inner()
             .repository
-            .post("git/trees")
+            .post("git/trees")?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&tree)
@@ -316,7 +316,7 @@ impl Commit for GitHub {
             .inner
             .inner()
             .repository
-            .post("git/commits")
+            .post("git/commits")?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&CreateCommit {
@@ -363,13 +363,7 @@ impl Open for GitHub {
         T: TryInto<Self::Context, Error = E>,
         E: Into<Self::Error>,
     {
-        let client = match Client::new() {
-            Ok(client) => client,
-            Err(ClientError::Request(err)) => return Err(Error::Request(err)),
-            Err(_) => unreachable!("client constructor only returns request error"),
-        };
-
-        Self::new(client, ctx)
+        Self::new(Client::new(), ctx)
     }
 }
 
@@ -385,7 +379,7 @@ impl Repository for Inner {
     fn get_file(&self, path: impl AsRef<RelativePath>) -> Result<Option<Bytes>, Self::Error> {
         let mut response = self
             .repository
-            .get(format!("contents/{}?ref={}", path.as_ref(), self.revision))
+            .get(format!("contents/{}?ref={}", path.as_ref(), self.revision))?
             .header("Accept", "application/vnd.github.raw")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()?
@@ -420,7 +414,7 @@ impl Repository for Inner {
 
         let entries = self
             .repository
-            .get(format!("git/trees/{}", self.revision))
+            .get(format!("git/trees/{}", self.revision))?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .query(&[("recursive", "true")])
@@ -507,7 +501,7 @@ impl GitLike for GitHub {
                 .inner
                 .inner()
                 .repository
-                .post("git/blobs")
+                .post("git/blobs")?
                 .header("Accept", "application/vnd.github+json")
                 .header("X-GitHub-Api-Version", "2022-11-28")
                 .json(&CreateBlob {
@@ -535,7 +529,7 @@ impl GitLike for GitHub {
             .inner
             .inner()
             .repository
-            .post("git/trees")
+            .post("git/trees")?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&tree)
@@ -552,7 +546,7 @@ impl GitLike for GitHub {
             .inner
             .inner()
             .repository
-            .post("git/commits")
+            .post("git/commits")?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&CreateCommit {
@@ -582,7 +576,7 @@ impl GitLike for GitHub {
             .inner
             .inner()
             .repository
-            .get("")
+            .get("")?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
@@ -609,7 +603,7 @@ impl GitLike for GitHub {
             .inner
             .inner()
             .repository
-            .post("git/refs")
+            .post("git/refs")?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewBranch {
@@ -634,7 +628,7 @@ impl GitLike for GitHub {
             .inner
             .inner()
             .repository
-            .patch(format!("git/refs/heads/{name}"))
+            .patch(format!("git/refs/heads/{name}"))?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&UpdateRef {
@@ -671,7 +665,7 @@ impl Remote for GitHub {
             .inner
             .inner()
             .repository
-            .post("dispatches")
+            .post("dispatches")?
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&RepositoryDispatchEvent {
                 event_type: String::from("ploys-package-release-request"),
@@ -727,7 +721,7 @@ impl Remote for GitHub {
             .inner
             .inner()
             .repository
-            .post("pulls")
+            .post("pulls")?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewPullRequest {
@@ -794,7 +788,7 @@ impl Remote for GitHub {
             .inner
             .inner()
             .repository
-            .post("releases")
+            .post("releases")?
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .json(&NewRelease {
