@@ -1,7 +1,7 @@
 use reqwest::Method;
 use reqwest::blocking::RequestBuilder;
 
-use crate::client::{Client, Credentials, Token};
+use crate::client::Client;
 use crate::repository::addr::RepoAddr;
 
 use super::Error;
@@ -27,12 +27,6 @@ impl Repo {
     /// Gets the repository name.
     pub fn name(&self) -> &str {
         self.addr.name()
-    }
-
-    /// Sets the access token.
-    pub(super) fn set_access_token(&mut self, token: impl Into<Token>) {
-        self.client
-            .set_credentials(Credentials::new().with_access_token(token));
     }
 
     /// Validates whether the remote repository exists.
