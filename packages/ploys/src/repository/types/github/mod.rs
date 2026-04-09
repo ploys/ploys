@@ -346,8 +346,7 @@ impl Open for GitHub {
     /// Opens a GitHub repository.
     ///
     /// Note that this does not validate the existence of the repository as it
-    /// may require an authentication token. Call `validated` to ensure that a
-    /// private repository exists after calling `with_authentication_token`.
+    /// may require an authentication token.
     fn open<T, E>(ctx: T) -> Result<Self, Self::Error>
     where
         T: TryInto<Self::Context, Error = E>,
