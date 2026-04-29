@@ -1,7 +1,7 @@
 mod credentials;
 mod error;
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use once_cell::sync::OnceCell;
 use reqwest::blocking::Client as HttpClient;
@@ -16,7 +16,7 @@ pub use self::error::Error;
 /// The project management client.
 #[derive(Clone, Debug, Default)]
 pub struct Client {
-    credentials: Option<Credentials>,
+    credentials: Arc<RwLock<Option<Credentials>>>,
     http_client: Arc<OnceCell<HttpClient>>,
 }
 
@@ -24,12 +24,14 @@ impl Client {
     /// Constructs a new project management client.
     pub fn new() -> Self {
         Self {
-            credentials: None,
+            credentials: Arc::new(RwLock::new(None)),
             http_client: Arc::new(OnceCell::new()),
         }
     }
 
     /// Builds the client with the given authentication credentials.
+    ///
+    /// See [`Self::set_credentials`] for more information.
     pub fn with_credentials(mut self, credentials: impl Into<Credentials>) -> Self {
         self.set_credentials(credentials);
         self
@@ -49,8 +51,12 @@ impl Client {
     }
 
     /// Sets the client authentication credentials.
+    ///
+    /// Note that this method overrides the credentials for this client instance
+    /// only. Prior clones will share the previous credentials unless those
+    /// instances are also updated.
     pub fn set_credentials(&mut self, credentials: impl Into<Credentials>) {
-        self.credentials = Some(credentials.into());
+        self.credentials = Arc::new(RwLock::new(Some(credentials.into())));
     }
 }
 
@@ -66,7 +72,12 @@ impl Client {
 
     /// Gets the authentication credentials access token.
     pub(crate) fn get_access_token(&self) -> Option<Token> {
-        match &self.credentials {
+        let credentials = self
+            .credentials
+            .read()
+            .unwrap_or_else(|err| err.into_inner());
+
+        match &*credentials {
             Some(credentials) => credentials.get_access_token(),
             None => None,
         }
