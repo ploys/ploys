@@ -36,7 +36,7 @@ impl Release {
         };
 
         let credentials = Credentials::new().with_access_token(self.token);
-        let client = Client::new().with_credentials(credentials);
+        let client = Client::build().with_credentials(credentials).finished()?;
         let project = client.get_project(repo)?;
 
         project

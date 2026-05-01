@@ -60,7 +60,7 @@ impl Repo {
     {
         let mut request = self
             .client
-            .http_client()?
+            .http_client()
             .request(method, self.endpoint(path));
 
         if let Some(token) = self.client.get_access_token() {
@@ -106,7 +106,7 @@ impl Repo {
     pub(super) fn graphql(&self) -> Result<RequestBuilder, Error> {
         let mut request = self
             .client
-            .http_client()?
+            .http_client()
             .post("https://api.github.com/graphql");
 
         if let Some(token) = self.client.get_access_token() {

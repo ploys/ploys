@@ -3,11 +3,12 @@ use ploys::client::{Client, Credentials, Error, Token};
 #[test]
 #[ignore]
 fn test_project() -> Result<(), Error> {
-    let mut client = Client::new();
-
-    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-        client.set_credentials(Credentials::new().with_access_token(Token::new(token).unwrap()));
-    }
+    let client = match std::env::var("GITHUB_TOKEN") {
+        Ok(token) => Client::build()
+            .with_credentials(Credentials::new().with_access_token(Token::new(token).unwrap()))
+            .finished()?,
+        Err(_) => Client::build().finished()?,
+    };
 
     let project = client.get_project("ploys/ploys")?;
 

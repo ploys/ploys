@@ -19,7 +19,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
-use crate::client::Client;
+use crate::client::{Client, Error as ClientError};
 use crate::package::BumpOrVersion;
 use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
@@ -352,7 +352,11 @@ impl Open for GitHub {
         T: TryInto<Self::Context, Error = E>,
         E: Into<Self::Error>,
     {
-        Self::new(Client::new(), ctx)
+        match Client::build().finished() {
+            Ok(client) => Self::new(client, ctx),
+            Err(ClientError::Request(err)) => Err(Error::Request(err)),
+            Err(_) => unreachable!("client only uses `Request` error variant"),
+        }
     }
 }
 

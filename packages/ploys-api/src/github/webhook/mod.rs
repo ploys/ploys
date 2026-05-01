@@ -82,7 +82,9 @@ fn create_release_sync(
     release: String,
     payload: PullRequestPayload,
 ) -> Result<(), Error> {
-    let client = Client::new().with_credentials(Credentials::new().with_access_token(token));
+    let client = Client::build()
+        .with_credentials(Credentials::new().with_access_token(token))
+        .finished()?;
     let project = client.get_project(&payload.repository.full_name)?;
 
     let package = project
@@ -136,7 +138,9 @@ async fn request_release(
 fn create_release_request(token: Token, payload: RepositoryDispatchPayload) -> Result<(), Error> {
     let ClientPayload { package, version } = serde_json::from_value(payload.client_payload)?;
 
-    let client = Client::new().with_credentials(Credentials::new().with_access_token(token));
+    let client = Client::build()
+        .with_credentials(Credentials::new().with_access_token(token))
+        .finished()?;
     let project = client.get_project(&payload.repository.full_name)?;
     let package = project
         .get_package(&package)
