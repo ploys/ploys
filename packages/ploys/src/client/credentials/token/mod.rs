@@ -173,7 +173,7 @@ impl TryFrom<&str> for Token {
 }
 
 /// The type of authentication token.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::Display)]
 #[non_exhaustive]
 pub enum TokenType {
     /// A personal access token.

@@ -1,6 +1,7 @@
 mod builder;
 mod credentials;
 mod error;
+pub mod flows;
 
 use std::sync::{Arc, RwLock};
 
@@ -14,9 +15,12 @@ pub use self::builder::Builder;
 pub use self::credentials::{Credentials, Token, TokenError, TokenType};
 pub use self::error::Error;
 
+use self::flows::DynAuthenticate;
+
 /// The project management client.
 #[derive(Clone, Debug)]
 pub struct Client {
+    auth_flow: Arc<dyn DynAuthenticate>,
     credentials: Arc<RwLock<Option<Credentials>>>,
     http_client: HttpClient,
 }
@@ -53,15 +57,22 @@ impl Client {
     }
 
     /// Gets the authentication credentials access token.
-    pub(crate) fn get_access_token(&self) -> Option<Token> {
-        let credentials = self
+    pub(crate) fn authenticate(
+        &self,
+    ) -> Result<Option<Token>, Box<dyn std::error::Error + Send + Sync>> {
+        let mut credentials = self
             .credentials
-            .read()
+            .write()
             .unwrap_or_else(|err| err.into_inner());
 
+        if credentials.is_none() || credentials.as_ref().is_some_and(|c| c.is_expired()) {
+            self.auth_flow
+                .dyn_authenticate(&mut credentials, &self.http_client)?;
+        }
+
         match &*credentials {
-            Some(credentials) => credentials.get_access_token(),
-            None => None,
+            Some(credentials) => Ok(Some(credentials.access_token().clone())),
+            None => Ok(None),
         }
     }
 }

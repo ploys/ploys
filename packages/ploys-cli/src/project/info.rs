@@ -1,7 +1,7 @@
 use anyhow::Error;
 use clap::Args;
 use console::style;
-use ploys::client::{Client, Credentials, Token};
+use ploys::client::{Client, Token};
 use ploys::repository::RepoAddr;
 
 /// Gets the project information.
@@ -19,9 +19,7 @@ impl Info {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
         let client = match self.token {
-            Some(token) => Client::build()
-                .with_credentials(Credentials::new().with_access_token(token))
-                .finished()?,
+            Some(token) => Client::build().with_access_token_flow(token).finished()?,
             None => Client::build().finished()?,
         };
 

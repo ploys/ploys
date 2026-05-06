@@ -1,11 +1,11 @@
-use ploys::client::{Client, Credentials, Error, Token};
+use ploys::client::{Client, Error, Token};
 
 #[test]
 #[ignore]
 fn test_project() -> Result<(), Error> {
     let client = match std::env::var("GITHUB_TOKEN") {
         Ok(token) => Client::build()
-            .with_credentials(Credentials::new().with_access_token(Token::new(token).unwrap()))
+            .with_access_token_flow(Token::new(token).unwrap())
             .finished()?,
         Err(_) => Client::build().finished()?,
     };

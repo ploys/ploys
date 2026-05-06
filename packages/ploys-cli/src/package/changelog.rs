@@ -2,7 +2,7 @@ use std::convert::Infallible;
 
 use anyhow::{Context, Error, bail};
 use clap::Args;
-use ploys::client::{Client, Credentials, Token};
+use ploys::client::{Client, Token};
 use ploys::project::Project;
 use ploys::repository::RepoAddr;
 use semver::Version;
@@ -44,8 +44,9 @@ impl Changelog {
                 .context("Missing remote repository")?,
         };
 
-        let credentials = Credentials::new().with_access_token(self.token);
-        let client = Client::build().with_credentials(credentials).finished()?;
+        let client = Client::build()
+            .with_access_token_flow(self.token)
+            .finished()?;
         let project = client.get_project(repo)?;
         let package = project
             .get_package(&self.package)
