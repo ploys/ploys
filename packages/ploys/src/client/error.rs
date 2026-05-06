@@ -7,6 +7,8 @@ pub enum Error {
     Request(reqwest::Error),
     /// A project error.
     Project(crate::project::Error<crate::repository::types::github::Error>),
+    /// An authentication error.
+    Auth(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl Display for Error {
@@ -14,6 +16,7 @@ impl Display for Error {
         match self {
             Self::Request(err) => Display::fmt(err, f),
             Self::Project(err) => Display::fmt(err, f),
+            Self::Auth(err) => Display::fmt(err, f),
         }
     }
 }

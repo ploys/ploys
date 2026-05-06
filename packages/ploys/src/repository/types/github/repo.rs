@@ -63,7 +63,7 @@ impl Repo {
             .http_client()
             .request(method, self.endpoint(path));
 
-        if let Some(token) = self.client.get_access_token() {
+        if let Some(token) = self.client.authenticate().map_err(Error::Auth)? {
             request = request.bearer_auth(token);
         }
 
@@ -109,7 +109,7 @@ impl Repo {
             .http_client()
             .post("https://api.github.com/graphql");
 
-        if let Some(token) = self.client.get_access_token() {
+        if let Some(token) = self.client.authenticate().map_err(Error::Auth)? {
             request = request.bearer_auth(token);
         }
 

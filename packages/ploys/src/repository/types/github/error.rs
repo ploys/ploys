@@ -15,6 +15,8 @@ pub enum Error {
     Io(io::Error),
     /// An address error.
     Addr(RepoAddrError),
+    /// An authentication error.
+    Auth(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl Display for Error {
@@ -24,6 +26,7 @@ impl Display for Error {
             Self::Request(transport) => Display::fmt(transport, f),
             Self::Io(err) => Display::fmt(err, f),
             Self::Addr(err) => Display::fmt(err, f),
+            Self::Auth(err) => Display::fmt(err, f),
         }
     }
 }
@@ -35,6 +38,7 @@ impl std::error::Error for Error {
             Self::Request(err) => Some(err),
             Self::Io(err) => Some(err),
             Self::Addr(err) => Some(err),
+            Self::Auth(_) => None,
         }
     }
 }
