@@ -5,19 +5,29 @@ pub use self::token::{Error as TokenError, Token, TokenType};
 /// The client authentication credentials.
 #[derive(Clone, Debug)]
 pub struct Credentials {
+    user: String,
     access_token: Token,
 }
 
 impl Credentials {
     /// Constructs new client authentication credentials.
-    pub(crate) fn new(access_token: impl Into<Token>) -> Self {
+    pub(crate) fn new(user: impl Into<String>, access_token: impl Into<Token>) -> Self {
         Self {
+            user: user.into(),
             access_token: access_token.into(),
         }
     }
 }
 
 impl Credentials {
+    /// Gets the user login name.
+    ///
+    /// Note that for an app installation this would contain the `[bot]` suffix
+    /// to differentiate between users and apps.
+    pub fn user(&self) -> &str {
+        &self.user
+    }
+
     /// Gets the access token.
     pub fn access_token(&self) -> &Token {
         &self.access_token

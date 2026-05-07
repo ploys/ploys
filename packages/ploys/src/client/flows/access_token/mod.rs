@@ -1,6 +1,7 @@
 mod error;
 
 use reqwest::blocking::Client as HttpClient;
+use serde::{Deserialize, Serialize};
 
 use crate::client::{Credentials, Token, TokenType};
 
@@ -32,15 +33,68 @@ impl Authenticate for AccessTokenFlow {
     fn authenticate(
         &self,
         credentials: &mut Option<Credentials>,
-        _: &HttpClient,
+        http_client: &HttpClient,
     ) -> Result<(), Self::Error> {
         match self.token.token_type() {
-            TokenType::Personal | TokenType::OAuth | TokenType::User | TokenType::Installation => {
-                *credentials = Some(Credentials::new(self.token.clone()));
+            TokenType::Personal | TokenType::OAuth | TokenType::User => {
+                let user = http_client
+                    .get("https://api.github.com/user")
+                    .header("Accept", "application/vnd.github+json")
+                    .header("X-GitHub-Api-Version", "2026-03-10")
+                    .bearer_auth(self.token.value())
+                    .send()?
+                    .error_for_status()?
+                    .json::<UserResponse>()?
+                    .login;
+
+                *credentials = Some(Credentials::new(user, self.token.clone()));
+
+                Ok(())
+            }
+            TokenType::Installation => {
+                let user = http_client
+                    .post("https://api.github.com/graphql")
+                    .bearer_auth(self.token.value())
+                    .json(&GraphQLPayload {
+                        query: "query { viewer { login } }",
+                    })
+                    .send()?
+                    .error_for_status()?
+                    .json::<InstallationResponse>()?
+                    .data
+                    .viewer
+                    .login;
+
+                *credentials = Some(Credentials::new(user, self.token.clone()));
 
                 Ok(())
             }
             ty @ TokenType::Refresh => Err(Error::UnsupportedTokenType(ty)),
         }
     }
+}
+
+#[derive(Deserialize)]
+struct UserResponse {
+    login: String,
+}
+
+#[derive(Serialize)]
+struct GraphQLPayload {
+    query: &'static str,
+}
+
+#[derive(Deserialize)]
+struct InstallationResponse {
+    data: InstallationResponseData,
+}
+
+#[derive(Deserialize)]
+struct InstallationResponseData {
+    viewer: InstallationResponseViewer,
+}
+
+#[derive(Deserialize)]
+struct InstallationResponseViewer {
+    login: String,
 }
