@@ -4,7 +4,8 @@ use reqwest::blocking::Client as HttpClient;
 
 use super::flows::Authenticate;
 use super::flows::access_token::AccessTokenFlow;
-use super::{Client, Credentials, Error, Token};
+use super::flows::device_code::DeviceCodeFlow;
+use super::{Client, Credentials, Error, ServAddr, Token};
 
 /// The project management client builder.
 #[derive(Clone, Debug, Default)]
@@ -36,6 +37,14 @@ impl Builder {
     /// flow.
     pub fn with_access_token_flow(self, token: impl Into<Token>) -> Builder<AccessTokenFlow> {
         self.with_authentication_flow(AccessTokenFlow::new(token))
+    }
+
+    /// Builds the client with the device code authentication flow.
+    ///
+    /// See [`DeviceCodeFlow`] for more information about this authentication
+    /// flow.
+    pub fn with_device_code_flow(self, server: impl Into<ServAddr>) -> Builder<DeviceCodeFlow> {
+        self.with_authentication_flow(DeviceCodeFlow::new(server))
     }
 }
 
