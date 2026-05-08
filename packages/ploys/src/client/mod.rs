@@ -12,7 +12,7 @@ use crate::repository::RepoAddr;
 use crate::repository::types::github::{Error as RepoError, GitHub};
 
 pub use self::builder::Builder;
-pub use self::credentials::{Credentials, Token, TokenError, TokenType};
+pub use self::credentials::{Credentials, ServAddr, Token, TokenError, TokenType};
 pub use self::error::Error;
 
 use self::flows::DynAuthenticate;
