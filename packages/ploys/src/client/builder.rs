@@ -46,7 +46,7 @@ impl Builder {
     /// See [`DeviceCodeFlow`] for more information about this authentication
     /// flow.
     pub fn with_device_code_flow(self) -> Builder<DeviceCodeFlow> {
-        self.with_authentication_flow(DeviceCodeFlow)
+        self.with_authentication_flow(DeviceCodeFlow::new())
     }
 }
 

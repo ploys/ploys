@@ -17,12 +17,14 @@ use super::Authenticate;
 
 /// The device code authentication flow.
 #[derive(Clone, Debug, Default)]
-pub struct DeviceCodeFlow;
+pub struct DeviceCodeFlow {
+    _private: (),
+}
 
 impl DeviceCodeFlow {
     /// Constructs a new device code authentication flow.
     pub fn new() -> Self {
-        Self
+        Self { _private: () }
     }
 }
 
