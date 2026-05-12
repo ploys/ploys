@@ -16,17 +16,13 @@ pub use self::error::Error;
 use super::Authenticate;
 
 /// The device code authentication flow.
-#[derive(Clone, Debug)]
-pub struct DeviceCodeFlow {
-    server: ServAddr,
-}
+#[derive(Clone, Debug, Default)]
+pub struct DeviceCodeFlow;
 
 impl DeviceCodeFlow {
     /// Constructs a new device code authentication flow.
-    pub fn new(server: impl Into<ServAddr>) -> Self {
-        Self {
-            server: server.into(),
-        }
+    pub fn new() -> Self {
+        Self
     }
 }
 
@@ -37,9 +33,10 @@ impl Authenticate for DeviceCodeFlow {
         &self,
         credentials: &mut Option<Credentials>,
         http_client: &HttpClient,
+        server: &ServAddr,
     ) -> Result<(), Self::Error> {
         let client_id = http_client
-            .get(format!("https://{}/github", self.server))
+            .get(format!("https://{server}/github"))
             .send()?
             .error_for_status()?
             .json::<AppInfo>()?
@@ -110,7 +107,7 @@ impl Authenticate for DeviceCodeFlow {
                         .json::<UserResponse>()?
                         .login;
 
-                    *credentials = Some(Credentials::new(self.server.clone(), user, token));
+                    *credentials = Some(Credentials::new(user, token));
 
                     break;
                 }

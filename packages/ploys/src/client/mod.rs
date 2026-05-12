@@ -2,6 +2,7 @@ mod builder;
 mod credentials;
 mod error;
 pub mod flows;
+mod server;
 
 use std::sync::{Arc, RwLock};
 
@@ -12,14 +13,16 @@ use crate::repository::RepoAddr;
 use crate::repository::types::github::{Error as RepoError, GitHub};
 
 pub use self::builder::Builder;
-pub use self::credentials::{Credentials, ServAddr, Token, TokenError, TokenType};
+pub use self::credentials::{Credentials, Token, TokenError, TokenType};
 pub use self::error::Error;
+pub use self::server::ServAddr;
 
 use self::flows::DynAuthenticate;
 
 /// The project management client.
 #[derive(Clone, Debug)]
 pub struct Client {
+    server: ServAddr,
     auth_flow: Arc<dyn DynAuthenticate>,
     credentials: Arc<RwLock<Option<Credentials>>>,
     http_client: HttpClient,
@@ -67,7 +70,7 @@ impl Client {
 
         if credentials.is_none() || credentials.as_ref().is_some_and(|c| c.is_expired()) {
             self.auth_flow
-                .dyn_authenticate(&mut credentials, &self.http_client)?;
+                .dyn_authenticate(&mut credentials, &self.http_client, &self.server)?;
         }
 
         match &*credentials {

@@ -10,6 +10,7 @@ use super::{Client, Credentials, Error, ServAddr, Token};
 /// The project management client builder.
 #[derive(Clone, Debug, Default)]
 pub struct Builder<T = ()> {
+    server: ServAddr,
     auth_flow: T,
     credentials: Option<Credentials>,
 }
@@ -18,6 +19,7 @@ impl Builder {
     /// Constructs a new project management client builder.
     pub fn new() -> Self {
         Self {
+            server: ServAddr::default(),
             auth_flow: (),
             credentials: None,
         }
@@ -43,12 +45,23 @@ impl Builder {
     ///
     /// See [`DeviceCodeFlow`] for more information about this authentication
     /// flow.
-    pub fn with_device_code_flow(self, server: impl Into<ServAddr>) -> Builder<DeviceCodeFlow> {
-        self.with_authentication_flow(DeviceCodeFlow::new(server))
+    pub fn with_device_code_flow(self) -> Builder<DeviceCodeFlow> {
+        self.with_authentication_flow(DeviceCodeFlow)
     }
 }
 
 impl<T> Builder<T> {
+    /// Sets the server address.
+    pub fn set_server(&mut self, server: impl Into<ServAddr>) {
+        self.server = server.into();
+    }
+
+    /// Builds the client with the given server address.
+    pub fn with_server(mut self, server: impl Into<ServAddr>) -> Self {
+        self.set_server(server);
+        self
+    }
+
     /// Sets the client authentication credentials.
     pub fn set_credentials(&mut self, credentials: impl Into<Credentials>) {
         self.credentials = Some(credentials.into());
@@ -63,6 +76,7 @@ impl<T> Builder<T> {
     /// Maps the authentication flow.
     pub fn map_authentication_flow<U>(self, f: impl FnOnce(T) -> U) -> Builder<U> {
         Builder {
+            server: self.server,
             auth_flow: f(self.auth_flow),
             credentials: self.credentials,
         }
@@ -76,6 +90,7 @@ where
     /// Finishes building the client.
     pub fn finished(self) -> Result<Client, Error> {
         Ok(Client {
+            server: self.server,
             auth_flow: Arc::new(self.auth_flow),
             credentials: Arc::new(RwLock::new(self.credentials)),
             http_client: HttpClient::builder()
