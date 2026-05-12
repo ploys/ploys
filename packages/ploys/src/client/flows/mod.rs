@@ -7,7 +7,7 @@ use std::fmt::Debug;
 
 use reqwest::blocking::Client as HttpClient;
 
-use super::Credentials;
+use super::{Credentials, ServAddr};
 
 pub trait Authenticate: Debug + Send + Sync + 'static {
     type Error: Error + Send + Sync + 'static;
@@ -16,13 +16,19 @@ pub trait Authenticate: Debug + Send + Sync + 'static {
         &self,
         credentials: &mut Option<Credentials>,
         http_client: &HttpClient,
+        server: &ServAddr,
     ) -> Result<(), Self::Error>;
 }
 
 impl Authenticate for () {
     type Error = Infallible;
 
-    fn authenticate(&self, _: &mut Option<Credentials>, _: &HttpClient) -> Result<(), Self::Error> {
+    fn authenticate(
+        &self,
+        _: &mut Option<Credentials>,
+        _: &HttpClient,
+        _: &ServAddr,
+    ) -> Result<(), Self::Error> {
         Ok(())
     }
 }
@@ -32,6 +38,7 @@ pub(super) trait DynAuthenticate: Debug {
         &self,
         credentials: &mut Option<Credentials>,
         http_client: &HttpClient,
+        server: &ServAddr,
     ) -> Result<(), Box<dyn Error + Send + Sync>>;
 }
 
@@ -43,8 +50,9 @@ where
         &self,
         credentials: &mut Option<Credentials>,
         http_client: &HttpClient,
+        server: &ServAddr,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        self.authenticate(credentials, http_client)
+        self.authenticate(credentials, http_client, server)
             .map_err(Box::new)
             .map_err(Into::into)
     }

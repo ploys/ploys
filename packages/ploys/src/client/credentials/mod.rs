@@ -1,26 +1,18 @@
-mod server;
 mod token;
 
-pub use self::server::ServAddr;
 pub use self::token::{Error as TokenError, Token, TokenType};
 
 /// The client authentication credentials.
 #[derive(Clone, Debug)]
 pub struct Credentials {
-    server: ServAddr,
     user: String,
     access_token: Token,
 }
 
 impl Credentials {
     /// Constructs new client authentication credentials.
-    pub(crate) fn new(
-        server: impl Into<ServAddr>,
-        user: impl Into<String>,
-        access_token: impl Into<Token>,
-    ) -> Self {
+    pub(crate) fn new(user: impl Into<String>, access_token: impl Into<Token>) -> Self {
         Self {
-            server: server.into(),
             user: user.into(),
             access_token: access_token.into(),
         }
@@ -28,11 +20,6 @@ impl Credentials {
 }
 
 impl Credentials {
-    /// Gets the server address.
-    pub fn server(&self) -> &ServAddr {
-        &self.server
-    }
-
     /// Gets the user login name.
     ///
     /// Note that for an app installation this would contain the `[bot]` suffix

@@ -3,8 +3,7 @@ mod error;
 use reqwest::blocking::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 
-use crate::client::credentials::ServAddr;
-use crate::client::{Credentials, Token, TokenType};
+use crate::client::{Credentials, ServAddr, Token, TokenType};
 
 pub use self::error::Error;
 
@@ -35,6 +34,7 @@ impl Authenticate for AccessTokenFlow {
         &self,
         credentials: &mut Option<Credentials>,
         http_client: &HttpClient,
+        _: &ServAddr,
     ) -> Result<(), Self::Error> {
         match self.token.token_type() {
             TokenType::Personal | TokenType::OAuth | TokenType::User => {
@@ -48,11 +48,7 @@ impl Authenticate for AccessTokenFlow {
                     .json::<UserResponse>()?
                     .login;
 
-                *credentials = Some(Credentials::new(
-                    ServAddr::default(),
-                    user,
-                    self.token.clone(),
-                ));
+                *credentials = Some(Credentials::new(user, self.token.clone()));
 
                 Ok(())
             }
@@ -70,11 +66,7 @@ impl Authenticate for AccessTokenFlow {
                     .viewer
                     .login;
 
-                *credentials = Some(Credentials::new(
-                    ServAddr::default(),
-                    user,
-                    self.token.clone(),
-                ));
+                *credentials = Some(Credentials::new(user, self.token.clone()));
 
                 Ok(())
             }
