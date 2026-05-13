@@ -1,8 +1,10 @@
 mod error;
 
+use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
+use once_cell::sync::OnceCell;
 use reqwest::blocking::Client as HttpClient;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
@@ -16,15 +18,20 @@ pub use self::error::Error;
 use super::Authenticate;
 
 /// The device code authentication flow.
+///
+/// Note that authentication will cache the GitHub App's client identifier from
+/// the server address endpoint to avoid repeated requests.
 #[derive(Clone, Debug, Default)]
 pub struct DeviceCodeFlow {
-    _private: (),
+    client_id: OnceCell<Arc<str>>,
 }
 
 impl DeviceCodeFlow {
     /// Constructs a new device code authentication flow.
     pub fn new() -> Self {
-        Self { _private: () }
+        Self {
+            client_id: OnceCell::new(),
+        }
     }
 }
 
@@ -37,17 +44,22 @@ impl Authenticate for DeviceCodeFlow {
         http_client: &HttpClient,
         server: &ServAddr,
     ) -> Result<(), Self::Error> {
-        let client_id = http_client
-            .get(format!("https://{server}/github"))
-            .send()?
-            .error_for_status()?
-            .json::<AppInfo>()?
-            .client_id;
+        let client_id = self.client_id.get_or_try_init(|| {
+            Ok::<_, Error>(
+                http_client
+                    .get(format!("https://{server}/github"))
+                    .send()?
+                    .error_for_status()?
+                    .json::<AppInfo>()?
+                    .client_id
+                    .into(),
+            )
+        })?;
 
         let code_response: CodeResponse = http_client
             .post("https://github.com/login/device/code")
             .header("Accept", "application/json")
-            .form(&[("client_id", client_id.as_str())])
+            .form(&[("client_id", &**client_id)])
             .send()?
             .error_for_status()?
             .json()?;
@@ -70,7 +82,7 @@ impl Authenticate for DeviceCodeFlow {
                 .post("https://github.com/login/oauth/access_token")
                 .header("Accept", "application/json")
                 .form(&[
-                    ("client_id", client_id.as_str()),
+                    ("client_id", &**client_id),
                     ("device_code", &code_response.device_code),
                     ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
                 ])
