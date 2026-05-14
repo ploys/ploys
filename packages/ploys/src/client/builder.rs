@@ -1,10 +1,12 @@
 use std::sync::{Arc, RwLock};
 
+use keyring_core::CredentialStore;
 use reqwest::blocking::Client as HttpClient;
 
 use super::flows::Authenticate;
 use super::flows::access_token::AccessTokenFlow;
 use super::flows::device_code::DeviceCodeFlow;
+use super::flows::keyring::KeyringFlow;
 use super::{Client, Credentials, Error, ServAddr, Token};
 
 /// The project management client builder.
@@ -47,6 +49,24 @@ impl Builder {
     /// flow.
     pub fn with_device_code_flow(self) -> Builder<DeviceCodeFlow> {
         self.with_authentication_flow(DeviceCodeFlow::new())
+    }
+}
+
+impl<T> Builder<T> {
+    /// Builds the client with the given keyring credential store.
+    ///
+    /// See [`KeyringFlow`] for more information about this authentication
+    /// flow adapter.
+    pub fn with_keyring_store(self, store: Arc<CredentialStore>) -> Builder<KeyringFlow<T>> {
+        self.map_authentication_flow(|auth_flow| KeyringFlow::new(auth_flow).with_store(store))
+    }
+
+    /// Builds the client with the default keyring credential store.
+    ///
+    /// See [`KeyringFlow`] for more information about this authentication
+    /// flow adapter.
+    pub fn with_keyring_store_default(self) -> Builder<KeyringFlow<T>> {
+        self.map_authentication_flow(|auth_flow| KeyringFlow::new(auth_flow))
     }
 }
 

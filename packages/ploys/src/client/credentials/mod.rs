@@ -1,9 +1,11 @@
 mod token;
 
+use serde::{Deserialize, Serialize};
+
 pub use self::token::{Error as TokenError, Token, TokenType};
 
 /// The client authentication credentials.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Credentials {
     user: String,
     access_token: Token,
