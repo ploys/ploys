@@ -68,7 +68,11 @@ impl Client {
             .write()
             .unwrap_or_else(|err| err.into_inner());
 
-        if credentials.is_none() || credentials.as_ref().is_some_and(|c| c.is_expired()) {
+        if credentials.is_none()
+            || credentials
+                .as_ref()
+                .is_some_and(|credentials| credentials.access_token().is_expired())
+        {
             self.auth_flow
                 .dyn_authenticate(&mut credentials, &self.http_client, &self.server)?;
         }
