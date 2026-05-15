@@ -17,6 +17,7 @@ pub use self::credentials::{Credentials, Token, TokenError, TokenType};
 pub use self::error::Error;
 pub use self::server::ServAddr;
 
+use self::error::MissingCredentials;
 use self::flows::DynAuthenticate;
 
 /// The project management client.
@@ -54,15 +55,30 @@ impl Client {
 }
 
 impl Client {
+    /// Obtains the authentication credentials.
+    ///
+    /// This method returns cached credentials if they have not yet expired, or
+    /// initiates a new authentication flow to request updated credentials if
+    /// they have expired. The returned credentials may no longer be valid if
+    /// they have been externally revoked or the expiration date is unknown.
+    pub fn login(&self) -> Result<Credentials, Error> {
+        match self.get_credentials().map_err(Error::Auth)? {
+            Some(credentials) => Ok(credentials),
+            None => Err(Error::Auth(Box::new(MissingCredentials))),
+        }
+    }
+}
+
+impl Client {
     /// Gets the HTTP client.
     pub(crate) fn http_client(&self) -> &HttpClient {
         &self.http_client
     }
 
-    /// Gets the authentication credentials access token.
-    pub(crate) fn authenticate(
+    /// Gets the authentication credentials.
+    pub(crate) fn get_credentials(
         &self,
-    ) -> Result<Option<Token>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Option<Credentials>, Box<dyn std::error::Error + Send + Sync>> {
         let mut credentials = self
             .credentials
             .write()
@@ -77,9 +93,15 @@ impl Client {
                 .dyn_authenticate(&mut credentials, &self.http_client, &self.server)?;
         }
 
-        match &*credentials {
-            Some(credentials) => Ok(Some(credentials.access_token().clone())),
-            None => Ok(None),
-        }
+        Ok(credentials.clone())
+    }
+
+    /// Gets the authentication credentials access token.
+    pub(crate) fn authenticate(
+        &self,
+    ) -> Result<Option<Token>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(self
+            .get_credentials()?
+            .map(|credentials| credentials.access_token().clone()))
     }
 }
