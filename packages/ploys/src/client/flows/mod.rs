@@ -1,6 +1,7 @@
 pub mod access_token;
 pub mod device_code;
 pub mod keyring;
+pub mod refresh_token;
 
 use std::convert::Infallible;
 use std::error::Error;
