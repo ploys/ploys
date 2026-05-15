@@ -34,3 +34,15 @@ impl From<crate::project::Error<crate::repository::types::github::Error>> for Er
         Self::Project(err)
     }
 }
+
+/// The missing credentials error.
+#[derive(Debug)]
+pub struct MissingCredentials;
+
+impl Display for MissingCredentials {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Missing credentials")
+    }
+}
+
+impl std::error::Error for MissingCredentials {}
