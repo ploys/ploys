@@ -7,6 +7,7 @@ use super::flows::Authenticate;
 use super::flows::access_token::AccessTokenFlow;
 use super::flows::device_code::DeviceCodeFlow;
 use super::flows::keyring::KeyringFlow;
+use super::flows::refresh_token::RefreshTokenFlow;
 use super::{Client, Credentials, Error, ServAddr, Token};
 
 /// The project management client builder.
@@ -53,6 +54,14 @@ impl Builder {
 }
 
 impl<T> Builder<T> {
+    /// Builds the client with the refresh token flow.
+    ///
+    /// See [`RefreshTokenFlow`] for more information about this authentication
+    /// flow adapter.
+    pub fn with_refresh_token_flow(self) -> Builder<RefreshTokenFlow<T>> {
+        self.map_authentication_flow(RefreshTokenFlow::new)
+    }
+
     /// Builds the client with the given keyring credential store.
     ///
     /// See [`KeyringFlow`] for more information about this authentication
