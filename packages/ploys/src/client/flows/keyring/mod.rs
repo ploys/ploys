@@ -122,7 +122,7 @@ where
                 let secret = entry.get_secret()?;
                 let creds = serde_json::from_slice::<Credentials>(&secret)?;
 
-                if creds.is_expired() {
+                if creds.access_token().is_expired() {
                     *credentials = Some(creds);
 
                     self.auth_flow

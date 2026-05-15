@@ -105,23 +105,33 @@ impl Authenticate for DeviceCodeFlow {
                 },
                 TokenResponse::Success(success) => {
                     let now = OffsetDateTime::now_utc();
-                    let mut token = success.access_token;
+                    let mut access_token = success.access_token;
 
                     if let Some(expires_in) = success.expires_in {
-                        token.set_expiry(now + time::Duration::seconds(expires_in));
+                        access_token.set_expiry(now + time::Duration::seconds(expires_in));
                     }
 
                     let user = http_client
                         .get("https://api.github.com/user")
                         .header("Accept", "application/vnd.github+json")
                         .header("X-GitHub-Api-Version", "2026-03-10")
-                        .bearer_auth(token.value())
+                        .bearer_auth(access_token.value())
                         .send()?
                         .error_for_status()?
                         .json::<UserResponse>()?
                         .login;
 
-                    *credentials = Some(Credentials::new(user, token));
+                    let mut creds = Credentials::new(user, access_token);
+
+                    if let Some(mut refresh_token) = success.refresh_token {
+                        if let Some(expires_in) = success.refresh_token_expires_in {
+                            refresh_token.set_expiry(now + time::Duration::seconds(expires_in));
+                        }
+
+                        creds.set_refresh_token(refresh_token);
+                    }
+
+                    *credentials = Some(creds);
 
                     break;
                 }
@@ -164,6 +174,9 @@ struct SuccessTokenResponse {
     #[serde_as(as = "DisplayFromStr")]
     access_token: Token,
     expires_in: Option<i64>,
+    #[serde_as(as = "Option<DisplayFromStr>")]
+    refresh_token: Option<Token>,
+    refresh_token_expires_in: Option<i64>,
 }
 
 #[derive(Deserialize)]
