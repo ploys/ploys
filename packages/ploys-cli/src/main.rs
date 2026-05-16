@@ -1,3 +1,4 @@
+mod auth;
 mod package;
 mod project;
 
@@ -5,6 +6,7 @@ use anyhow::Error;
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::Verbosity;
 
+use self::auth::Auth;
 use self::package::Package;
 use self::project::Project;
 
@@ -24,6 +26,7 @@ impl Args {
         match self.command {
             Command::Project(project) => project.exec(),
             Command::Package(package) => package.exec(),
+            Command::Auth(auth) => auth.exec(),
         }
     }
 }
@@ -35,6 +38,8 @@ enum Command {
     Project(Project),
     /// Manages the packages.
     Package(Package),
+    /// Authenticate with GitHub.
+    Auth(Auth),
 }
 
 fn main() -> Result<(), Error> {
