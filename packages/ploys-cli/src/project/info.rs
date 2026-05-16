@@ -1,14 +1,20 @@
 use anyhow::Error;
 use clap::Args;
 use console::style;
-use ploys::client::{Client, Token};
+use ploys::client::{Client, ServAddr, Token};
 use ploys::repository::RepoAddr;
+
+use crate::auth::init_keyring;
 
 /// Gets the project information.
 #[derive(Args)]
 pub struct Info {
     /// The repository address (owner/name) or GitHub URL.
     repo: RepoAddr,
+
+    /// The management server address.
+    #[arg(long, default_value = "api.ploys.dev")]
+    server: ServAddr,
 
     /// The authentication token for GitHub API access.
     #[arg(long, env = "GITHUB_TOKEN", hide_env_values = true)]
@@ -19,8 +25,15 @@ impl Info {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
         let client = match self.token {
-            Some(token) => Client::build().with_access_token_flow(token).finished()?,
-            None => Client::build().finished()?,
+            Some(token) => Client::build()
+                .with_server(self.server)
+                .with_access_token_flow(token)
+                .finished()?,
+            None => Client::build()
+                .with_server(self.server)
+                .with_refresh_token_flow()
+                .with_keyring_store(init_keyring()?)
+                .finished()?,
         };
 
         let project = client.get_project(self.repo)?;

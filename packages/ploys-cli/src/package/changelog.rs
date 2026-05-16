@@ -1,53 +1,59 @@
 use std::convert::Infallible;
 
-use anyhow::{Context, Error, bail};
+use anyhow::{Error, bail};
 use clap::Args;
-use ploys::client::{Client, Token};
-use ploys::project::Project;
+use ploys::client::{Client, ServAddr, Token};
 use ploys::repository::RepoAddr;
 use semver::Version;
+
+use crate::auth::init_keyring;
 
 /// The changelog command.
 #[derive(Args)]
 pub struct Changelog {
+    /// The repository address (owner/name) or GitHub URL.
+    repo: RepoAddr,
+
     /// The package identifier.
     package: String,
 
     /// Query the specified version.
-    #[clap(long, conflicts_with_all = ["latest", "unreleased"])]
+    #[arg(long, conflicts_with_all = ["latest", "unreleased"])]
     version: Option<Version>,
 
     /// Query only the latest changes.
-    #[clap(long, conflicts_with_all = ["version", "unreleased"])]
+    #[arg(long, conflicts_with_all = ["version", "unreleased"])]
     latest: bool,
 
     /// Query only the unreleased changes.
-    #[clap(long, conflicts_with_all = ["version", "latest"])]
+    #[arg(long, conflicts_with_all = ["version", "latest"])]
     unreleased: bool,
 
-    /// The remote GitHub repository owner/name or URL.
-    #[clap(long)]
-    remote: Option<RepoAddr>,
+    /// The management server address.
+    #[arg(long, default_value = "api.ploys.dev")]
+    server: ServAddr,
 
     /// The authentication token for GitHub API access.
-    #[clap(long, env = "GITHUB_TOKEN", hide_env_values = true)]
-    token: Token,
+    #[arg(long, env = "GITHUB_TOKEN", hide_env_values = true)]
+    token: Option<Token>,
 }
 
 impl Changelog {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
-        let repo = match self.remote {
-            Some(repo) => repo,
-            None => Project::git(".")?
-                .repository()
-                .context("Missing remote repository")?,
+        let client = match self.token {
+            Some(token) => Client::build()
+                .with_server(self.server)
+                .with_access_token_flow(token)
+                .finished()?,
+            None => Client::build()
+                .with_server(self.server)
+                .with_refresh_token_flow()
+                .with_keyring_store(init_keyring()?)
+                .finished()?,
         };
 
-        let client = Client::build()
-            .with_access_token_flow(self.token)
-            .finished()?;
-        let project = client.get_project(repo)?;
+        let project = client.get_project(self.repo)?;
         let package = project
             .get_package(&self.package)
             .ok_or(ploys::package::Error::<Infallible>::NotFound(self.package))?;
