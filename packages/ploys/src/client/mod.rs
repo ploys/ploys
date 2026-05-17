@@ -2,6 +2,7 @@ mod builder;
 mod credentials;
 mod error;
 pub mod flows;
+mod projects;
 mod server;
 
 use std::sync::{Arc, RwLock};
@@ -19,6 +20,7 @@ pub use self::server::ServAddr;
 
 use self::error::MissingCredentials;
 use self::flows::DynAuthenticate;
+use self::projects::Projects;
 
 /// The project management client.
 #[derive(Clone, Debug)]
@@ -51,6 +53,14 @@ impl Client {
         let proj = Project::open(repo)?;
 
         Ok(proj)
+    }
+
+    /// Iterates over managed projects.
+    ///
+    /// Note that this method currently only supports credentials generated via
+    /// the device code flow.
+    pub fn projects(&self) -> impl Iterator<Item = Result<Project<GitHub>, Error>> {
+        Projects::new(self)
     }
 }
 
