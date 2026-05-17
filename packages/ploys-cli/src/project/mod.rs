@@ -1,11 +1,13 @@
 mod info;
 mod init;
+mod list;
 
 use anyhow::Error;
 use clap::{Args, Subcommand};
 
 use self::info::Info;
 use self::init::Init;
+use self::list::List;
 
 /// The project command.
 #[derive(Args)]
@@ -20,6 +22,7 @@ impl Project {
         match self.command {
             Command::Info(info) => info.exec(),
             Command::Init(init) => init.exec(),
+            Command::List(list) => list.exec(),
         }
     }
 }
@@ -31,4 +34,6 @@ enum Command {
     Info(Info),
     /// Initializes a new project.
     Init(Init),
+    /// Lists managed projects.
+    List(List),
 }
