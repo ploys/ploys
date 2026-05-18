@@ -8,8 +8,9 @@ pub trait GitLike: Repository {
     fn sha(&self) -> Result<String, Self::Error>;
 
     /// Commits the changes to the repository.
-    fn commit(
+    fn commit_branch(
         &self,
+        branch_name: &str,
         message: &str,
         files: Vec<(RelativePathBuf, String)>,
     ) -> Result<String, Self::Error>;
@@ -32,12 +33,13 @@ where
         (**self).sha()
     }
 
-    fn commit(
+    fn commit_branch(
         &self,
+        branch_name: &str,
         message: &str,
         files: Vec<(RelativePathBuf, String)>,
     ) -> Result<String, Self::Error> {
-        (**self).commit(message, files)
+        (**self).commit_branch(branch_name, message, files)
     }
 
     fn get_default_branch(&self) -> Result<String, Self::Error> {
@@ -61,12 +63,13 @@ where
         (**self).sha()
     }
 
-    fn commit(
+    fn commit_branch(
         &self,
+        branch_name: &str,
         message: &str,
         files: Vec<(RelativePathBuf, String)>,
     ) -> Result<String, Self::Error> {
-        (**self).commit(message, files)
+        (**self).commit_branch(branch_name, message, files)
     }
 
     fn get_default_branch(&self) -> Result<String, Self::Error> {

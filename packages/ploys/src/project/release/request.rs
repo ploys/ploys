@@ -216,15 +216,9 @@ where
             .create_branch(&branch)
             .map_err(crate::project::Error::Repository)?;
 
-        let sha = self
-            .project
-            .repository
-            .commit(&title, files)
-            .map_err(crate::project::Error::Repository)?;
-
         self.project
             .repository
-            .update_branch(&branch, &sha)
+            .commit_branch(&branch, &title, files)
             .map_err(crate::project::Error::Repository)?;
 
         let id = self

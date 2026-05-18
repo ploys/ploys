@@ -9,7 +9,7 @@ use super::Error;
 /// The GitHub repository information.
 #[derive(Clone, Debug)]
 pub struct Repo {
-    addr: RepoAddr,
+    pub(crate) addr: RepoAddr,
     client: Client,
 }
 
