@@ -7,10 +7,7 @@ pub mod secret;
 use axum::extract::State;
 use axum_extra::TypedHeader;
 use ploys::client::{Client, Token};
-use ploys::package::BumpOrVersion;
 use semver::Version;
-use serde::Deserialize;
-use serde_with::{DisplayFromStr, serde_as};
 use tracing::{debug, error, instrument};
 
 use crate::state::AppState;
@@ -18,7 +15,7 @@ use crate::state::AppState;
 use self::auth::get_installation_access_token;
 use self::error::Error;
 use self::header::XGitHubDelivery;
-use self::payload::{Payload, PullRequestPayload, RepositoryDispatchPayload};
+use self::payload::{Payload, PullRequestPayload};
 
 /// Receives the GitHub webhook event payload.
 #[instrument(skip_all, fields(delivery = %delivery.into_inner(), event_name = payload.event_name()))]
@@ -40,14 +37,6 @@ pub async fn receive(
                     )
                     .await?;
                 }
-
-                Ok(())
-            }
-            _ => Ok(()),
-        },
-        Payload::RepositoryDispatch(payload) => match &*payload.action {
-            "ploys-package-release-request" => {
-                request_release(payload, &state).await?;
 
                 Ok(())
             }
@@ -105,57 +94,6 @@ fn create_release_sync(
         .map_err(ploys::project::Error::Repository)?;
 
     Ok(())
-}
-
-/// Requests the package release.
-///
-/// This does not yet support parallel release branches so simply ensures that
-/// all new versions are greater than the previous.
-async fn request_release(
-    payload: RepositoryDispatchPayload,
-    state: &AppState,
-) -> Result<(), Error> {
-    let token =
-        get_installation_access_token(payload.installation.id, payload.repository.id, state)
-            .await?;
-
-    tokio::task::spawn_blocking(move || {
-        if let Err(err) = create_release_request(token, payload) {
-            error!("Error creating release request: {err}");
-        }
-    });
-
-    Ok(())
-}
-
-/// Creates the release request.
-///
-/// The `Project` is currently using blocking requests so this should be spawned
-/// using `tokio::task::spawn_blocking`. This also avoids any timeout issues for
-/// completing the webhook event request.
-fn create_release_request(token: Token, payload: RepositoryDispatchPayload) -> Result<(), Error> {
-    let ClientPayload { package, version } = serde_json::from_value(payload.client_payload)?;
-
-    let client = Client::build().with_access_token_flow(token).finished()?;
-    let project = client.get_project(&payload.repository.full_name)?;
-    let package = project
-        .get_package(&package)
-        .ok_or(ploys::package::Error::NotFound(package))
-        .map_err(ploys::project::Error::Package)?;
-
-    project
-        .create_package_release_request(package.name(), version)?
-        .finish()?;
-
-    Ok(())
-}
-
-#[serde_as]
-#[derive(Deserialize)]
-struct ClientPayload {
-    package: String,
-    #[serde_as(as = "DisplayFromStr")]
-    version: BumpOrVersion,
 }
 
 #[cfg(test)]

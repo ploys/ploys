@@ -20,7 +20,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::changelog::Release;
 use crate::client::{Client, Error as ClientError};
-use crate::package::BumpOrVersion;
 use crate::repository::adapters::cached::Cached;
 use crate::repository::adapters::staged::Staged;
 use crate::repository::addr::RepoAddr;
@@ -630,44 +629,6 @@ impl GitLike for GitHub {
 }
 
 impl Remote for GitHub {
-    fn request_package_release(
-        &self,
-        package: &str,
-        version: BumpOrVersion,
-    ) -> Result<(), Self::Error> {
-        #[derive(Serialize)]
-        struct ClientPayload {
-            package: String,
-            version: String,
-        }
-
-        #[derive(Serialize)]
-        struct RepositoryDispatchEvent<T> {
-            event_type: String,
-            client_payload: T,
-        }
-
-        self.inner
-            .inner
-            .inner()
-            .repository
-            .post("dispatches")?
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .json(&RepositoryDispatchEvent {
-                event_type: String::from("ploys-package-release-request"),
-                client_payload: ClientPayload {
-                    package: package.to_owned(),
-                    version: version.to_string(),
-                },
-            })
-            .send()
-            .map_err(Error::from)?
-            .error_for_status()
-            .map_err(Error::from)?;
-
-        Ok(())
-    }
-
     fn get_changelog_release(
         &self,
         package: &str,

@@ -16,7 +16,6 @@ use bytes::Bytes;
 use either::Either;
 use relative_path::{RelativePath, RelativePathBuf};
 use semver::Version;
-use tracing::info;
 use url::Url;
 
 use crate::changelog::Changelog;
@@ -403,27 +402,6 @@ impl<T> Package<T>
 where
     T: Remote,
 {
-    /// Requests the release of the specified package version.
-    ///
-    /// It does not yet support parallel release or hotfix branches and expects
-    /// all development to be on the default branch in the repository settings.
-    pub fn request_release(&self, version: impl Into<BumpOrVersion>) -> Result<(), T::Error> {
-        let version = version.into();
-
-        info!(
-            package = self.name(),
-            version = %self.version(),
-            request = %version,
-            "Requesting release"
-        );
-
-        self.repository
-            .inner()
-            .request_package_release(self.name(), version)?;
-
-        Ok(())
-    }
-
     /// Builds the changelog release for the given package version.
     ///
     /// This method queries the GitHub API to generate new release information
