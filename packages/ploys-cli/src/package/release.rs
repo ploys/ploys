@@ -42,13 +42,13 @@ impl Release {
                 .finished()?,
         };
 
-        let release_id = client
+        let id = client
             .get_project(self.repo.clone())?
             .create_package_release_request(self.package, self.version)?
             .finish()?
             .id();
 
-        println!("Release created at `{}/pull/{release_id}`", self.repo.url());
+        println!("Release request created at `{}/pull/{id}`", self.repo.url());
 
         Ok(())
     }
