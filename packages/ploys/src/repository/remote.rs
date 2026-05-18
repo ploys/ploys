@@ -1,7 +1,6 @@
 use semver::Version;
 
 use crate::changelog::Release;
-use crate::package::BumpOrVersion;
 
 use super::GitLike;
 
@@ -10,13 +9,6 @@ use super::GitLike;
 /// This defines the shared API of a remote repository to simplify feature flag
 /// handling.
 pub trait Remote: GitLike {
-    /// Requests a package release.
-    fn request_package_release(
-        &self,
-        package: &str,
-        version: BumpOrVersion,
-    ) -> Result<(), Self::Error>;
-
     /// Gets the changelog release for the given package version.
     fn get_changelog_release(
         &self,
@@ -50,14 +42,6 @@ impl<T> Remote for &T
 where
     T: Remote,
 {
-    fn request_package_release(
-        &self,
-        package: &str,
-        version: BumpOrVersion,
-    ) -> Result<(), Self::Error> {
-        (**self).request_package_release(package, version)
-    }
-
     fn get_changelog_release(
         &self,
         package: &str,
@@ -94,14 +78,6 @@ impl<T> Remote for &mut T
 where
     T: Remote,
 {
-    fn request_package_release(
-        &self,
-        package: &str,
-        version: BumpOrVersion,
-    ) -> Result<(), Self::Error> {
-        (**self).request_package_release(package, version)
-    }
-
     fn get_changelog_release(
         &self,
         package: &str,
