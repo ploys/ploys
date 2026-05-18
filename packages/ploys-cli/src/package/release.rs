@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use anyhow::Error;
 use clap::Args;
 use ploys::client::{Client, ServAddr, Token};
@@ -44,12 +42,13 @@ impl Release {
                 .finished()?,
         };
 
-        let project = client.get_project(self.repo)?;
+        let id = client
+            .get_project(self.repo.clone())?
+            .create_package_release_request(self.package, self.version)?
+            .finish()?
+            .id();
 
-        project
-            .get_package(&self.package)
-            .ok_or(ploys::package::Error::<Infallible>::NotFound(self.package))?
-            .request_release(self.version)?;
+        println!("Release request created at `{}/pull/{id}`", self.repo.url());
 
         Ok(())
     }
