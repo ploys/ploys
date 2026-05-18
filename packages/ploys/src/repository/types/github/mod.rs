@@ -429,133 +429,126 @@ impl GitLike for GitHub {
         self.sha()
     }
 
-    fn commit(
+    fn commit_branch(
         &self,
+        branch_name: &str,
         message: &str,
         files: Vec<(RelativePathBuf, String)>,
     ) -> Result<String, Self::Error> {
-        let files = files
+        #[derive(Serialize)]
+        struct Query {
+            query: &'static str,
+            variables: Variables,
+        }
+
+        #[derive(Serialize)]
+        struct Variables {
+            input: Input,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Input {
+            branch: Branch,
+            message: Message,
+            file_changes: FileChanges,
+            expected_head_oid: String,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Branch {
+            repository_name_with_owner: String,
+            branch_name: String,
+        }
+
+        #[derive(Serialize)]
+        struct Message {
+            headline: String,
+        }
+
+        #[derive(Serialize)]
+        struct FileChanges {
+            additions: Vec<FileAddition>,
+        }
+
+        #[derive(Serialize)]
+        struct FileAddition {
+            path: String,
+            contents: String,
+        }
+
+        #[derive(Deserialize)]
+        struct QueryResponse {
+            data: QueryResponseData,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct QueryResponseData {
+            create_commit_on_branch: QueryResponseCreateCommit,
+        }
+
+        #[derive(Deserialize)]
+        struct QueryResponseCreateCommit {
+            commit: QueryResponseCommit,
+        }
+
+        #[derive(Deserialize)]
+        struct QueryResponseCommit {
+            oid: String,
+        }
+
+        let expected_head_oid = self.sha()?;
+        let repository_name_with_owner = self
+            .inner
+            .inner
+            .inner()
+            .repository
+            .addr
+            .full_name()
+            .to_string();
+
+        let file_additions = files
             .into_iter()
-            .map(|(path, file)| prepare_path(Cow::Owned(path)).map(|path| (path, file)))
+            .map(|(path, contents)| {
+                prepare_path(Cow::Owned(path)).map(|path| FileAddition {
+                    path: path.to_string(),
+                    contents: BASE64_STANDARD.encode(contents),
+                })
+            })
             .collect::<Result<Vec<_>, _>>()?;
 
-        #[derive(Serialize)]
-        struct CreateBlob {
-            content: String,
-            encoding: String,
-        }
-
-        #[derive(Deserialize)]
-        struct NewBlob {
-            sha: String,
-        }
-
-        #[derive(Serialize)]
-        struct CreateTree {
-            tree: Vec<TreeObject>,
-            base_tree: String,
-        }
-
-        #[derive(Serialize)]
-        struct TreeObject {
-            path: RelativePathBuf,
-            mode: String,
-            r#type: String,
-            sha: String,
-        }
-
-        #[derive(Deserialize)]
-        struct NewTree {
-            sha: String,
-        }
-
-        #[derive(Serialize)]
-        struct CreateCommit {
-            message: String,
-            tree: String,
-            parents: Vec<String>,
-        }
-
-        #[derive(Deserialize)]
-        struct NewCommit {
-            sha: String,
-        }
-
-        let base_sha = self.sha()?;
-
-        let mut tree = CreateTree {
-            tree: Vec::new(),
-            base_tree: base_sha.clone(),
-        };
-
-        for (path, content) in files {
-            let sha = self
-                .inner
-                .inner
-                .inner()
-                .repository
-                .post("git/blobs")?
-                .header("Accept", "application/vnd.github+json")
-                .header("X-GitHub-Api-Version", "2022-11-28")
-                .json(&CreateBlob {
-                    content,
-                    encoding: String::from("utf-8"),
-                })
-                .send()
-                .map_err(Error::from)?
-                .error_for_status()
-                .map_err(Error::from)?
-                .json::<NewBlob>()
-                .map_err(Error::from)?
-                .sha;
-
-            tree.tree.push(TreeObject {
-                path: path.into_owned(),
-                mode: String::from("100644"),
-                r#type: String::from("blob"),
-                sha,
-            });
-        }
-
-        let tree_sha = self
+        let query = "mutation ($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }";
+        let response = self
             .inner
             .inner
             .inner()
             .repository
-            .post("git/trees")?
-            .header("Accept", "application/vnd.github+json")
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .json(&tree)
-            .send()
-            .map_err(Error::from)?
-            .error_for_status()
-            .map_err(Error::from)?
-            .json::<NewTree>()
-            .map_err(Error::from)?
-            .sha;
-
-        let commit_sha = self
-            .inner
-            .inner
-            .inner()
-            .repository
-            .post("git/commits")?
-            .header("Accept", "application/vnd.github+json")
-            .header("X-GitHub-Api-Version", "2022-11-28")
-            .json(&CreateCommit {
-                message: message.to_owned(),
-                tree: tree_sha,
-                parents: vec![base_sha],
+            .graphql()?
+            .json(&Query {
+                query,
+                variables: Variables {
+                    input: Input {
+                        branch: Branch {
+                            repository_name_with_owner,
+                            branch_name: branch_name.to_string(),
+                        },
+                        message: Message {
+                            headline: message.to_string(),
+                        },
+                        file_changes: FileChanges {
+                            additions: file_additions,
+                        },
+                        expected_head_oid,
+                    },
+                },
             })
-            .send()
-            .map_err(Error::from)?
-            .error_for_status()
-            .map_err(Error::from)?
-            .json::<NewCommit>()
-            .map_err(Error::from)?
-            .sha;
+            .send()?
+            .error_for_status()?
+            .json::<QueryResponse>()?;
 
-        Ok(commit_sha)
+        Ok(response.data.create_commit_on_branch.commit.oid)
     }
 
     fn get_default_branch(&self) -> Result<String, Self::Error> {
