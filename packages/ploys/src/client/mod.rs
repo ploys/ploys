@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock};
 
 use reqwest::blocking::Client as HttpClient;
 
-use crate::project::{Error as ProjError, Project};
+use crate::project::{Builder as ProjectBuilder, Error as ProjError, Project};
 use crate::repository::RepoAddr;
 use crate::repository::types::github::{Error as RepoError, GitHub};
 
@@ -53,6 +53,19 @@ impl Client {
         let proj = Project::open(repo)?;
 
         Ok(proj)
+    }
+
+    /// Creates a new project at the given repository address.
+    pub fn create_project<R>(&self, repo: R) -> Result<ProjectBuilder, Error>
+    where
+        R: TryInto<RepoAddr, Error: Into<RepoError>>,
+    {
+        let repo = repo
+            .try_into()
+            .map_err(Into::into)
+            .map_err(ProjError::Repository)?;
+
+        Ok(ProjectBuilder::new(repo, self.clone()))
     }
 
     /// Iterates over managed projects.
