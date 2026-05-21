@@ -5,6 +5,8 @@
 //! remote GitHub repository.
 
 pub mod config;
+
+mod builder;
 mod error;
 mod packages;
 mod release;
@@ -21,6 +23,7 @@ use crate::package::{BumpOrVersion, Package, PackageKind};
 use crate::repository::types::staging::Staging;
 use crate::repository::{Remote, RepoAddr, Repository, Stage};
 
+pub use self::builder::Builder;
 pub use self::config::Config;
 pub use self::error::Error;
 pub use self::packages::Packages;
