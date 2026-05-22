@@ -18,7 +18,7 @@ base64 = "0.22.1"
 bytes = "1.10.1"
 dialoguer = "0.11.0"
 either = "1.13.0"
-gix = { version = "0.73.0", features = ["tree-editor"], optional = true }
+gix = { version = "0.83.0", features = ["tree-editor"], optional = true }
 globset = "0.4.13"
 itertools = "0.14.0"
 keyring-core = "1.0.0"
