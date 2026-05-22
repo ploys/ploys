@@ -18,7 +18,7 @@ hex = "0.4.3"
 hmac = "0.12.1"
 jsonwebtoken = "9.3.0"
 mime = "0.3.17"
-reqwest = { version = "0.13.3", features = ["blocking", "json", "query", "form"] }
+reqwest = { version = "0.13.3", features = ["blocking", "form", "json", "query"] }
 semver = "1.0.19"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.117"
