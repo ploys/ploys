@@ -12,7 +12,7 @@ publish = false
 [dependencies]
 anyhow = "1.0.89"
 axum = "0.8.4"
-axum-extra = { version = "0.10.1", features = ["typed-header"] }
+axum-extra = { version = "0.12.6", features = ["typed-header"] }
 clap = { version = "4.3.21", features = ["derive", "env"] }
 hex = "0.4.3"
 hmac = "0.12.1"
