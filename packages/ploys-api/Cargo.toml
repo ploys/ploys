@@ -16,7 +16,7 @@ axum-extra = { version = "0.12.6", features = ["typed-header"] }
 clap = { version = "4.3.21", features = ["derive", "env"] }
 hex = "0.4.3"
 hmac = "0.12.1"
-jsonwebtoken = "9.3.0"
+jsonwebtoken = { version = "10.4.0", features = ["aws_lc_rs"] }
 mime = "0.3.17"
 reqwest = { version = "0.13.3", features = ["blocking", "form", "json", "query"] }
 semver = "1.0.19"
