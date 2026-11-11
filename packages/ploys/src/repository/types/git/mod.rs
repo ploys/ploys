@@ -91,7 +91,7 @@ impl Git {
         let config = match (globals, overrides) {
             (Some(globals), Some(overrides)) => {
                 let mut config = globals;
-                config.append(overrides);
+                let _ = config.append(overrides);
                 config
             }
             (Some(config), None) => config,
@@ -179,28 +179,12 @@ impl Commit for Git {
                 repo.commit(revision, params.message(), tree_id, parent)?;
             }
             _ => {
-                let author = repo
-                    .author()
-                    .ok_or(gix::commit::Error::AuthorMissing)?
-                    .map_err(gix::commit::Error::from)?;
-                let committer = repo
-                    .committer()
-                    .ok_or(gix::commit::Error::CommitterMissing)?
-                    .map_err(gix::commit::Error::from)?;
+                let commit_id = repo
+                    .new_commit(params.message(), tree_id, parent)?
+                    .id()
+                    .to_string();
 
-                let commit = gix::objs::Commit {
-                    message: params.message().into(),
-                    tree: tree_id.into(),
-                    author: author.into(),
-                    committer: committer.into(),
-                    encoding: None,
-                    parents: parent.into_iter().map(Into::into).collect(),
-                    extra_headers: Default::default(),
-                };
-
-                let commit_id = repo.write_object(&commit)?;
-
-                self.set_revision(Revision::Sha(commit_id.to_string()));
+                self.set_revision(Revision::Sha(commit_id));
             }
         }
 
