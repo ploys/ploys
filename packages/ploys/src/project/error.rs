@@ -5,7 +5,7 @@ use std::fmt::{self, Display};
 #[derive(Debug)]
 pub enum Error<T = crate::repository::types::staging::Error> {
     /// The configuration error.
-    Config(super::config::Error),
+    Config(crate::config::Error),
     /// The changelog error.
     Changelog(crate::changelog::Error),
     /// The repository error.
@@ -52,8 +52,8 @@ impl<T> From<Infallible> for Error<T> {
     }
 }
 
-impl<T> From<super::config::Error> for Error<T> {
-    fn from(err: super::config::Error) -> Self {
+impl<T> From<crate::config::Error> for Error<T> {
+    fn from(err: crate::config::Error) -> Self {
         Self::Config(err)
     }
 }
