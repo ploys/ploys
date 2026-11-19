@@ -5,8 +5,8 @@ use tracing::{info, info_span};
 use crate::changelog::Release;
 use crate::package::{BumpOrVersion, Lockfile, Package};
 use crate::project::Project;
-
-use super::Remote;
+use crate::repository::Repository;
+use crate::repository::types::github::{Error as GitHubError, GitHub};
 
 /// The release request.
 pub struct ReleaseRequest {
@@ -42,18 +42,18 @@ impl ReleaseRequest {
 ///
 /// This configures the release request that will be generated on the remote
 /// repository.
-pub struct ReleaseRequestBuilder<'a, T> {
-    project: &'a Project<T>,
-    package: Package<T>,
+pub struct ReleaseRequestBuilder<'a> {
+    project: &'a Project<GitHub>,
+    package: Package<GitHub>,
     version: BumpOrVersion,
     options: Options,
 }
 
-impl<'a, T> ReleaseRequestBuilder<'a, T> {
+impl<'a> ReleaseRequestBuilder<'a> {
     /// Constructs a new release request builder.
     pub(crate) fn new(
-        project: &'a Project<T>,
-        package: Package<T>,
+        project: &'a Project<GitHub>,
+        package: Package<GitHub>,
         version: BumpOrVersion,
     ) -> Self {
         Self {
@@ -65,7 +65,7 @@ impl<'a, T> ReleaseRequestBuilder<'a, T> {
     }
 }
 
-impl<T> ReleaseRequestBuilder<'_, T> {
+impl ReleaseRequestBuilder<'_> {
     /// Update the package manifest.
     pub fn update_package_manifest(mut self, enable: bool) -> Self {
         self.options.update_package_manifest = enable;
@@ -89,14 +89,9 @@ impl<T> ReleaseRequestBuilder<'_, T> {
         self.options.update_changelog = enable;
         self
     }
-}
 
-impl<T> ReleaseRequestBuilder<'_, T>
-where
-    T: Remote,
-{
     /// Finishes the release request.
-    pub fn finish(mut self) -> Result<ReleaseRequest, crate::project::Error<T::Error>> {
+    pub fn finish(mut self) -> Result<ReleaseRequest, crate::project::Error<GitHubError>> {
         let mut files = Vec::new();
 
         let version = match self.version {

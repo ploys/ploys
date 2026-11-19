@@ -21,8 +21,9 @@ use url::Url;
 use crate::changelog::Changelog;
 use crate::project::Project;
 use crate::repository::adapters::subdirectory::Subdirectory;
+use crate::repository::types::github::{Error as GitHubError, GitHub};
 use crate::repository::types::staging::Staging;
-use crate::repository::{Remote, RepoAddr, Repository, Stage};
+use crate::repository::{RepoAddr, Repository, Stage};
 
 pub use self::bump::{Bump, BumpOrVersion, Error as BumpError};
 pub use self::error::Error;
@@ -400,7 +401,7 @@ where
 
 impl<T> Package<T>
 where
-    T: Remote,
+    T: Borrow<GitHub>,
 {
     /// Builds the changelog release for the given package version.
     ///
@@ -413,8 +414,8 @@ where
     pub fn build_release_notes(
         &self,
         version: impl Borrow<Version>,
-    ) -> Result<crate::changelog::Release, T::Error> {
-        self.repository.inner().get_changelog_release(
+    ) -> Result<crate::changelog::Release, GitHubError> {
+        self.repository.inner().borrow().get_changelog_release(
             self.name(),
             version.borrow(),
             self.is_primary(),
