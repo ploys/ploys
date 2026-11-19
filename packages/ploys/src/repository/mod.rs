@@ -4,8 +4,6 @@
 //! located on the local file system or in a remote version control system.
 
 mod addr;
-mod remote;
-mod vcs;
 
 pub mod adapters;
 pub mod path;
@@ -18,8 +16,6 @@ use bytes::Bytes;
 use relative_path::{RelativePath, RelativePathBuf};
 
 pub use self::addr::{Error as RepoAddrError, RepoAddr};
-pub use self::remote::Remote;
-pub use self::vcs::GitLike;
 
 /// Defines a file repository.
 ///

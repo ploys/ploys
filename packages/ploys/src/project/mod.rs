@@ -19,8 +19,9 @@ use crate::config::Config;
 use crate::package::lockfile::CargoLockfile;
 use crate::package::manifest::CargoManifest;
 use crate::package::{BumpOrVersion, Package, PackageKind};
+use crate::repository::types::github::{Error as GitHubError, GitHub};
 use crate::repository::types::staging::Staging;
-use crate::repository::{Remote, RepoAddr, Repository, Stage};
+use crate::repository::{RepoAddr, Repository, Stage};
 
 pub use self::builder::Builder;
 pub use self::error::Error;
@@ -314,16 +315,13 @@ where
     }
 }
 
-impl<T> Project<T>
-where
-    T: Remote + Clone,
-{
+impl Project<GitHub> {
     /// Constructs a new package release request builder.
     pub fn create_package_release_request(
         &self,
         package: impl AsRef<str>,
         version: impl Into<BumpOrVersion>,
-    ) -> Result<ReleaseRequestBuilder<'_, T>, Error<T::Error>> {
+    ) -> Result<ReleaseRequestBuilder<'_>, Error<GitHubError>> {
         let package = self
             .get_package(package.as_ref())
             .ok_or_else(|| {
@@ -340,7 +338,7 @@ where
     pub fn create_package_release(
         &self,
         package: impl AsRef<str>,
-    ) -> Result<ReleaseBuilder<'_, T>, Error<T::Error>> {
+    ) -> Result<ReleaseBuilder<'_>, Error<GitHubError>> {
         let package = self
             .get_package(package.as_ref())
             .ok_or_else(|| {

@@ -2,7 +2,7 @@ mod request;
 
 use tracing::{info, info_span};
 
-use crate::repository::Remote;
+use crate::repository::types::github::{Error as GitHubError, GitHub};
 
 pub use self::request::{ReleaseRequest, ReleaseRequestBuilder};
 
@@ -33,24 +33,19 @@ impl Release {
 }
 
 /// The package release builder.
-pub struct ReleaseBuilder<'a, T> {
-    project: &'a Project<T>,
-    package: Package<T>,
+pub struct ReleaseBuilder<'a> {
+    project: &'a Project<GitHub>,
+    package: Package<GitHub>,
 }
 
-impl<'a, T> ReleaseBuilder<'a, T> {
+impl<'a> ReleaseBuilder<'a> {
     /// Constructs a new release builder.
-    pub(crate) fn new(project: &'a Project<T>, package: Package<T>) -> Self {
+    pub(crate) fn new(project: &'a Project<GitHub>, package: Package<GitHub>) -> Self {
         Self { project, package }
     }
-}
 
-impl<T> ReleaseBuilder<'_, T>
-where
-    T: Remote,
-{
     /// Finishes the release.
-    pub fn finish(self) -> Result<Release, T::Error> {
+    pub fn finish(self) -> Result<Release, GitHubError> {
         let sha = self.project.repository.sha()?;
 
         let version = self.package.version();

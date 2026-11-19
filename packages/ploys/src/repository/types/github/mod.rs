@@ -25,7 +25,7 @@ use crate::repository::adapters::staged::Staged;
 use crate::repository::addr::RepoAddr;
 use crate::repository::path::prepare_path;
 use crate::repository::revision::{Reference, Revision};
-use crate::repository::{Commit, GitLike, Open, Remote, Repository, Stage};
+use crate::repository::{Commit, Open, Repository, Stage};
 
 pub use self::error::Error;
 pub use self::params::CommitParams;
@@ -423,17 +423,14 @@ impl Repository for Inner {
     }
 }
 
-impl GitLike for GitHub {
-    fn sha(&self) -> Result<String, Self::Error> {
-        self.sha()
-    }
-
-    fn commit_branch(
+impl GitHub {
+    /// Commits the changes to the given branch.
+    pub(crate) fn commit_branch(
         &self,
         branch_name: &str,
         message: &str,
         files: Vec<(RelativePathBuf, String)>,
-    ) -> Result<String, Self::Error> {
+    ) -> Result<String, Error> {
         #[derive(Serialize)]
         struct Query {
             query: &'static str,
@@ -550,7 +547,8 @@ impl GitLike for GitHub {
         Ok(response.data.create_commit_on_branch.commit.oid)
     }
 
-    fn get_default_branch(&self) -> Result<String, Self::Error> {
+    /// Gets the default branch.
+    pub(crate) fn get_default_branch(&self) -> Result<String, Error> {
         #[derive(Deserialize)]
         struct RepoResponse {
             default_branch: String,
@@ -575,7 +573,8 @@ impl GitLike for GitHub {
         Ok(default_branch)
     }
 
-    fn create_branch(&self, name: &str) -> Result<(), Self::Error> {
+    /// Creates a new branch.
+    pub(crate) fn create_branch(&self, name: &str) -> Result<(), Error> {
         #[derive(Serialize)]
         struct NewBranch {
             r#ref: String,
@@ -603,7 +602,8 @@ impl GitLike for GitHub {
         Ok(())
     }
 
-    fn update_branch(&self, name: &str, sha: &str) -> Result<(), Self::Error> {
+    /// Updates the branch to point to the given SHA.
+    fn update_branch(&self, name: &str, sha: &str) -> Result<(), Error> {
         #[derive(Serialize)]
         struct UpdateRef {
             sha: String,
@@ -628,13 +628,14 @@ impl GitLike for GitHub {
     }
 }
 
-impl Remote for GitHub {
-    fn get_changelog_release(
+impl GitHub {
+    /// Gets the changelog release for the given package version.
+    pub(crate) fn get_changelog_release(
         &self,
         package: &str,
         version: &Version,
         is_primary: bool,
-    ) -> Result<Release, Self::Error> {
+    ) -> Result<Release, Error> {
         self::changelog::get_release(
             &self.inner.inner.inner().repository,
             package,
@@ -643,13 +644,14 @@ impl Remote for GitHub {
         )
     }
 
-    fn create_pull_request(
+    /// Creates a pull request.
+    pub(crate) fn create_pull_request(
         &self,
         head: &str,
         base: &str,
         title: &str,
         body: &str,
-    ) -> Result<u64, Self::Error> {
+    ) -> Result<u64, Error> {
         #[derive(Serialize)]
         struct NewPullRequest {
             title: String,
@@ -688,7 +690,8 @@ impl Remote for GitHub {
         Ok(number)
     }
 
-    fn create_release(
+    /// Creates a release.
+    pub(crate) fn create_release(
         &self,
         tag: &str,
         sha: &str,
@@ -696,7 +699,7 @@ impl Remote for GitHub {
         body: &str,
         prerelease: bool,
         latest: bool,
-    ) -> Result<u64, Self::Error> {
+    ) -> Result<u64, Error> {
         #[derive(Serialize)]
         struct NewRelease {
             tag_name: String,

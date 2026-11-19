@@ -2,9 +2,9 @@ use serde::Serialize;
 
 use crate::client::{Client, Credentials, Error as ClientError};
 use crate::project::Config;
+use crate::repository::RepoAddr;
 use crate::repository::revision::Revision;
 use crate::repository::types::github::GitHub;
-use crate::repository::{GitLike, RepoAddr};
 
 use super::{Error as ProjError, Project};
 
