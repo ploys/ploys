@@ -31,6 +31,18 @@ impl<T> Staged<T> {
             files: self.files,
         }
     }
+}
+
+impl<T> Staged<T> {
+    #[cfg(feature = "git")]
+    pub(crate) fn changes(&self) -> &BTreeMap<RelativePathBuf, Option<Bytes>> {
+        &self.files
+    }
+
+    #[cfg(feature = "git")]
+    pub(crate) fn clear(&mut self) {
+        self.files.clear();
+    }
 
     /// Drains the staged files.
     pub(crate) fn drain(&mut self) -> impl Iterator<Item = (RelativePathBuf, Option<Bytes>)> {

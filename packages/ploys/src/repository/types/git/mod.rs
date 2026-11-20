@@ -11,6 +11,8 @@ use std::path::{Path, PathBuf};
 use bytes::Bytes;
 use gix::config::File;
 use gix::create::{Kind, Options};
+use gix::refs::Target;
+use gix::refs::transaction::{PreviousValue, RefEdit};
 use gix::traverse::tree::Recorder;
 use gix::{ObjectId, ThreadSafeRepository};
 use relative_path::{RelativePath, RelativePathBuf};
@@ -144,6 +146,13 @@ impl Commit for Git {
         let params = params.into();
         let repo = self.inner.inner.inner().repository.to_thread_local();
         let revision = self.inner.inner.inner().revision.to_string();
+        let sign = match params.sign() {
+            Some(sign) => sign,
+            None => repo
+                .config_snapshot()
+                .try_boolean("commit.gpgSign")?
+                .unwrap_or(false),
+        };
 
         let (mut editor, parent) = match &self.inner.inner.inner().revision {
             Revision::Head if repo.head()?.is_unborn() => (
@@ -159,10 +168,10 @@ impl Commit for Git {
             }
         };
 
-        for (path, file) in self.inner.drain() {
+        for (path, file) in self.inner.changes() {
             match file {
                 Some(bytes) => {
-                    let blob_id = repo.write_blob(&bytes)?;
+                    let blob_id = repo.write_blob(bytes)?;
 
                     editor.upsert(path.as_str(), gix::object::tree::EntryKind::Blob, blob_id)?;
                 }
@@ -173,20 +182,36 @@ impl Commit for Git {
         }
 
         let tree_id = editor.write()?;
+        let commit = repo.new_commit(params.message(), tree_id, parent)?;
+        let commit = if sign { commit.signed()? } else { commit };
 
         match &self.inner.inner.inner().revision {
             Revision::Head | Revision::Reference(Reference::Branch(_)) => {
-                repo.commit(revision, params.message(), tree_id, parent)?;
+                let expected = match parent.map(|id| Target::Object(id.detach())) {
+                    Some(previous) if revision == "HEAD" => {
+                        PreviousValue::MustExistAndMatch(previous)
+                    }
+                    Some(previous) => PreviousValue::ExistingMustMatch(previous),
+                    None => PreviousValue::MustNotExist,
+                };
+                let reference = revision.try_into().map_err(gix::Error::from_error)?;
+                let message = gix::reference::log::message(
+                    "commit",
+                    params.message().into(),
+                    parent.iter().count(),
+                );
+
+                repo.edit_references(Some(
+                    RefEdit::update(reference, commit.id().detach(), expected, message)
+                        .with_deref(true),
+                ))?;
             }
             _ => {
-                let commit_id = repo
-                    .new_commit(params.message(), tree_id, parent)?
-                    .id()
-                    .to_string();
-
-                self.set_revision(Revision::Sha(commit_id));
+                self.set_revision(Revision::Sha(commit.id().to_string()));
             }
         }
+
+        self.inner.clear();
 
         Ok(())
     }
