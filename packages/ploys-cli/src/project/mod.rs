@@ -32,7 +32,7 @@ impl Project {
 enum Command {
     /// Gets the project information.
     Info(Info),
-    /// Initializes a new project.
+    /// Initializes a new local project with a Git repository.
     Init(Init),
     /// Lists managed projects.
     List(List),

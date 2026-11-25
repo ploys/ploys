@@ -1,55 +1,51 @@
 use std::io::IsTerminal;
+use std::path::{Path, PathBuf};
 
-use anyhow::Error;
+use anyhow::{Context, Error, bail};
 use clap::Args;
 use dialoguer::Input;
-use ploys::client::{Client, ServAddr, Token};
+use ploys::project::Project;
 use ploys::repository::RepoAddr;
 use ploys::repository::types::git::Git;
-
-use crate::auth::init_keyring;
 
 /// Initializes a new project.
 #[derive(Args)]
 pub struct Init {
-    /// The repository address (owner/name) or GitHub URL.
-    repo: RepoAddr,
+    /// The target path.
+    #[arg(default_value = ".")]
+    path: PathBuf,
+
+    /// The project name.
+    #[arg(long)]
+    name: Option<String>,
 
     /// The project description.
     #[arg(long)]
     description: Option<String>,
 
+    /// The project repository.
+    #[arg(long)]
+    repository: Option<RepoAddr>,
+
     /// The project author.
     #[arg(long)]
     author: Vec<String>,
-
-    /// The project visibility.
-    #[arg(long)]
-    private: bool,
-
-    /// The management server address.
-    #[arg(long, default_value = "api.ploys.dev")]
-    server: ServAddr,
-
-    /// The authentication token for GitHub API access.
-    #[arg(long, env = "GITHUB_TOKEN", hide_env_values = true)]
-    token: Option<Token>,
 }
 
 impl Init {
     /// Executes the command.
     pub fn exec(self) -> Result<(), Error> {
-        let is_terminal = std::io::stdin().is_terminal();
-        let client = match self.token {
-            Some(token) => Client::build()
-                .with_server(self.server)
-                .with_access_token_flow(token)
-                .finished()?,
-            None => Client::build()
-                .with_server(self.server)
-                .with_refresh_token_flow()
-                .with_keyring_store(init_keyring()?)
-                .finished()?,
+        let is_terminal = std::io::stderr().is_terminal();
+
+        let name = match self.name {
+            Some(name) => name,
+            None if self.path != Path::new(".") => match self.path.file_name() {
+                Some(name) => name.to_string_lossy().to_string(),
+                None if !is_terminal => bail!("Expected a project name"),
+                None => Input::<String>::new().with_prompt("Name").interact_text()?,
+            },
+            None if !is_terminal => bail!("Expected a project name"),
+            None => Input::<String>::new().with_prompt("Name").interact_text()?,
         };
 
         let description = match self.description {
@@ -68,14 +64,29 @@ impl Init {
             }
         };
 
+        let repository = match self.repository {
+            Some(repository) => Some(repository),
+            None if !is_terminal => None,
+            None => {
+                let repository = Input::<String>::new()
+                    .with_prompt("Repository")
+                    .allow_empty(true)
+                    .interact_text()?;
+
+                match repository.is_empty() {
+                    true => None,
+                    false => Some(repository.parse()?),
+                }
+            }
+        };
+
         let authors = match self.author.is_empty() {
             false => self.author,
             true if !is_terminal => Vec::new(),
             true => {
-                let mut author = format!("The {} Project Developers", self.repo.name());
-
-                if let Some(git_author) = Git::get_author() {
-                    author = git_author;
+                let author = match Git::get_author() {
+                    Some(author) => author,
+                    None => format!("The {name} Project Developers"),
                 };
 
                 let author = Input::<String>::new()
@@ -91,21 +102,46 @@ impl Init {
             }
         };
 
-        let mut builder = client.create_project(self.repo)?;
+        let mut project = Project::new(name);
 
         if let Some(description) = description {
-            builder = builder.with_description(description);
+            project.set_description(description);
         }
 
         if !authors.is_empty() {
-            builder = builder.with_authors(authors);
+            project.set_authors(authors);
         }
 
-        if self.private {
-            builder = builder.with_private_visibility();
+        if let Some(repository) = repository {
+            project.set_repository(repository);
         }
 
-        builder.finished()?;
+        std::fs::create_dir_all(&self.path)
+            .with_context(|| format!("Could not create directory `{}`", self.path.display()))?;
+
+        let first_entry = self
+            .path
+            .read_dir()
+            .and_then(|mut entries| entries.next().transpose())
+            .with_context(|| format!("Could not read directory `{}`", self.path.display()))?;
+
+        if first_entry.is_some() {
+            bail!("Expected an empty directory at `{}`", self.path.display());
+        }
+
+        Git::init(&self.path).with_context(|| {
+            format!(
+                "Could not initialize Git repository at `{}`",
+                self.path.display()
+            )
+        })?;
+
+        project.write(&self.path, false).with_context(|| {
+            format!(
+                "Could not create project at directory `{}`",
+                self.path.display()
+            )
+        })?;
 
         Ok(())
     }
